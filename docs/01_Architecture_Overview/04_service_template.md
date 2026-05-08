@@ -43,7 +43,8 @@ services/[service-name]/
 │       └── event_sub/     # Lắng nghe (Subscribe) các sự kiện bên ngoài
 ├── tests/                 # Integration & E2E Tests
 ├── api/                   # Contracts (Protobuf, OpenAPI, Event Schemas)
-├── README.md              # Tài liệu hướng dẫn riêng cho service này
+├── docs/                  # Tài liệu kỹ thuật riêng cho service này
+├── README.md              # Hướng dẫn nhanh
 ├── Dockerfile             # Containerization
 ├── Makefile               # Phím tắt cho các lệnh common (build, test, run)
 └── .env.example           # Cấu hình mẫu
