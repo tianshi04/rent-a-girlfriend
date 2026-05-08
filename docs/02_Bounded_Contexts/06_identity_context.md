@@ -37,8 +37,9 @@ Lưu trữ thông tin xác thực và trạng thái người dùng.
 
 *   **Token Pair:** Sau khi login qua Google, hệ thống cấp cặp Access Token (ngắn hạn) và Refresh Token (dài hạn).
 *   **Refresh Token Rotation:** Mỗi lần refresh token sẽ sinh ra một refresh token mới, vô hiệu hóa token cũ để chống tấn công replay.
-*   **Xác thực Phi tập trung (JWKS):** Identity Service cung cấp Public Keys qua endpoint `GET /.well-known/jwks.json`.
-    *   Các service khác (hoặc API Gateway) sử dụng các Public Keys này để tự xác thực JWT (Token-based Auth) mà không cần gọi trực tiếp tới Identity Service cho mỗi request.
+*   **Xác thực Phi tập trung (JWKS) qua Service Mesh:** Identity Service cung cấp Public Keys qua endpoint `GET /.well-known/jwks.json`.
+    *   Hệ thống không yêu cầu từng Microservice tự verify Token. Thay vào đó, **Istio Service Mesh (Waypoint Proxy)** sẽ sử dụng Public Keys này để tự động xác thực JWT (Token-based Auth) ngay tại tầng hạ tầng.
+    *   Request chỉ được chuyển đến service nếu Token hợp lệ, giúp giảm tải logic cho các service nghiệp vụ và tăng tính bảo mật đồng nhất.
     *   Hỗ trợ Key Rotation (xoay khóa) định kỳ với Key ID (`kid`).
 
 *Chi tiết về thuật toán, cấu trúc payload và logic xoay vòng xem tại: [Auth Design Details](../reference/auth_implementation_details.md).*

@@ -109,4 +109,20 @@ Mặc dù các service tự do chọn công nghệ, nhưng phương thức giao 
 *   **Storage (Lưu trữ ảnh, âm thanh):** Áp dụng pattern **Presigned URL**. Hệ thống Backend không xử lý stream file trực tiếp để tránh nghẽn mạng. Profile Service sinh ra link upload tạm thời, Client dùng link đó upload trực tiếp lên Storage Cloud (S3/Cloudinary).
 *   **Payment (VNPay):** Finance Service thiết kế API Webhook (IPN) tiếp nhận kết quả thanh toán. Luôn dùng IPN làm *Source of Truth* thay vì tin tưởng kết quả do Client gửi lên.
 
+## 6. SERVICE MESH (ISTIO AMBIENT)
+
+Hệ thống sử dụng **Istio Ambient Mode** (kiến trúc không Sidecar) để quản lý hạ tầng giao tiếp giữa các Microservices.
+
+### 6.1. Vai trò cốt lõi
+*   **Bảo mật Zero-Trust:** Tự động mã hóa mTLS và định danh service qua `ztunnel`.
+*   **Xác thực JWT tập trung (Auth Offloading):** Thay vì từng service tự verify JWT, hệ thống sử dụng Istio để **xác thực Token tập trung** tại tầng Mesh. Nếu Token không hợp lệ, request sẽ bị chặn ngay từ lớp hạ tầng trước khi chạm tới code ứng dụng.
+*   **Quản lý Traffic:** Điều phối lưu lượng, retry, và circuit breaking thông qua `Waypoint Proxy`.
+
+> [!TIP]
+> Chi tiết về cấu trúc ztunnel, Waypoint và cách cấu hình xác thực JWT, xem tại: **[Chi tiết về Istio Ambient Mode](../03_Integration_and_Comms/03_service_mesh_istio.md)**.
+
 ---
+
+## 7. QUY TRÌNH PHÁT TRIỂN VÀ TRIỂN KHAI (CI/CD)
+
+*(Sẽ được cập nhật chi tiết trong các tài liệu tiếp theo)*
