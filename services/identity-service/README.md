@@ -10,7 +10,7 @@ Microservice quản lý xác thực, phân quyền và định danh người dù
 - **Chế tài vi phạm**: Tự động khóa tài khoản khi đạt ngưỡng (đọc từ DB)
 
 ## Tech Stack
-- **Language**: Go 1.23
+- **Language**: Go 1.25
 - **Framework**: Gin
 - **Database**: PostgreSQL (GORM)
 - **Architecture**: Hexagonal (Ports & Adapters)
