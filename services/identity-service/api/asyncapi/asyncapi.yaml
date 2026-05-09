@@ -1,0 +1,130 @@
+asyncapi: 2.6.0
+info:
+  title: Identity Service Events
+  version: 1.0.0
+  description: Events published and subscribed to by the Identity Service via Kafka.
+
+channels:
+  com.rentagf.identity.UserRegistered.v1:
+    publish:
+      summary: New user registered
+      message:
+        $ref: '#/components/messages/UserRegistered'
+
+  com.rentagf.identity.ViolationRecorded.v1:
+    publish:
+      summary: Violation recorded against an account
+      message:
+        $ref: '#/components/messages/ViolationRecorded'
+
+  com.rentagf.identity.AccountLocked.v1:
+    publish:
+      summary: Account locked
+      message:
+        $ref: '#/components/messages/AccountLocked'
+
+  com.rentagf.identity.AccountUnlocked.v1:
+    publish:
+      summary: Account unlocked
+      message:
+        $ref: '#/components/messages/AccountUnlocked'
+
+  com.rentagf.identity.CompanionUpgradeRequested.v1:
+    publish:
+      summary: Companion upgrade requested
+      message:
+        $ref: '#/components/messages/CompanionUpgradeRequested'
+
+  com.rentagf.identity.CompanionUpgradeApproved.v1:
+    publish:
+      summary: Companion upgrade approved
+      message:
+        $ref: '#/components/messages/CompanionUpgradeApproved'
+
+  com.rentagf.identity.CompanionUpgradeRejected.v1:
+    publish:
+      summary: Companion upgrade rejected
+      message:
+        $ref: '#/components/messages/CompanionUpgradeRejected'
+
+  com.rentagf.identity.RoleUpgraded.v1:
+    publish:
+      summary: User role upgraded to COMPANION
+      message:
+        $ref: '#/components/messages/RoleUpgraded'
+
+components:
+  messages:
+    UserRegistered:
+      payload:
+        type: object
+        properties:
+          userId: { type: string, format: uuid }
+          email: { type: string, format: email }
+          role: { type: string }
+          googleId: { type: string }
+          timestamp: { type: string, format: date-time }
+
+    ViolationRecorded:
+      payload:
+        type: object
+        properties:
+          userId: { type: string, format: uuid }
+          currentCount: { type: integer }
+          reason: { type: string }
+          bookingId: { type: string, format: uuid }
+          timestamp: { type: string, format: date-time }
+
+    AccountLocked:
+      payload:
+        type: object
+        properties:
+          userId: { type: string, format: uuid }
+          reason: { type: string }
+          lockedBy: { type: string }
+          timestamp: { type: string, format: date-time }
+
+    AccountUnlocked:
+      payload:
+        type: object
+        properties:
+          userId: { type: string, format: uuid }
+          unlockedBy: { type: string }
+          timestamp: { type: string, format: date-time }
+
+    CompanionUpgradeRequested:
+      payload:
+        type: object
+        properties:
+          requestId: { type: string, format: uuid }
+          userId: { type: string, format: uuid }
+          reason: { type: string }
+          timestamp: { type: string, format: date-time }
+
+    CompanionUpgradeApproved:
+      payload:
+        type: object
+        properties:
+          requestId: { type: string, format: uuid }
+          userId: { type: string, format: uuid }
+          approvedBy: { type: string }
+          timestamp: { type: string, format: date-time }
+
+    CompanionUpgradeRejected:
+      payload:
+        type: object
+        properties:
+          requestId: { type: string, format: uuid }
+          userId: { type: string, format: uuid }
+          rejectedBy: { type: string }
+          rejectReason: { type: string }
+          timestamp: { type: string, format: date-time }
+
+    RoleUpgraded:
+      payload:
+        type: object
+        properties:
+          userId: { type: string, format: uuid }
+          oldRole: { type: string }
+          newRole: { type: string }
+          timestamp: { type: string, format: date-time }
