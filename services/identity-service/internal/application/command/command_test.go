@@ -8,6 +8,7 @@ import (
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/aggregate"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/vo"
+	"github.com/rent-a-girlfriend/identity-service/internal/application/port"
 )
 
 // Mock objects for testing
@@ -84,4 +85,18 @@ type mockPublisher struct {
 func (m *mockPublisher) Publish(ctx context.Context, e event.DomainEvent) error {
 	m.events = append(m.events, e)
 	return nil
+}
+
+type mockTokenService struct{}
+
+func (m *mockTokenService) GenerateTokenPair(a *aggregate.UserAccount) (*port.TokenPair, error) {
+	return &port.TokenPair{AccessToken: "access", RefreshToken: "refresh", ExpiresIn: 3600}, nil
+}
+func (m *mockTokenService) ValidateRefreshToken(t string) (*port.RefreshTokenClaims, error) {
+	return &port.RefreshTokenClaims{}, nil
+}
+func (m *mockTokenService) RevokeRefreshToken(tid string) error { return nil }
+func (m *mockTokenService) RevokeAllUserTokens(uid vo.UserID) error { return nil }
+func (m *mockTokenService) RotateRefreshToken(c *port.RefreshTokenClaims, a *aggregate.UserAccount) (*port.TokenPair, error) {
+	return &port.TokenPair{AccessToken: "access-new", RefreshToken: "refresh-new", ExpiresIn: 3600}, nil
 }

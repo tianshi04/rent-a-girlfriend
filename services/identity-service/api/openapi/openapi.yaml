@@ -122,7 +122,7 @@ paths:
               schema: { $ref: '#/components/schemas/InitAuthResponse' }
 
   /auth/google/callback:
-    post:
+    get:
       tags: [Auth]
       summary: Handle Google OAuth callback
       requestBody:

@@ -12,7 +12,8 @@ import (
 func TestLockAccountHandler_Handle(t *testing.T) {
 	repo := &mockRepo{accounts: make(map[string]*aggregate.UserAccount)}
 	pub := &mockPublisher{}
-	handler := NewLockAccountHandler(repo, pub)
+	tokenSvc := &mockTokenService{}
+	handler := NewLockAccountHandler(repo, tokenSvc, pub)
 
 	email, _ := vo.NewEmail("test@example.com")
 	acc := aggregate.NewUserAccount(email, "google-1", time.Now())

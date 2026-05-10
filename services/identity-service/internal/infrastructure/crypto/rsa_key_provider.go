@@ -87,6 +87,31 @@ func (p *RSAKeyProvider) GetActiveKey() (*rsa.PrivateKey, string, error) {
 	return privKey, model.Kid, nil
 }
 
+// GetPublicKey returns the public key for a given kid.
+func (p *RSAKeyProvider) GetPublicKey(kid string) (*rsa.PublicKey, error) {
+	var model persistence.SigningKeyModel
+	if err := p.db.Where("kid = ?", kid).First(&model).Error; err != nil {
+		return nil, fmt.Errorf("public key not found for kid %s: %w", kid, err)
+	}
+
+	block, _ := pem.Decode([]byte(model.PublicKeyPEM))
+	if block == nil {
+		return nil, fmt.Errorf("failed to decode public key PEM")
+	}
+
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key: %w", err)
+	}
+
+	rsaPub, ok := pub.(*rsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("not an RSA public key")
+	}
+
+	return rsaPub, nil
+}
+
 // GetJWKS returns all active public keys in JWKS format.
 func (p *RSAKeyProvider) GetJWKS() (*port.JWKSResponse, error) {
 	var models []persistence.SigningKeyModel
