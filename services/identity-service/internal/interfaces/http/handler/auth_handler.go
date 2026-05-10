@@ -18,6 +18,7 @@ type AuthHandler struct {
 	logout         *command.LogoutHandler
 	getJWKS        *query.GetJWKSHandler
 	requestUpgrade *command.RequestCompanionUpgradeHandler
+	mockLogin      *command.MockLoginHandler
 }
 
 // NewAuthHandler creates a new auth handler.
@@ -28,6 +29,7 @@ func NewAuthHandler(
 	logout *command.LogoutHandler,
 	getJWKS *query.GetJWKSHandler,
 	requestUpgrade *command.RequestCompanionUpgradeHandler,
+	mockLogin *command.MockLoginHandler,
 ) *AuthHandler {
 	return &AuthHandler{
 		initGoogleAuth: initGoogleAuth,
@@ -36,6 +38,7 @@ func NewAuthHandler(
 		logout:         logout,
 		getJWKS:        getJWKS,
 		requestUpgrade: requestUpgrade,
+		mockLogin:      mockLogin,
 	}
 }
 
@@ -55,15 +58,17 @@ func (h *AuthHandler) InitGoogleAuth(c *gin.Context) {
 
 // LoginGoogle handles the Google OAuth callback.
 func (h *AuthHandler) LoginGoogle(c *gin.Context) {
-	var req dto.LoginGoogleRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	code := c.Query("code")
+	state := c.Query("state")
+
+	if code == "" || state == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing code or state"})
 		return
 	}
 
 	tokenPair, err := h.loginGoogle.Handle(c.Request.Context(), command.LoginGoogleCommand{
-		Code:  req.Code,
-		State: req.State,
+		Code:  code,
+		State: state,
 	})
 	if err != nil {
 		c.JSON(mapDomainErrorToHTTP(err), gin.H{"error": err.Error()})
@@ -150,4 +155,35 @@ func (h *AuthHandler) RequestUpgrade(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "upgrade request submitted"})
+}
+
+// MockLogin bypasses Google OAuth and generates a token pair directly for testing.
+// This is extremely dangerous and MUST NOT be exposed in production.
+func (h *AuthHandler) MockLogin(c *gin.Context) {
+	var req struct {
+		Email    string `json:"email" binding:"required,email"`
+		GoogleID string `json:"google_id" binding:"required"`
+		Role     string `json:"role"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	tokenPair, err := h.mockLogin.Handle(c.Request.Context(), command.MockLoginCommand{
+		Email:    req.Email,
+		GoogleID: req.GoogleID,
+		Role:     req.Role,
+	})
+	if err != nil {
+		c.JSON(mapDomainErrorToHTTP(err), gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.TokenResponse{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		ExpiresIn:    tokenPair.ExpiresIn,
+	})
 }

@@ -69,10 +69,28 @@ func (s *JWTTokenService) GenerateTokenPair(account *aggregate.UserAccount) (*po
 		return nil, fmt.Errorf("failed to sign access token: %w", err)
 	}
 
-	// Refresh Token — opaque, stored in DB
+	// Refresh Token — signed JWT, stored in DB by TokenID
 	tokenID := uuid.New()
 	familyID := uuid.New()
-	refreshTokenStr := tokenID.String()
+	
+	refreshClaims := jwt.MapClaims{
+		"sub": account.ID().String(),
+		"jti": tokenID.String(),
+		"fam": familyID.String(),
+		"typ": "Refresh",
+		"iss": s.issuer,
+		"iat": now.Unix(),
+		"exp": now.Add(s.refreshTokenTTL).Unix(),
+	}
+
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodRS256, refreshClaims)
+	refreshToken.Header["kid"] = kid
+	refreshToken.Header["typ"] = "JWT"
+	refreshTokenStr, err := refreshToken.SignedString(privKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign refresh token: %w", err)
+	}
+
 	tokenHash := hashToken(refreshTokenStr)
 
 	rtModel := persistence.RefreshTokenModel{
@@ -96,7 +114,34 @@ func (s *JWTTokenService) GenerateTokenPair(account *aggregate.UserAccount) (*po
 }
 
 func (s *JWTTokenService) ValidateRefreshToken(token string) (*port.RefreshTokenClaims, error) {
-	tokenID, err := uuid.Parse(token)
+	// Parse and validate JWT signature
+	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		kid, ok := t.Header["kid"].(string)
+		if !ok {
+			return nil, fmt.Errorf("missing kid in token header")
+		}
+		
+		pubKey, err := s.keyProvider.GetPublicKey(kid)
+		if err != nil {
+			return nil, err
+		}
+		return pubKey, nil
+	})
+
+	if err != nil || !parsedToken.Valid {
+		return nil, domainerr.ErrInvalidRefreshToken
+	}
+
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, domainerr.ErrInvalidRefreshToken
+	}
+
+	tokenIDStr, _ := claims["jti"].(string)
+	tokenID, err := uuid.Parse(tokenIDStr)
 	if err != nil {
 		return nil, domainerr.ErrInvalidRefreshToken
 	}
@@ -166,12 +211,13 @@ func (s *JWTTokenService) RotateRefreshToken(claims *port.RefreshTokenClaims, ac
 
 	// New Access Token
 	accessClaims := jwt.MapClaims{
-		"sub":   account.ID().String(),
-		"email": account.Email().String(),
-		"role":  string(account.Role()),
-		"iss":   s.issuer,
-		"iat":   now.Unix(),
-		"exp":   now.Add(s.accessTokenTTL).Unix(),
+		"sub":    account.ID().String(),
+		"email":  account.Email().String(),
+		"role":   string(account.Role()),
+		"status": string(account.Status()),
+		"iss":    s.issuer,
+		"iat":    now.Unix(),
+		"exp":    now.Add(s.accessTokenTTL).Unix(),
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodRS256, accessClaims)
 	accessToken.Header["kid"] = kid
@@ -183,7 +229,24 @@ func (s *JWTTokenService) RotateRefreshToken(claims *port.RefreshTokenClaims, ac
 	// New Refresh Token in same family
 	familyID, _ := uuid.Parse(claims.FamilyID)
 	tokenID := uuid.New()
-	refreshTokenStr := tokenID.String()
+
+	refreshClaims := jwt.MapClaims{
+		"sub": account.ID().String(),
+		"jti": tokenID.String(),
+		"fam": familyID.String(),
+		"typ": "Refresh",
+		"iss": s.issuer,
+		"iat": now.Unix(),
+		"exp": now.Add(s.refreshTokenTTL).Unix(),
+	}
+
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodRS256, refreshClaims)
+	refreshToken.Header["kid"] = kid
+	refreshToken.Header["typ"] = "JWT"
+	refreshTokenStr, err := refreshToken.SignedString(privKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign refresh token: %w", err)
+	}
 
 	rtModel := persistence.RefreshTokenModel{
 		ID:        tokenID,
