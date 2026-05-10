@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v7.34.1
-// source: identity.proto
+// source: api/proto/identity.proto
 
 package identityv1
 
@@ -26,6 +26,10 @@ const (
 	IdentityService_RejectUpgrade_FullMethodName       = "/identity.v1.IdentityService/RejectUpgrade"
 	IdentityService_LockAccount_FullMethodName         = "/identity.v1.IdentityService/LockAccount"
 	IdentityService_UnlockAccount_FullMethodName       = "/identity.v1.IdentityService/UnlockAccount"
+	IdentityService_InitGoogleAuth_FullMethodName      = "/identity.v1.IdentityService/InitGoogleAuth"
+	IdentityService_LoginGoogle_FullMethodName         = "/identity.v1.IdentityService/LoginGoogle"
+	IdentityService_RefreshToken_FullMethodName        = "/identity.v1.IdentityService/RefreshToken"
+	IdentityService_Logout_FullMethodName              = "/identity.v1.IdentityService/Logout"
 )
 
 // IdentityServiceClient is the client API for IdentityService service.
@@ -41,6 +45,11 @@ type IdentityServiceClient interface {
 	RejectUpgrade(ctx context.Context, in *RejectUpgradeRequest, opts ...grpc.CallOption) (*MessageResponse, error)
 	LockAccount(ctx context.Context, in *LockAccountRequest, opts ...grpc.CallOption) (*MessageResponse, error)
 	UnlockAccount(ctx context.Context, in *UnlockAccountRequest, opts ...grpc.CallOption) (*MessageResponse, error)
+	// Auth Commands
+	InitGoogleAuth(ctx context.Context, in *InitGoogleAuthRequest, opts ...grpc.CallOption) (*InitGoogleAuthResponse, error)
+	LoginGoogle(ctx context.Context, in *LoginGoogleRequest, opts ...grpc.CallOption) (*TokenResponse, error)
+	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*TokenResponse, error)
+	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*MessageResponse, error)
 }
 
 type identityServiceClient struct {
@@ -121,6 +130,46 @@ func (c *identityServiceClient) UnlockAccount(ctx context.Context, in *UnlockAcc
 	return out, nil
 }
 
+func (c *identityServiceClient) InitGoogleAuth(ctx context.Context, in *InitGoogleAuthRequest, opts ...grpc.CallOption) (*InitGoogleAuthResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InitGoogleAuthResponse)
+	err := c.cc.Invoke(ctx, IdentityService_InitGoogleAuth_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityServiceClient) LoginGoogle(ctx context.Context, in *LoginGoogleRequest, opts ...grpc.CallOption) (*TokenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TokenResponse)
+	err := c.cc.Invoke(ctx, IdentityService_LoginGoogle_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityServiceClient) RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*TokenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TokenResponse)
+	err := c.cc.Invoke(ctx, IdentityService_RefreshToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityServiceClient) Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*MessageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MessageResponse)
+	err := c.cc.Invoke(ctx, IdentityService_Logout_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IdentityServiceServer is the server API for IdentityService service.
 // All implementations must embed UnimplementedIdentityServiceServer
 // for forward compatibility.
@@ -134,6 +183,11 @@ type IdentityServiceServer interface {
 	RejectUpgrade(context.Context, *RejectUpgradeRequest) (*MessageResponse, error)
 	LockAccount(context.Context, *LockAccountRequest) (*MessageResponse, error)
 	UnlockAccount(context.Context, *UnlockAccountRequest) (*MessageResponse, error)
+	// Auth Commands
+	InitGoogleAuth(context.Context, *InitGoogleAuthRequest) (*InitGoogleAuthResponse, error)
+	LoginGoogle(context.Context, *LoginGoogleRequest) (*TokenResponse, error)
+	RefreshToken(context.Context, *RefreshTokenRequest) (*TokenResponse, error)
+	Logout(context.Context, *LogoutRequest) (*MessageResponse, error)
 	mustEmbedUnimplementedIdentityServiceServer()
 }
 
@@ -164,6 +218,18 @@ func (UnimplementedIdentityServiceServer) LockAccount(context.Context, *LockAcco
 }
 func (UnimplementedIdentityServiceServer) UnlockAccount(context.Context, *UnlockAccountRequest) (*MessageResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UnlockAccount not implemented")
+}
+func (UnimplementedIdentityServiceServer) InitGoogleAuth(context.Context, *InitGoogleAuthRequest) (*InitGoogleAuthResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InitGoogleAuth not implemented")
+}
+func (UnimplementedIdentityServiceServer) LoginGoogle(context.Context, *LoginGoogleRequest) (*TokenResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method LoginGoogle not implemented")
+}
+func (UnimplementedIdentityServiceServer) RefreshToken(context.Context, *RefreshTokenRequest) (*TokenResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshToken not implemented")
+}
+func (UnimplementedIdentityServiceServer) Logout(context.Context, *LogoutRequest) (*MessageResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Logout not implemented")
 }
 func (UnimplementedIdentityServiceServer) mustEmbedUnimplementedIdentityServiceServer() {}
 func (UnimplementedIdentityServiceServer) testEmbeddedByValue()                         {}
@@ -312,6 +378,78 @@ func _IdentityService_UnlockAccount_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IdentityService_InitGoogleAuth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InitGoogleAuthRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServiceServer).InitGoogleAuth(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityService_InitGoogleAuth_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServiceServer).InitGoogleAuth(ctx, req.(*InitGoogleAuthRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityService_LoginGoogle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginGoogleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServiceServer).LoginGoogle(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityService_LoginGoogle_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServiceServer).LoginGoogle(ctx, req.(*LoginGoogleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityService_RefreshToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServiceServer).RefreshToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityService_RefreshToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServiceServer).RefreshToken(ctx, req.(*RefreshTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityService_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogoutRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServiceServer).Logout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityService_Logout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServiceServer).Logout(ctx, req.(*LogoutRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IdentityService_ServiceDesc is the grpc.ServiceDesc for IdentityService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -347,7 +485,23 @@ var IdentityService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "UnlockAccount",
 			Handler:    _IdentityService_UnlockAccount_Handler,
 		},
+		{
+			MethodName: "InitGoogleAuth",
+			Handler:    _IdentityService_InitGoogleAuth_Handler,
+		},
+		{
+			MethodName: "LoginGoogle",
+			Handler:    _IdentityService_LoginGoogle_Handler,
+		},
+		{
+			MethodName: "RefreshToken",
+			Handler:    _IdentityService_RefreshToken_Handler,
+		},
+		{
+			MethodName: "Logout",
+			Handler:    _IdentityService_Logout_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "identity.proto",
+	Metadata: "api/proto/identity.proto",
 }

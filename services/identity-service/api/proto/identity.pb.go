@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.34.1
-// source: identity.proto
+// source: api/proto/identity.proto
 
 package identityv1
 
@@ -22,6 +22,302 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type InitGoogleAuthRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InitGoogleAuthRequest) Reset() {
+	*x = InitGoogleAuthRequest{}
+	mi := &file_api_proto_identity_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InitGoogleAuthRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InitGoogleAuthRequest) ProtoMessage() {}
+
+func (x *InitGoogleAuthRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_identity_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InitGoogleAuthRequest.ProtoReflect.Descriptor instead.
+func (*InitGoogleAuthRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{0}
+}
+
+type InitGoogleAuthResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AuthUrl       string                 `protobuf:"bytes,1,opt,name=auth_url,json=authUrl,proto3" json:"auth_url,omitempty"`
+	State         string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	CodeChallenge string                 `protobuf:"bytes,3,opt,name=code_challenge,json=codeChallenge,proto3" json:"code_challenge,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InitGoogleAuthResponse) Reset() {
+	*x = InitGoogleAuthResponse{}
+	mi := &file_api_proto_identity_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InitGoogleAuthResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InitGoogleAuthResponse) ProtoMessage() {}
+
+func (x *InitGoogleAuthResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_identity_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InitGoogleAuthResponse.ProtoReflect.Descriptor instead.
+func (*InitGoogleAuthResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *InitGoogleAuthResponse) GetAuthUrl() string {
+	if x != nil {
+		return x.AuthUrl
+	}
+	return ""
+}
+
+func (x *InitGoogleAuthResponse) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *InitGoogleAuthResponse) GetCodeChallenge() string {
+	if x != nil {
+		return x.CodeChallenge
+	}
+	return ""
+}
+
+type LoginGoogleRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	State         string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LoginGoogleRequest) Reset() {
+	*x = LoginGoogleRequest{}
+	mi := &file_api_proto_identity_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoginGoogleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoginGoogleRequest) ProtoMessage() {}
+
+func (x *LoginGoogleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_identity_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoginGoogleRequest.ProtoReflect.Descriptor instead.
+func (*LoginGoogleRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *LoginGoogleRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *LoginGoogleRequest) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+type TokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	RefreshToken  string                 `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	ExpiresIn     int64                  `protobuf:"varint,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TokenResponse) Reset() {
+	*x = TokenResponse{}
+	mi := &file_api_proto_identity_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TokenResponse) ProtoMessage() {}
+
+func (x *TokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_identity_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TokenResponse.ProtoReflect.Descriptor instead.
+func (*TokenResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *TokenResponse) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *TokenResponse) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
+	}
+	return ""
+}
+
+func (x *TokenResponse) GetExpiresIn() int64 {
+	if x != nil {
+		return x.ExpiresIn
+	}
+	return 0
+}
+
+type RefreshTokenRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RefreshToken  string                 `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshTokenRequest) Reset() {
+	*x = RefreshTokenRequest{}
+	mi := &file_api_proto_identity_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshTokenRequest) ProtoMessage() {}
+
+func (x *RefreshTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_identity_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshTokenRequest.ProtoReflect.Descriptor instead.
+func (*RefreshTokenRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RefreshTokenRequest) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
+	}
+	return ""
+}
+
+type LogoutRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RefreshToken  string                 `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogoutRequest) Reset() {
+	*x = LogoutRequest{}
+	mi := &file_api_proto_identity_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogoutRequest) ProtoMessage() {}
+
+func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_identity_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogoutRequest.ProtoReflect.Descriptor instead.
+func (*LogoutRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *LogoutRequest) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
+	}
+	return ""
+}
+
 type GetAccountRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -31,7 +327,7 @@ type GetAccountRequest struct {
 
 func (x *GetAccountRequest) Reset() {
 	*x = GetAccountRequest{}
-	mi := &file_identity_proto_msgTypes[0]
+	mi := &file_api_proto_identity_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +339,7 @@ func (x *GetAccountRequest) String() string {
 func (*GetAccountRequest) ProtoMessage() {}
 
 func (x *GetAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[0]
+	mi := &file_api_proto_identity_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +352,7 @@ func (x *GetAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAccountRequest.ProtoReflect.Descriptor instead.
 func (*GetAccountRequest) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetAccountRequest) GetId() string {
@@ -80,7 +376,7 @@ type AccountResponse struct {
 
 func (x *AccountResponse) Reset() {
 	*x = AccountResponse{}
-	mi := &file_identity_proto_msgTypes[1]
+	mi := &file_api_proto_identity_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -92,7 +388,7 @@ func (x *AccountResponse) String() string {
 func (*AccountResponse) ProtoMessage() {}
 
 func (x *AccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[1]
+	mi := &file_api_proto_identity_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -105,7 +401,7 @@ func (x *AccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccountResponse.ProtoReflect.Descriptor instead.
 func (*AccountResponse) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *AccountResponse) GetId() string {
@@ -161,7 +457,7 @@ type ListUpgradeRequestsRequest struct {
 
 func (x *ListUpgradeRequestsRequest) Reset() {
 	*x = ListUpgradeRequestsRequest{}
-	mi := &file_identity_proto_msgTypes[2]
+	mi := &file_api_proto_identity_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -173,7 +469,7 @@ func (x *ListUpgradeRequestsRequest) String() string {
 func (*ListUpgradeRequestsRequest) ProtoMessage() {}
 
 func (x *ListUpgradeRequestsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[2]
+	mi := &file_api_proto_identity_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -186,7 +482,7 @@ func (x *ListUpgradeRequestsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUpgradeRequestsRequest.ProtoReflect.Descriptor instead.
 func (*ListUpgradeRequestsRequest) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListUpgradeRequestsRequest) GetStatus() string {
@@ -226,7 +522,7 @@ type UpgradeRequestItem struct {
 
 func (x *UpgradeRequestItem) Reset() {
 	*x = UpgradeRequestItem{}
-	mi := &file_identity_proto_msgTypes[3]
+	mi := &file_api_proto_identity_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -238,7 +534,7 @@ func (x *UpgradeRequestItem) String() string {
 func (*UpgradeRequestItem) ProtoMessage() {}
 
 func (x *UpgradeRequestItem) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[3]
+	mi := &file_api_proto_identity_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -251,7 +547,7 @@ func (x *UpgradeRequestItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpgradeRequestItem.ProtoReflect.Descriptor instead.
 func (*UpgradeRequestItem) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UpgradeRequestItem) GetId() string {
@@ -322,7 +618,7 @@ type ListUpgradeRequestsResponse struct {
 
 func (x *ListUpgradeRequestsResponse) Reset() {
 	*x = ListUpgradeRequestsResponse{}
-	mi := &file_identity_proto_msgTypes[4]
+	mi := &file_api_proto_identity_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -334,7 +630,7 @@ func (x *ListUpgradeRequestsResponse) String() string {
 func (*ListUpgradeRequestsResponse) ProtoMessage() {}
 
 func (x *ListUpgradeRequestsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[4]
+	mi := &file_api_proto_identity_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -347,7 +643,7 @@ func (x *ListUpgradeRequestsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUpgradeRequestsResponse.ProtoReflect.Descriptor instead.
 func (*ListUpgradeRequestsResponse) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListUpgradeRequestsResponse) GetData() []*UpgradeRequestItem {
@@ -387,7 +683,7 @@ type RequestUpgradeRequest struct {
 
 func (x *RequestUpgradeRequest) Reset() {
 	*x = RequestUpgradeRequest{}
-	mi := &file_identity_proto_msgTypes[5]
+	mi := &file_api_proto_identity_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -399,7 +695,7 @@ func (x *RequestUpgradeRequest) String() string {
 func (*RequestUpgradeRequest) ProtoMessage() {}
 
 func (x *RequestUpgradeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[5]
+	mi := &file_api_proto_identity_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -412,7 +708,7 @@ func (x *RequestUpgradeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestUpgradeRequest.ProtoReflect.Descriptor instead.
 func (*RequestUpgradeRequest) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RequestUpgradeRequest) GetReason() string {
@@ -431,7 +727,7 @@ type ApproveUpgradeRequest struct {
 
 func (x *ApproveUpgradeRequest) Reset() {
 	*x = ApproveUpgradeRequest{}
-	mi := &file_identity_proto_msgTypes[6]
+	mi := &file_api_proto_identity_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -443,7 +739,7 @@ func (x *ApproveUpgradeRequest) String() string {
 func (*ApproveUpgradeRequest) ProtoMessage() {}
 
 func (x *ApproveUpgradeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[6]
+	mi := &file_api_proto_identity_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -456,7 +752,7 @@ func (x *ApproveUpgradeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApproveUpgradeRequest.ProtoReflect.Descriptor instead.
 func (*ApproveUpgradeRequest) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ApproveUpgradeRequest) GetId() string {
@@ -476,7 +772,7 @@ type RejectUpgradeRequest struct {
 
 func (x *RejectUpgradeRequest) Reset() {
 	*x = RejectUpgradeRequest{}
-	mi := &file_identity_proto_msgTypes[7]
+	mi := &file_api_proto_identity_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -488,7 +784,7 @@ func (x *RejectUpgradeRequest) String() string {
 func (*RejectUpgradeRequest) ProtoMessage() {}
 
 func (x *RejectUpgradeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[7]
+	mi := &file_api_proto_identity_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -501,7 +797,7 @@ func (x *RejectUpgradeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RejectUpgradeRequest.ProtoReflect.Descriptor instead.
 func (*RejectUpgradeRequest) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RejectUpgradeRequest) GetId() string {
@@ -528,7 +824,7 @@ type LockAccountRequest struct {
 
 func (x *LockAccountRequest) Reset() {
 	*x = LockAccountRequest{}
-	mi := &file_identity_proto_msgTypes[8]
+	mi := &file_api_proto_identity_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -540,7 +836,7 @@ func (x *LockAccountRequest) String() string {
 func (*LockAccountRequest) ProtoMessage() {}
 
 func (x *LockAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[8]
+	mi := &file_api_proto_identity_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -553,7 +849,7 @@ func (x *LockAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LockAccountRequest.ProtoReflect.Descriptor instead.
 func (*LockAccountRequest) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{8}
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *LockAccountRequest) GetId() string {
@@ -579,7 +875,7 @@ type UnlockAccountRequest struct {
 
 func (x *UnlockAccountRequest) Reset() {
 	*x = UnlockAccountRequest{}
-	mi := &file_identity_proto_msgTypes[9]
+	mi := &file_api_proto_identity_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -591,7 +887,7 @@ func (x *UnlockAccountRequest) String() string {
 func (*UnlockAccountRequest) ProtoMessage() {}
 
 func (x *UnlockAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[9]
+	mi := &file_api_proto_identity_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -604,7 +900,7 @@ func (x *UnlockAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnlockAccountRequest.ProtoReflect.Descriptor instead.
 func (*UnlockAccountRequest) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{9}
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *UnlockAccountRequest) GetId() string {
@@ -623,7 +919,7 @@ type MessageResponse struct {
 
 func (x *MessageResponse) Reset() {
 	*x = MessageResponse{}
-	mi := &file_identity_proto_msgTypes[10]
+	mi := &file_api_proto_identity_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -635,7 +931,7 @@ func (x *MessageResponse) String() string {
 func (*MessageResponse) ProtoMessage() {}
 
 func (x *MessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[10]
+	mi := &file_api_proto_identity_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -648,7 +944,7 @@ func (x *MessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageResponse.ProtoReflect.Descriptor instead.
 func (*MessageResponse) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{10}
+	return file_api_proto_identity_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *MessageResponse) GetMessage() string {
@@ -658,11 +954,28 @@ func (x *MessageResponse) GetMessage() string {
 	return ""
 }
 
-var File_identity_proto protoreflect.FileDescriptor
+var File_api_proto_identity_proto protoreflect.FileDescriptor
 
-const file_identity_proto_rawDesc = "" +
+const file_api_proto_identity_proto_rawDesc = "" +
 	"\n" +
-	"\x0eidentity.proto\x12\videntity.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"#\n" +
+	"\x18api/proto/identity.proto\x12\videntity.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x17\n" +
+	"\x15InitGoogleAuthRequest\"p\n" +
+	"\x16InitGoogleAuthResponse\x12\x19\n" +
+	"\bauth_url\x18\x01 \x01(\tR\aauthUrl\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\x12%\n" +
+	"\x0ecode_challenge\x18\x03 \x01(\tR\rcodeChallenge\">\n" +
+	"\x12LoginGoogleRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\"v\n" +
+	"\rTokenResponse\x12!\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
+	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x12\x1d\n" +
+	"\n" +
+	"expires_in\x18\x03 \x01(\x03R\texpiresIn\":\n" +
+	"\x13RefreshTokenRequest\x12#\n" +
+	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"4\n" +
+	"\rLogoutRequest\x12#\n" +
+	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"#\n" +
 	"\x11GetAccountRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\xc7\x01\n" +
 	"\x0fAccountResponse\x12\x0e\n" +
@@ -707,7 +1020,7 @@ const file_identity_proto_rawDesc = "" +
 	"\x14UnlockAccountRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"+\n" +
 	"\x0fMessageResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2\xe1\x04\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage2\x9a\a\n" +
 	"\x0fIdentityService\x12J\n" +
 	"\n" +
 	"GetAccount\x12\x1e.identity.v1.GetAccountRequest\x1a\x1c.identity.v1.AccountResponse\x12h\n" +
@@ -716,81 +1029,99 @@ const file_identity_proto_rawDesc = "" +
 	"\x0eApproveUpgrade\x12\".identity.v1.ApproveUpgradeRequest\x1a\x1c.identity.v1.MessageResponse\x12P\n" +
 	"\rRejectUpgrade\x12!.identity.v1.RejectUpgradeRequest\x1a\x1c.identity.v1.MessageResponse\x12L\n" +
 	"\vLockAccount\x12\x1f.identity.v1.LockAccountRequest\x1a\x1c.identity.v1.MessageResponse\x12P\n" +
-	"\rUnlockAccount\x12!.identity.v1.UnlockAccountRequest\x1a\x1c.identity.v1.MessageResponseBMZKgithub.com/rent-a-girlfriend/identity-service/api/proto/identity;identityv1b\x06proto3"
+	"\rUnlockAccount\x12!.identity.v1.UnlockAccountRequest\x1a\x1c.identity.v1.MessageResponse\x12Y\n" +
+	"\x0eInitGoogleAuth\x12\".identity.v1.InitGoogleAuthRequest\x1a#.identity.v1.InitGoogleAuthResponse\x12J\n" +
+	"\vLoginGoogle\x12\x1f.identity.v1.LoginGoogleRequest\x1a\x1a.identity.v1.TokenResponse\x12L\n" +
+	"\fRefreshToken\x12 .identity.v1.RefreshTokenRequest\x1a\x1a.identity.v1.TokenResponse\x12B\n" +
+	"\x06Logout\x12\x1a.identity.v1.LogoutRequest\x1a\x1c.identity.v1.MessageResponseBMZKgithub.com/rent-a-girlfriend/identity-service/api/proto/identity;identityv1b\x06proto3"
 
 var (
-	file_identity_proto_rawDescOnce sync.Once
-	file_identity_proto_rawDescData []byte
+	file_api_proto_identity_proto_rawDescOnce sync.Once
+	file_api_proto_identity_proto_rawDescData []byte
 )
 
-func file_identity_proto_rawDescGZIP() []byte {
-	file_identity_proto_rawDescOnce.Do(func() {
-		file_identity_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_identity_proto_rawDesc), len(file_identity_proto_rawDesc)))
+func file_api_proto_identity_proto_rawDescGZIP() []byte {
+	file_api_proto_identity_proto_rawDescOnce.Do(func() {
+		file_api_proto_identity_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_identity_proto_rawDesc), len(file_api_proto_identity_proto_rawDesc)))
 	})
-	return file_identity_proto_rawDescData
+	return file_api_proto_identity_proto_rawDescData
 }
 
-var file_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
-var file_identity_proto_goTypes = []any{
-	(*GetAccountRequest)(nil),           // 0: identity.v1.GetAccountRequest
-	(*AccountResponse)(nil),             // 1: identity.v1.AccountResponse
-	(*ListUpgradeRequestsRequest)(nil),  // 2: identity.v1.ListUpgradeRequestsRequest
-	(*UpgradeRequestItem)(nil),          // 3: identity.v1.UpgradeRequestItem
-	(*ListUpgradeRequestsResponse)(nil), // 4: identity.v1.ListUpgradeRequestsResponse
-	(*RequestUpgradeRequest)(nil),       // 5: identity.v1.RequestUpgradeRequest
-	(*ApproveUpgradeRequest)(nil),       // 6: identity.v1.ApproveUpgradeRequest
-	(*RejectUpgradeRequest)(nil),        // 7: identity.v1.RejectUpgradeRequest
-	(*LockAccountRequest)(nil),          // 8: identity.v1.LockAccountRequest
-	(*UnlockAccountRequest)(nil),        // 9: identity.v1.UnlockAccountRequest
-	(*MessageResponse)(nil),             // 10: identity.v1.MessageResponse
-	(*timestamppb.Timestamp)(nil),       // 11: google.protobuf.Timestamp
+var file_api_proto_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_api_proto_identity_proto_goTypes = []any{
+	(*InitGoogleAuthRequest)(nil),       // 0: identity.v1.InitGoogleAuthRequest
+	(*InitGoogleAuthResponse)(nil),      // 1: identity.v1.InitGoogleAuthResponse
+	(*LoginGoogleRequest)(nil),          // 2: identity.v1.LoginGoogleRequest
+	(*TokenResponse)(nil),               // 3: identity.v1.TokenResponse
+	(*RefreshTokenRequest)(nil),         // 4: identity.v1.RefreshTokenRequest
+	(*LogoutRequest)(nil),               // 5: identity.v1.LogoutRequest
+	(*GetAccountRequest)(nil),           // 6: identity.v1.GetAccountRequest
+	(*AccountResponse)(nil),             // 7: identity.v1.AccountResponse
+	(*ListUpgradeRequestsRequest)(nil),  // 8: identity.v1.ListUpgradeRequestsRequest
+	(*UpgradeRequestItem)(nil),          // 9: identity.v1.UpgradeRequestItem
+	(*ListUpgradeRequestsResponse)(nil), // 10: identity.v1.ListUpgradeRequestsResponse
+	(*RequestUpgradeRequest)(nil),       // 11: identity.v1.RequestUpgradeRequest
+	(*ApproveUpgradeRequest)(nil),       // 12: identity.v1.ApproveUpgradeRequest
+	(*RejectUpgradeRequest)(nil),        // 13: identity.v1.RejectUpgradeRequest
+	(*LockAccountRequest)(nil),          // 14: identity.v1.LockAccountRequest
+	(*UnlockAccountRequest)(nil),        // 15: identity.v1.UnlockAccountRequest
+	(*MessageResponse)(nil),             // 16: identity.v1.MessageResponse
+	(*timestamppb.Timestamp)(nil),       // 17: google.protobuf.Timestamp
 }
-var file_identity_proto_depIdxs = []int32{
-	11, // 0: identity.v1.AccountResponse.created_at:type_name -> google.protobuf.Timestamp
-	11, // 1: identity.v1.UpgradeRequestItem.reviewed_at:type_name -> google.protobuf.Timestamp
-	11, // 2: identity.v1.UpgradeRequestItem.created_at:type_name -> google.protobuf.Timestamp
-	3,  // 3: identity.v1.ListUpgradeRequestsResponse.data:type_name -> identity.v1.UpgradeRequestItem
-	0,  // 4: identity.v1.IdentityService.GetAccount:input_type -> identity.v1.GetAccountRequest
-	2,  // 5: identity.v1.IdentityService.ListUpgradeRequests:input_type -> identity.v1.ListUpgradeRequestsRequest
-	5,  // 6: identity.v1.IdentityService.RequestUpgrade:input_type -> identity.v1.RequestUpgradeRequest
-	6,  // 7: identity.v1.IdentityService.ApproveUpgrade:input_type -> identity.v1.ApproveUpgradeRequest
-	7,  // 8: identity.v1.IdentityService.RejectUpgrade:input_type -> identity.v1.RejectUpgradeRequest
-	8,  // 9: identity.v1.IdentityService.LockAccount:input_type -> identity.v1.LockAccountRequest
-	9,  // 10: identity.v1.IdentityService.UnlockAccount:input_type -> identity.v1.UnlockAccountRequest
-	1,  // 11: identity.v1.IdentityService.GetAccount:output_type -> identity.v1.AccountResponse
-	4,  // 12: identity.v1.IdentityService.ListUpgradeRequests:output_type -> identity.v1.ListUpgradeRequestsResponse
-	10, // 13: identity.v1.IdentityService.RequestUpgrade:output_type -> identity.v1.MessageResponse
-	10, // 14: identity.v1.IdentityService.ApproveUpgrade:output_type -> identity.v1.MessageResponse
-	10, // 15: identity.v1.IdentityService.RejectUpgrade:output_type -> identity.v1.MessageResponse
-	10, // 16: identity.v1.IdentityService.LockAccount:output_type -> identity.v1.MessageResponse
-	10, // 17: identity.v1.IdentityService.UnlockAccount:output_type -> identity.v1.MessageResponse
-	11, // [11:18] is the sub-list for method output_type
-	4,  // [4:11] is the sub-list for method input_type
+var file_api_proto_identity_proto_depIdxs = []int32{
+	17, // 0: identity.v1.AccountResponse.created_at:type_name -> google.protobuf.Timestamp
+	17, // 1: identity.v1.UpgradeRequestItem.reviewed_at:type_name -> google.protobuf.Timestamp
+	17, // 2: identity.v1.UpgradeRequestItem.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 3: identity.v1.ListUpgradeRequestsResponse.data:type_name -> identity.v1.UpgradeRequestItem
+	6,  // 4: identity.v1.IdentityService.GetAccount:input_type -> identity.v1.GetAccountRequest
+	8,  // 5: identity.v1.IdentityService.ListUpgradeRequests:input_type -> identity.v1.ListUpgradeRequestsRequest
+	11, // 6: identity.v1.IdentityService.RequestUpgrade:input_type -> identity.v1.RequestUpgradeRequest
+	12, // 7: identity.v1.IdentityService.ApproveUpgrade:input_type -> identity.v1.ApproveUpgradeRequest
+	13, // 8: identity.v1.IdentityService.RejectUpgrade:input_type -> identity.v1.RejectUpgradeRequest
+	14, // 9: identity.v1.IdentityService.LockAccount:input_type -> identity.v1.LockAccountRequest
+	15, // 10: identity.v1.IdentityService.UnlockAccount:input_type -> identity.v1.UnlockAccountRequest
+	0,  // 11: identity.v1.IdentityService.InitGoogleAuth:input_type -> identity.v1.InitGoogleAuthRequest
+	2,  // 12: identity.v1.IdentityService.LoginGoogle:input_type -> identity.v1.LoginGoogleRequest
+	4,  // 13: identity.v1.IdentityService.RefreshToken:input_type -> identity.v1.RefreshTokenRequest
+	5,  // 14: identity.v1.IdentityService.Logout:input_type -> identity.v1.LogoutRequest
+	7,  // 15: identity.v1.IdentityService.GetAccount:output_type -> identity.v1.AccountResponse
+	10, // 16: identity.v1.IdentityService.ListUpgradeRequests:output_type -> identity.v1.ListUpgradeRequestsResponse
+	16, // 17: identity.v1.IdentityService.RequestUpgrade:output_type -> identity.v1.MessageResponse
+	16, // 18: identity.v1.IdentityService.ApproveUpgrade:output_type -> identity.v1.MessageResponse
+	16, // 19: identity.v1.IdentityService.RejectUpgrade:output_type -> identity.v1.MessageResponse
+	16, // 20: identity.v1.IdentityService.LockAccount:output_type -> identity.v1.MessageResponse
+	16, // 21: identity.v1.IdentityService.UnlockAccount:output_type -> identity.v1.MessageResponse
+	1,  // 22: identity.v1.IdentityService.InitGoogleAuth:output_type -> identity.v1.InitGoogleAuthResponse
+	3,  // 23: identity.v1.IdentityService.LoginGoogle:output_type -> identity.v1.TokenResponse
+	3,  // 24: identity.v1.IdentityService.RefreshToken:output_type -> identity.v1.TokenResponse
+	16, // 25: identity.v1.IdentityService.Logout:output_type -> identity.v1.MessageResponse
+	15, // [15:26] is the sub-list for method output_type
+	4,  // [4:15] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_identity_proto_init() }
-func file_identity_proto_init() {
-	if File_identity_proto != nil {
+func init() { file_api_proto_identity_proto_init() }
+func file_api_proto_identity_proto_init() {
+	if File_api_proto_identity_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_identity_proto_rawDesc), len(file_identity_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_identity_proto_rawDesc), len(file_api_proto_identity_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_identity_proto_goTypes,
-		DependencyIndexes: file_identity_proto_depIdxs,
-		MessageInfos:      file_identity_proto_msgTypes,
+		GoTypes:           file_api_proto_identity_proto_goTypes,
+		DependencyIndexes: file_api_proto_identity_proto_depIdxs,
+		MessageInfos:      file_api_proto_identity_proto_msgTypes,
 	}.Build()
-	File_identity_proto = out.File
-	file_identity_proto_goTypes = nil
-	file_identity_proto_depIdxs = nil
+	File_api_proto_identity_proto = out.File
+	file_api_proto_identity_proto_goTypes = nil
+	file_api_proto_identity_proto_depIdxs = nil
 }

@@ -17,6 +17,39 @@ service IdentityService {
   rpc RejectUpgrade(RejectUpgradeRequest) returns (MessageResponse);
   rpc LockAccount(LockAccountRequest) returns (MessageResponse);
   rpc UnlockAccount(UnlockAccountRequest) returns (MessageResponse);
+
+  // Auth Commands
+  rpc InitGoogleAuth(InitGoogleAuthRequest) returns (InitGoogleAuthResponse);
+  rpc LoginGoogle(LoginGoogleRequest) returns (TokenResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (TokenResponse);
+  rpc Logout(LogoutRequest) returns (MessageResponse);
+}
+
+message InitGoogleAuthRequest {}
+
+message InitGoogleAuthResponse {
+  string auth_url = 1;
+  string state = 2;
+  string code_challenge = 3;
+}
+
+message LoginGoogleRequest {
+  string code = 1;
+  string state = 2;
+}
+
+message TokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_in = 3;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
 }
 
 message GetAccountRequest {
