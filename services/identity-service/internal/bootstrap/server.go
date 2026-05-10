@@ -12,9 +12,9 @@ import (
 
 	"github.com/rent-a-girlfriend/identity-service/internal/application/command"
 	"github.com/rent-a-girlfriend/identity-service/internal/application/query"
-	"github.com/rent-a-girlfriend/identity-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/service"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/client"
+	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/cache"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/crypto"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/persistence"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/store"
@@ -22,23 +22,32 @@ import (
 	grpcinterceptor "github.com/rent-a-girlfriend/identity-service/internal/interfaces/grpc/interceptor"
 	httphandler "github.com/rent-a-girlfriend/identity-service/internal/interfaces/http/handler"
 	router "github.com/rent-a-girlfriend/identity-service/internal/interfaces/http"
+	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/messaging"
 	identityv1 "github.com/rent-a-girlfriend/identity-service/api/proto"
 )
 
 // Server holds all wired dependencies.
 type Server struct {
-	Router     *gin.Engine
-	GRPCServer *grpc.Server
+	Router       *gin.Engine
+	GRPCServer   *grpc.Server
+	outboxWorker *messaging.OutboxWorker
+	kafkaAdapter *messaging.KafkaAdapter
 }
 
 // NewServer wires all dependencies and returns a configured server.
 func NewServer(db *gorm.DB, cfg *Config) *Server {
 	gin.SetMode(cfg.Server.Mode)
 
+	// --- Infrastructure: Cache ---
+	redisAdapter, err := cache.NewRedisAdapter(cfg.Redis.URL)
+	if err != nil {
+		log.Fatalf("[CACHE] Failed to initialize Redis: %v", err)
+	}
+
 	// ... (Infrastructure and Domain logic remains same)
-	accountRepo := persistence.NewUserAccountRepoImpl(db)
+	accountRepo := persistence.NewUserAccountRepoImpl(db, redisAdapter)
 	upgradeRepo := persistence.NewUpgradeRequestRepoImpl(db)
-	configRepo := persistence.NewSystemConfigRepoImpl(db)
+	configRepo := persistence.NewSystemConfigRepoImpl(db, redisAdapter)
 	pkceStore := store.NewPKCEStoreDB(db)
 
 	keyProvider := crypto.NewRSAKeyProvider(db)
@@ -59,20 +68,31 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 		cfg.OAuth.GoogleRedirectURI,
 	)
 
-	var publisher noopPublisher
+	// --- Messaging & Outbox ---
+	kafkaAdapter := messaging.NewKafkaAdapter(cfg.Kafka.Brokers)
+	outboxPublisher := persistence.NewOutboxPublisher(db)
+
+	outboxWorker := messaging.NewOutboxWorker(
+		db,
+		kafkaAdapter,
+		cfg.Outbox.PollingInterval,
+		cfg.Outbox.BatchSize,
+		cfg.Kafka.TopicIdentity,
+	)
 
 	lockPolicy := service.NewAccountLockPolicyService(configRepo)
 
 	initGoogleAuthHandler := command.NewInitGoogleAuthHandler(googleOAuth, pkceStore)
-	loginGoogleHandler := command.NewLoginGoogleHandler(googleOAuth, pkceStore, accountRepo, tokenService, &publisher)
+	loginGoogleHandler := command.NewLoginGoogleHandler(googleOAuth, pkceStore, accountRepo, tokenService, outboxPublisher)
+	mockLoginHandler := command.NewMockLoginHandler(accountRepo, tokenService, outboxPublisher)
 	refreshTokenHandler := command.NewRefreshTokenHandler(tokenService, accountRepo)
 	logoutHandler := command.NewLogoutHandler(tokenService)
-	requestUpgradeHandler := command.NewRequestCompanionUpgradeHandler(accountRepo, upgradeRepo, &publisher)
-	approveUpgradeHandler := command.NewApproveUpgradeHandler(upgradeRepo, accountRepo, &publisher)
-	rejectUpgradeHandler := command.NewRejectUpgradeHandler(upgradeRepo, &publisher)
-	recordViolationHandler := command.NewRecordViolationHandler(accountRepo, lockPolicy, &publisher)
-	lockAccountHandler := command.NewLockAccountHandler(accountRepo, &publisher)
-	unlockAccountHandler := command.NewUnlockAccountHandler(accountRepo, &publisher)
+	requestUpgradeHandler := command.NewRequestCompanionUpgradeHandler(accountRepo, upgradeRepo, outboxPublisher)
+	approveUpgradeHandler := command.NewApproveUpgradeHandler(upgradeRepo, accountRepo, outboxPublisher)
+	rejectUpgradeHandler := command.NewRejectUpgradeHandler(upgradeRepo, outboxPublisher)
+	recordViolationHandler := command.NewRecordViolationHandler(accountRepo, lockPolicy, outboxPublisher)
+	lockAccountHandler := command.NewLockAccountHandler(accountRepo, tokenService, outboxPublisher)
+	unlockAccountHandler := command.NewUnlockAccountHandler(accountRepo, outboxPublisher)
 
 	_ = recordViolationHandler
 
@@ -88,6 +108,7 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 		logoutHandler,
 		getJWKSHandler,
 		requestUpgradeHandler,
+		mockLoginHandler,
 	)
 
 	adminHandler := httphandler.NewAdminHandler(
@@ -108,6 +129,10 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 		rejectUpgradeHandler,
 		requestUpgradeHandler,
 		listUpgradeReqsHandler,
+		initGoogleAuthHandler,
+		loginGoogleHandler,
+		refreshTokenHandler,
+		logoutHandler,
 	)
 
 	// --- gRPC Server ---
@@ -123,14 +148,24 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 	r := router.NewRouter(authHandler, adminHandler)
 
 	return &Server{
-		Router:     r,
-		GRPCServer: gServer,
+		Router:       r,
+		GRPCServer:   gServer,
+		outboxWorker: outboxWorker,
+		kafkaAdapter: kafkaAdapter,
 	}
 }
 
-// Run starts both HTTP and gRPC servers.
+// Run starts both HTTP and gRPC servers, and the background workers.
 func (s *Server) Run(httpAddr, grpcAddr string) error {
-	errChan := make(chan error, 2)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	errChan := make(chan error, 3)
+
+	// Start Outbox Worker
+	go func() {
+		s.outboxWorker.Start(ctx)
+	}()
 
 	// Start gRPC server
 	go func() {
@@ -156,10 +191,3 @@ func (s *Server) Run(httpAddr, grpcAddr string) error {
 	return <-errChan
 }
 
-// noopPublisher is a no-op event publisher stub for Phase 1.
-// Will be replaced with Kafka publisher in integration phase.
-type noopPublisher struct{}
-
-func (p *noopPublisher) Publish(ctx context.Context, evt event.DomainEvent) error {
-	return nil
-}

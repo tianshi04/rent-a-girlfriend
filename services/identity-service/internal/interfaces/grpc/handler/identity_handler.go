@@ -20,6 +20,11 @@ type IdentityGRPCHandler struct {
 	rejectUpgrade   *command.RejectUpgradeHandler
 	requestUpgrade  *command.RequestCompanionUpgradeHandler
 	listUpgradeReqs *query.ListUpgradeRequestsHandler
+	// Auth handlers
+	initGoogleAuth *command.InitGoogleAuthHandler
+	loginGoogle    *command.LoginGoogleHandler
+	refreshToken   *command.RefreshTokenHandler
+	logout         *command.LogoutHandler
 }
 
 func NewIdentityGRPCHandler(
@@ -30,6 +35,10 @@ func NewIdentityGRPCHandler(
 	rejectUpgrade *command.RejectUpgradeHandler,
 	requestUpgrade *command.RequestCompanionUpgradeHandler,
 	listUpgradeReqs *query.ListUpgradeRequestsHandler,
+	initGoogleAuth *command.InitGoogleAuthHandler,
+	loginGoogle *command.LoginGoogleHandler,
+	refreshToken *command.RefreshTokenHandler,
+	logout *command.LogoutHandler,
 ) *IdentityGRPCHandler {
 	return &IdentityGRPCHandler{
 		getAccount:      getAccount,
@@ -39,6 +48,10 @@ func NewIdentityGRPCHandler(
 		rejectUpgrade:   rejectUpgrade,
 		requestUpgrade:  requestUpgrade,
 		listUpgradeReqs: listUpgradeReqs,
+		initGoogleAuth:  initGoogleAuth,
+		loginGoogle:     loginGoogle,
+		refreshToken:    refreshToken,
+		logout:          logout,
 	}
 }
 
@@ -160,4 +173,61 @@ func (h *IdentityGRPCHandler) UnlockAccount(ctx context.Context, req *identityv1
 		return nil, err
 	}
 	return &identityv1.MessageResponse{Message: "account unlocked"}, nil
+}
+
+// Auth Methods
+
+func (h *IdentityGRPCHandler) InitGoogleAuth(ctx context.Context, _ *identityv1.InitGoogleAuthRequest) (*identityv1.InitGoogleAuthResponse, error) {
+	result, err := h.initGoogleAuth.Handle(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &identityv1.InitGoogleAuthResponse{
+		AuthUrl:       result.AuthURL,
+		State:         result.State,
+		CodeChallenge: result.CodeChallenge,
+	}, nil
+}
+
+func (h *IdentityGRPCHandler) LoginGoogle(ctx context.Context, req *identityv1.LoginGoogleRequest) (*identityv1.TokenResponse, error) {
+	tokenPair, err := h.loginGoogle.Handle(ctx, command.LoginGoogleCommand{
+		Code:  req.Code,
+		State: req.State,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &identityv1.TokenResponse{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		ExpiresIn:    tokenPair.ExpiresIn,
+	}, nil
+}
+
+func (h *IdentityGRPCHandler) RefreshToken(ctx context.Context, req *identityv1.RefreshTokenRequest) (*identityv1.TokenResponse, error) {
+	tokenPair, err := h.refreshToken.Handle(ctx, command.RefreshTokenCommand{
+		RefreshToken: req.RefreshToken,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &identityv1.TokenResponse{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		ExpiresIn:    tokenPair.ExpiresIn,
+	}, nil
+}
+
+func (h *IdentityGRPCHandler) Logout(ctx context.Context, req *identityv1.LogoutRequest) (*identityv1.MessageResponse, error) {
+	err := h.logout.Handle(ctx, command.LogoutCommand{
+		RefreshToken: req.RefreshToken,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &identityv1.MessageResponse{Message: "logged out"}, nil
 }
