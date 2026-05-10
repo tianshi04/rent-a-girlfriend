@@ -16,6 +16,9 @@ type Config struct {
 	Database DatabaseConfig
 	OAuth    OAuthConfig
 	JWT      JWTConfig
+	Kafka    KafkaConfig
+	Outbox   OutboxConfig
+	Redis    RedisConfig
 }
 
 type ServerConfig struct {
@@ -57,6 +60,20 @@ type JWTConfig struct {
 	Issuer          string
 }
 
+type KafkaConfig struct {
+	Brokers       string
+	TopicIdentity string
+}
+
+type OutboxConfig struct {
+	PollingInterval time.Duration
+	BatchSize       int
+}
+
+type RedisConfig struct {
+	URL string
+}
+
 // LoadConfig loads configuration from environment variables.
 func LoadConfig() *Config {
 	// Try to load .env file from current directory or parent directories
@@ -75,6 +92,8 @@ func LoadConfig() *Config {
 	dbPort, _ := strconv.Atoi(getEnv("DB_PORT", "5432"))
 	accessTTL, _ := strconv.Atoi(getEnv("JWT_ACCESS_TTL_MINUTES", "30"))
 	refreshTTL, _ := strconv.Atoi(getEnv("JWT_REFRESH_TTL_DAYS", "7"))
+	outboxInterval, _ := strconv.Atoi(getEnv("OUTBOX_POLLING_INTERVAL_MS", "500"))
+	outboxBatchSize, _ := strconv.Atoi(getEnv("OUTBOX_BATCH_SIZE", "50"))
 
 	return &Config{
 		Server: ServerConfig{
@@ -100,6 +119,17 @@ func LoadConfig() *Config {
 			AccessTokenTTL:  time.Duration(accessTTL) * time.Minute,
 			RefreshTokenTTL: time.Duration(refreshTTL) * 24 * time.Hour,
 			Issuer:          getEnv("JWT_ISSUER", "rent-a-girlfriend-identity"),
+		},
+		Kafka: KafkaConfig{
+			Brokers:       getEnv("KAFKA_BROKERS", "localhost:9092"),
+			TopicIdentity: getEnv("KAFKA_TOPIC_IDENTITY", "identity-events"),
+		},
+		Outbox: OutboxConfig{
+			PollingInterval: time.Duration(outboxInterval) * time.Millisecond,
+			BatchSize:       outboxBatchSize,
+		},
+		Redis: RedisConfig{
+			URL: getEnv("REDIS_URL", ""),
 		},
 	}
 }

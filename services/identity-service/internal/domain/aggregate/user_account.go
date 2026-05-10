@@ -143,6 +143,22 @@ func (a *UserAccount) UpgradeToCompanion(now time.Time) error {
 	return nil
 }
 
+// PromoteToAdmin forcefully changes the role to ADMIN.
+// This bypasses the companion upgrade flow and should only be used
+// for system bootstrapping or testing.
+func (a *UserAccount) PromoteToAdmin() {
+	oldRole := a.role
+	a.role = vo.RoleAdmin
+	a.updatedAt = time.Now()
+
+	a.addEvent(event.RoleUpgraded{
+		UserID:    a.id.String(),
+		OldRole:   string(oldRole),
+		NewRole:   string(a.role),
+		Timestamp: a.updatedAt,
+	})
+}
+
 // CheckLoginAllowed validates [INV-ID01]: cannot login if LOCKED.
 func (a *UserAccount) CheckLoginAllowed() error {
 	if !a.status.CanLogin() {
@@ -154,14 +170,14 @@ func (a *UserAccount) CheckLoginAllowed() error {
 // --- Getters ---
 
 func (a *UserAccount) ID() vo.UserID            { return a.id }
-func (a *UserAccount) Email() vo.Email           { return a.email }
-func (a *UserAccount) GoogleID() string          { return a.googleID }
-func (a *UserAccount) Role() vo.Role             { return a.role }
-func (a *UserAccount) Status() vo.AccountStatus  { return a.status }
-func (a *UserAccount) ViolationCount() int       { return a.violationCount }
-func (a *UserAccount) Version() int              { return a.version }
-func (a *UserAccount) CreatedAt() time.Time      { return a.createdAt }
-func (a *UserAccount) UpdatedAt() time.Time      { return a.updatedAt }
+func (a *UserAccount) Email() vo.Email          { return a.email }
+func (a *UserAccount) GoogleID() string         { return a.googleID }
+func (a *UserAccount) Role() vo.Role            { return a.role }
+func (a *UserAccount) Status() vo.AccountStatus { return a.status }
+func (a *UserAccount) ViolationCount() int      { return a.violationCount }
+func (a *UserAccount) Version() int             { return a.version }
+func (a *UserAccount) CreatedAt() time.Time     { return a.createdAt }
+func (a *UserAccount) UpdatedAt() time.Time     { return a.updatedAt }
 
 // Events returns uncommitted domain events and clears the internal list.
 func (a *UserAccount) Events() []event.DomainEvent {

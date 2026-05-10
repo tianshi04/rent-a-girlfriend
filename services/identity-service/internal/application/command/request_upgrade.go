@@ -44,10 +44,14 @@ func (h *RequestCompanionUpgradeHandler) Handle(ctx context.Context, cmd Request
 		return err
 	}
 
-	// 1. Find user and validate role
+	// 1. Find user and validate role/status
 	account, err := h.accountRepo.FindByID(ctx, userID)
 	if err != nil {
 		return domainerr.ErrAccountNotFound
+	}
+
+	if err := account.CheckLoginAllowed(); err != nil {
+		return err
 	}
 
 	if !account.Role().CanUpgradeToCompanion() {

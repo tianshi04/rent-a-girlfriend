@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 
@@ -28,7 +29,7 @@ func NewRouter(authHandler *handler.AuthHandler, adminHandler *handler.AdminHand
 		auth := v1.Group("/auth")
 		{
 			auth.GET("/google/init", authHandler.InitGoogleAuth)
-			auth.POST("/google/callback", authHandler.LoginGoogle)
+			auth.GET("/google/callback", authHandler.LoginGoogle)
 			auth.POST("/refresh", authHandler.RefreshToken)
 			auth.POST("/logout", authHandler.Logout)
 		}
@@ -56,6 +57,14 @@ func NewRouter(authHandler *handler.AuthHandler, adminHandler *handler.AdminHand
 					admin.PUT("/accounts/:id/lock", adminHandler.LockAccount)
 					admin.PUT("/accounts/:id/unlock", adminHandler.UnlockAccount)
 				}
+			}
+		}
+
+		// Test routes (only enabled in test environment)
+		if os.Getenv("ENABLE_TEST_ROUTES") == "true" {
+			testGrp := v1.Group("/test")
+			{
+				testGrp.POST("/mock-login", authHandler.MockLogin)
 			}
 		}
 	}
