@@ -3,15 +3,21 @@
 Tài liệu này định nghĩa cấu trúc giao tiếp (Event Contracts) giữa Notification Service và phần còn lại của hệ thống. Tuân thủ kiến trúc Event-Driven, các service giao tiếp thông qua Message Broker và sử dụng chuẩn **CloudEvents v1.0**.
 
 > [!TIP]
-> **Triết lý thiết kế (Scalable & MVP-first)**: Notification Service đóng vai trò là một "nhà cung cấp dịch vụ" (Generic Subdomain). Nó **KHÔNG** nghe trộm các domain events cụ thể của service khác (như `BookingAccepted`, `PaymentFailed`). Thay vào đó, bất kỳ service nào muốn gửi thông báo đều phải "chủ động" đóng gói dữ liệu và phát ra một sự kiện chung duy nhất là `NotificationRequested`. Điều này giúp Notification Service không bao giờ phải sửa code khi hệ thống có tính năng mới.
+> **Triết lý thiết kế (Hybrid Strategy)**: Notification Service kết hợp giữa sự **Chủ động** (Smart Consumer - lắng nghe Domain Events trực tiếp từ các service core) và sự **Thụ động** (lắng nghe sự kiện `NotificationRequested` cho các trường hợp generic). Cách tiếp cận này giúp các Core Service hoàn toàn sạch bóng logic hiển thị thông báo, trong khi Notification Service vẫn duy trì được tính linh hoạt cao nhờ hệ thống [Template YAML](../config/templates.yaml).
 
 ---
 
 ## 1. INBOUND EVENTS (SỰ KIỆN LẮNG NGHE)
 
-Đây là sự kiện duy nhất mà Notification Service lắng nghe từ Message Broker (RabbitMQ/Kafka).
+Hệ thống lắng nghe hai nhóm sự kiện:
 
-### `rentagf.notification.requested.v1`
+### 1.1. Nhóm sự kiện Domain (Chủ động)
+Notification Service lắng nghe trực tiếp các sự kiện nghiệp vụ để tự tạo thông báo. Chi tiết ánh xạ xem tại: [Domain Event Mapping](./domain-event-mapping.md).
+
+### 1.2. Nhóm sự kiện Yêu cầu (Thụ động)
+Dành cho các trường hợp đặc biệt hoặc service bên thứ 3.
+
+#### `rentagf.notification.requested.v1`
 - **Mô tả:** Được phát ra bởi các Core Services (Booking, Finance, v.v.) khi họ muốn Notification Service giao một thông báo tới người dùng.
 - **Routing Key:** `notification.requested`
 

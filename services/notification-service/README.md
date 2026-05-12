@@ -21,13 +21,16 @@ Dự án tuân thủ **Hexagonal Architecture**, được chia làm 4 lớp chí
 - **[01. Taxonomy & Delivery Policy](./docs/notification-taxonomy.md)**: Định nghĩa các loại thông báo (Transactional, Interaction, Promotional) và chính sách phân phối (Priority, Realtime, Push, Retry, Persistence).
 - **[02. Routing Policy](./docs/routing-policy.md)**: Định nghĩa luật định tuyến gửi thông báo qua kênh nào (SSE, FCM, hay Email) dựa vào trạng thái kết nối và mức độ ưu tiên.
 - **[03. Domain Model](./docs/notification-domain-model.md)**: Thiết kế thực thể `Notification` và `DeliveryAttempt` chuẩn DDD.
-- **[04. Event Catalog](./docs/event-catalog.md)**: Định nghĩa Contract cho Inbound Event (`NotificationRequested`) và Outbound Events.
-- **[05. System Architecture & Flow](./docs/architecture.md)**: Sơ đồ kiến trúc xử lý tin nhắn phân tán (Distributed SSE) và luồng dữ liệu (Data Flow) cốt lõi của Notification Service.
-- **[06. State Machine](./docs/state-machine.md)**: Định nghĩa vòng đời (Lifecycle), sơ đồ chuyển đổi trạng thái (State Diagram) và cơ chế xử lý lỗi (Failure Handling).
-- **[07. Realtime Delivery (SSE)](./docs/realtime-delivery.md)**: Hợp đồng giao tiếp (Contract) giữa Client và Server cho luồng Server-Sent Events, tích hợp Istio Auth.
-- **[08. API Contract](./docs/api-contract.md)**: Đặc tả danh sách API RESTful (Inbox, Mark as read) cho Frontend và Mobile.
-- **[09. Data Model](./docs/data-model.md)**: Thiết kế sơ đồ thực thể (Entity Relationship) và cấu trúc bảng trong PostgreSQL.
-- **[ADR-0001: Scope & Goals](./adr/0001-notification-service-scope-and-goals.md)**: Định nghĩa ranh giới Bounded Context của service, những gì In-Scope và Out-Scope.
-- **[ADR-0002: Database Choice](./adr/0002-database-choice-postgresql.md)**: Quyết định sử dụng PostgreSQL để quản lý lịch sử gửi lỗi (Audit & Traceability).
-- **[ADR-0003: SSE Authentication Strategy](./adr/0003-sse-authentication-strategy.md)**: Quyết định cấm truyền JWT qua URL và bắt buộc dùng Header qua thư viện ngoài cho Frontend.
-- **[ADR-0004: Cursor-based Pagination](./adr/0004-cursor-based-pagination-for-inbox.md)**: Quyết định sử dụng Cursor-based pagination thay vì Page-based cho API Inbox để tránh lỗi lặp data trong môi trường realtime.
+- **[04. Event Catalog](./docs/event-catalog.md)**: Định nghĩa Contract cho Inbound Events (Hybrid) và Outbound Events.
+- **[05. Domain Event Mapping](./docs/domain-event-mapping.md)**: Chi tiết cách ánh xạ từ Domain Events sang nội dung thông báo.
+- **[06. System Architecture & Flow](./docs/architecture.md)**: Sơ đồ kiến trúc xử lý tin nhắn phân tán (Distributed SSE) và luồng dữ liệu (Data Flow) cốt lõi của Notification Service.
+- **[07. State Machine](./docs/state-machine.md)**: Định nghĩa vòng đời (Lifecycle), sơ đồ chuyển đổi trạng thái (State Diagram) và cơ chế xử lý lỗi (Failure Handling).
+- **[08. Realtime Delivery (SSE)](./docs/realtime-delivery.md)**: Hợp đồng giao tiếp (Contract) giữa Client và Server cho luồng Server-Sent Events, tích hợp Istio Auth.
+- **[09. API Contract](./docs/api-contract.md)**: Đặc tả danh sách API RESTful (Inbox, Mark as read) cho Frontend và Mobile.
+- **[10. Data Model](./docs/data-model.md)**: Thiết kế sơ đồ thực thể (Entity Relationship) và cấu trúc bảng trong PostgreSQL.
+- **[11. Notification Templates](./config/templates.yaml)**: File cấu hình quản lý nội dung thông báo tập trung.
+- **[ADR-0001: Scope & Goals](./docs/adr/0001-notification-service-scope-and-goals.md)**: Định nghĩa ranh giới Bounded Context của service, những gì In-Scope và Out-Scope.
+- **[ADR-0002: Database Choice](./docs/adr/0002-database-choice-postgresql.md)**: Quyết định sử dụng PostgreSQL để quản lý lịch sử gửi lỗi (Audit & Traceability).
+- **[ADR-0003: SSE Authentication Strategy](./docs/adr/0003-sse-authentication-strategy.md)**: Quyết định cấm truyền JWT qua URL và bắt buộc dùng Header qua thư viện ngoài cho Frontend.
+- **[ADR-0004: Cursor-based Pagination](./docs/adr/0004-cursor-based-pagination-for-inbox.md)**: Quyết định sử dụng Cursor-based pagination thay vì Page-based cho API Inbox để tránh lỗi lặp data trong môi trường realtime.
+- **[ADR-0005: Hybrid Triggering](./docs/adr/0005-hybrid-notification-triggering-strategy.md)**: Chiến lược kết hợp giữa Smart Consumer (nghe Domain Events) và Passive Subscriber.
