@@ -1,0 +1,72 @@
+# 📋 NOTIFICATION TEMPLATES CONFIGURATION
+# File này quản lý toàn bộ nội dung hiển thị của thông báo.
+
+events:
+  # --- BOOKING EVENTS ---
+  rentagf.booking.requested.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "companionId"
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Yêu cầu mới! 🔔"
+        body: "Bạn có một yêu cầu đặt lịch mới từ khách hàng."
+      en:
+        title: "New Request! 🔔"
+        body: "You have a new booking request from a client."
+
+  rentagf.booking.accepted.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "clientId"
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Yêu cầu được chấp nhận ✅"
+        body: "Companion đã chấp nhận yêu cầu #{bookingId} của bạn."
+      en:
+        title: "Booking Accepted ✅"
+        body: "Companion has accepted your booking request #{bookingId}."
+
+  # --- FINANCE EVENTS ---
+  rentagf.finance.topup.completed.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "userId"
+    priority: "MEDIUM"
+    channels: ["SSE"]
+    template:
+      vi:
+        title: "Nạp tiền thành công 💰"
+        body: "Bạn vừa nạp thành công {{amount}} Kano-Coin."
+      en:
+        title: "Top-up Successful 💰"
+        body: "You have successfully topped up {{amount}} Kano-Coin."
+
+  # --- CHAT EVENTS ---
+  rentagf.chat.message.sent.v1:
+    type: "INTERACTION"
+    recipient_field: "recipientId"
+    priority: "MEDIUM"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Tin nhắn từ {{senderName}}"
+        body: "{{snippet}}"
+      en:
+        title: "Message from {{senderName}}"
+        body: "{{snippet}}"
+
+  # --- IDENTITY EVENTS ---
+  rentagf.profile.companion.approved.v1:
+    type: "PROMOTIONAL"
+    recipient_field: "userId"
+    priority: "LOW"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Chào mừng Companion! 🎉"
+        body: "Hồ sơ của bạn đã được duyệt. Hãy bắt đầu nhận lịch ngay!"
+      en:
+        title: "Welcome Companion! 🎉"
+        body: "Your profile has been approved. Start accepting bookings now!"
