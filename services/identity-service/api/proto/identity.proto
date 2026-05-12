@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package identity.v1;
+
+option go_package = "github.com/rent-a-girlfriend/identity-service/api/proto/identity;identityv1";
+
+import "google/protobuf/timestamp.proto";
+
+service IdentityService {
+  // Queries
+  rpc GetAccount(GetAccountRequest) returns (AccountResponse);
+  rpc ListUpgradeRequests(ListUpgradeRequestsRequest) returns (ListUpgradeRequestsResponse);
+
+  // Commands
+  rpc RequestUpgrade(RequestUpgradeRequest) returns (MessageResponse);
+  rpc ApproveUpgrade(ApproveUpgradeRequest) returns (MessageResponse);
+  rpc RejectUpgrade(RejectUpgradeRequest) returns (MessageResponse);
+  rpc LockAccount(LockAccountRequest) returns (MessageResponse);
+  rpc UnlockAccount(UnlockAccountRequest) returns (MessageResponse);
+
+  // Auth Commands
+  rpc InitGoogleAuth(InitGoogleAuthRequest) returns (InitGoogleAuthResponse);
+  rpc LoginGoogle(LoginGoogleRequest) returns (TokenResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (TokenResponse);
+  rpc Logout(LogoutRequest) returns (MessageResponse);
+}
+
+message InitGoogleAuthRequest {}
+
+message InitGoogleAuthResponse {
+  string auth_url = 1;
+  string state = 2;
+  string code_challenge = 3;
+}
+
+message LoginGoogleRequest {
+  string code = 1;
+  string state = 2;
+}
+
+message TokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_in = 3;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
+}
+
+message GetAccountRequest {
+  string id = 1;
+}
+
+message AccountResponse {
+  string id = 1;
+  string email = 2;
+  string role = 3;
+  string status = 4;
+  int32 violation_count = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message ListUpgradeRequestsRequest {
+  string status = 1; // optional
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message UpgradeRequestItem {
+  string id = 1;
+  string user_id = 2;
+  string status = 3;
+  string reason = 4;
+  string reject_reason = 5;
+  string reviewed_by = 6;
+  google.protobuf.Timestamp reviewed_at = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message ListUpgradeRequestsResponse {
+  repeated UpgradeRequestItem data = 1;
+  int64 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message RequestUpgradeRequest {
+  string reason = 1;
+}
+
+message ApproveUpgradeRequest {
+  string id = 1;
+}
+
+message RejectUpgradeRequest {
+  string id = 1;
+  string reason = 2;
+}
+
+message LockAccountRequest {
+  string id = 1;
+  string reason = 2;
+}
+
+message UnlockAccountRequest {
+  string id = 1;
+}
+
+message MessageResponse {
+  string message = 1;
+}

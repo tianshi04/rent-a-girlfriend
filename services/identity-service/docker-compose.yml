@@ -1,0 +1,40 @@
+services:
+  identity-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      SERVER_PORT: "${SERVER_PORT:-8081}"
+      GIN_MODE: "${GIN_MODE:-debug}"
+      DB_HOST: "${DB_HOST}"
+      DB_PORT: "${DB_PORT:-5432}"
+      DB_USER: "${DB_USER}"
+      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_NAME: "${DB_NAME}"
+      DB_SSLMODE: "${DB_SSLMODE:-require}"
+      DATABASE_URL: "${DATABASE_URL}"
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET}"
+      GOOGLE_REDIRECT_URI: "${GOOGLE_REDIRECT_URI}"
+      JWT_ACCESS_TTL_MINUTES: "${JWT_ACCESS_TTL_MINUTES:-15}"
+      JWT_REFRESH_TTL_DAYS: "${JWT_REFRESH_TTL_DAYS:-7}"
+      JWT_ISSUER: "${JWT_ISSUER:-rent-a-girlfriend-identity}"
+      # Kafka Config
+      KAFKA_BROKERS: "kafka-1:9092,kafka-2:9092,kafka-3:9092"
+      KAFKA_TOPIC_IDENTITY: "${KAFKA_TOPIC_IDENTITY:-identity-events}"
+      OUTBOX_POLLING_INTERVAL_MS: "${OUTBOX_POLLING_INTERVAL_MS:-500}"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
+      ENABLE_TEST_ROUTES: "${ENABLE_TEST_ROUTES:-false}"
+    restart: unless-stopped
+    networks:
+      - rent-a-gf-network
+
+networks:
+  rent-a-gf-network:
+    external: true
+    name: rent-a-gf-network
+
+volumes:
+  pgdata:
