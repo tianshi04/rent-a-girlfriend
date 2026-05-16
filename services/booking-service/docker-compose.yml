@@ -1,0 +1,49 @@
+services:
+  booking-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_PORT: "8080"
+      GIN_MODE: "debug"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_USER: "postgres"
+      DB_PASSWORD: "postgres"
+      DB_NAME: "booking_db"
+      DB_SSLMODE: "disable"
+      KAFKA_BROKERS: "kafka-1:9092,kafka-2:9092,kafka-3:9092"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - rent-a-gf-network
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: booking_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rent-a-gf-network
+
+networks:
+  rent-a-gf-network:
+    external: true
+    name: rent-a-gf-network
+
+volumes:
+  pgdata:
