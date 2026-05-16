@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -89,49 +91,94 @@ func LoadConfig() *Config {
 		log.Println("[CONFIG] No .env file found in standard locations, relying on environment variables")
 	}
 
-	dbPort, _ := strconv.Atoi(getEnv("DB_PORT", "5432"))
-	accessTTL, _ := strconv.Atoi(getEnv("JWT_ACCESS_TTL_MINUTES", "30"))
-	refreshTTL, _ := strconv.Atoi(getEnv("JWT_REFRESH_TTL_DAYS", "7"))
-	outboxInterval, _ := strconv.Atoi(getEnv("OUTBOX_POLLING_INTERVAL_MS", "500"))
-	outboxBatchSize, _ := strconv.Atoi(getEnv("OUTBOX_BATCH_SIZE", "50"))
+	configDir := getEnv("CONFIG_DIR", "/etc/config")
+	secretDir := getEnv("SECRETS_DIR", "/etc/secrets")
+	configFiles := loadConfigDir(configDir)
+	secretFiles := loadConfigDir(secretDir)
+
+	dbPort, _ := strconv.Atoi(getConfigValue(configFiles, secretFiles, "DB_PORT", "5432"))
+	accessTTL, _ := strconv.Atoi(getConfigValue(configFiles, secretFiles, "JWT_ACCESS_TTL_MINUTES", "30"))
+	refreshTTL, _ := strconv.Atoi(getConfigValue(configFiles, secretFiles, "JWT_REFRESH_TTL_DAYS", "7"))
+	outboxInterval, _ := strconv.Atoi(getConfigValue(configFiles, secretFiles, "OUTBOX_POLLING_INTERVAL_MS", "500"))
+	outboxBatchSize, _ := strconv.Atoi(getConfigValue(configFiles, secretFiles, "OUTBOX_BATCH_SIZE", "50"))
 
 	return &Config{
 		Server: ServerConfig{
-			Port:     getEnv("SERVER_PORT", "8081"),
-			GRPCPort: getEnv("GRPC_PORT", "50051"),
-			Mode:     getEnv("GIN_MODE", "debug"),
+			Port:     getConfigValue(configFiles, secretFiles, "SERVER_PORT", "8081"),
+			GRPCPort: getConfigValue(configFiles, secretFiles, "GRPC_PORT", "50051"),
+			Mode:     getConfigValue(configFiles, secretFiles, "GIN_MODE", "debug"),
 		},
 		Database: DatabaseConfig{
-			Host:        getEnv("DB_HOST", "localhost"),
+			Host:        getConfigValue(configFiles, secretFiles, "DB_HOST", "localhost"),
 			Port:        dbPort,
-			User:        getEnv("DB_USER", "postgres"),
-			Password:    getEnv("DB_PASSWORD", "postgres"),
-			DBName:      getEnv("DB_NAME", "identity_db"),
-			SSLMode:     getEnv("DB_SSLMODE", "disable"),
-			DatabaseURL: getEnv("DATABASE_URL", ""),
+			User:        getConfigValue(configFiles, secretFiles, "DB_USER", "postgres"),
+			Password:    getConfigValue(configFiles, secretFiles, "DB_PASSWORD", "postgres"),
+			DBName:      getConfigValue(configFiles, secretFiles, "DB_NAME", "identity_db"),
+			SSLMode:     getConfigValue(configFiles, secretFiles, "DB_SSLMODE", "disable"),
+			DatabaseURL: getConfigValue(configFiles, secretFiles, "DATABASE_URL", ""),
 		},
 		OAuth: OAuthConfig{
-			GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
-			GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
-			GoogleRedirectURI:  getEnv("GOOGLE_REDIRECT_URI", "http://localhost:8081/api/v1/auth/google/callback"),
+			GoogleClientID:     getConfigValue(configFiles, secretFiles, "GOOGLE_CLIENT_ID", ""),
+			GoogleClientSecret: getConfigValue(configFiles, secretFiles, "GOOGLE_CLIENT_SECRET", ""),
+			GoogleRedirectURI:  getConfigValue(configFiles, secretFiles, "GOOGLE_REDIRECT_URI", "http://localhost:8081/api/v1/auth/google/callback"),
 		},
 		JWT: JWTConfig{
 			AccessTokenTTL:  time.Duration(accessTTL) * time.Minute,
 			RefreshTokenTTL: time.Duration(refreshTTL) * 24 * time.Hour,
-			Issuer:          getEnv("JWT_ISSUER", "rent-a-girlfriend-identity"),
+			Issuer:          getConfigValue(configFiles, secretFiles, "JWT_ISSUER", "rent-a-girlfriend-identity"),
 		},
 		Kafka: KafkaConfig{
-			Brokers:       getEnv("KAFKA_BROKERS", "localhost:9092"),
-			TopicIdentity: getEnv("KAFKA_TOPIC_IDENTITY", "identity-events"),
+			Brokers:       getConfigValue(configFiles, secretFiles, "KAFKA_BROKERS", "localhost:9092"),
+			TopicIdentity: getConfigValue(configFiles, secretFiles, "KAFKA_TOPIC_IDENTITY", "identity-events"),
 		},
 		Outbox: OutboxConfig{
 			PollingInterval: time.Duration(outboxInterval) * time.Millisecond,
 			BatchSize:       outboxBatchSize,
 		},
 		Redis: RedisConfig{
-			URL: getEnv("REDIS_URL", ""),
+			URL: getConfigValue(configFiles, secretFiles, "REDIS_URL", ""),
 		},
 	}
+}
+
+func getConfigValue(configFiles, secretFiles map[string]string, key, defaultValue string) string {
+	if value, ok := configFiles[key]; ok && value != "" {
+		return value
+	}
+	if value, ok := secretFiles[key]; ok && value != "" {
+		return value
+	}
+	if value, ok := os.LookupEnv(key); ok && value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+func loadConfigDir(dir string) map[string]string {
+	configs := make(map[string]string)
+	info, err := os.Stat(dir)
+	if err != nil || !info.IsDir() {
+		return configs
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return configs
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		path := filepath.Join(dir, entry.Name())
+		content, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		configs[entry.Name()] = strings.TrimSpace(string(content))
+	}
+
+	return configs
 }
 
 func getEnv(key, defaultValue string) string {
