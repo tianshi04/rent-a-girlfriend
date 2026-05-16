@@ -1,0 +1,101 @@
+# =========================================
+# CORE: normalize mọi text file
+# =========================================
+* text=auto eol=lf
+
+# =========================================
+# SCRIPT / EXECUTABLE (Linux-first)
+# =========================================
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+
+# Windows scripts
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# =========================================
+# INFRASTRUCTURE (Kubernetes / DevOps)
+# =========================================
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+
+# Docker / CI
+Dockerfile text eol=lf
+*.dockerfile text eol=lf
+*.env text eol=lf
+
+# Makefile luôn LF (rất quan trọng)
+Makefile text eol=lf
+
+# =========================================
+# DOCUMENTATION
+# =========================================
+*.md text eol=lf
+*.txt text eol=lf
+*.adoc text eol=lf
+
+# =========================================
+# CODE (đa ngôn ngữ)
+# =========================================
+
+# Backend languages
+*.go text eol=lf
+*.py text eol=lf
+*.java text eol=lf
+*.kt text eol=lf
+*.cs text eol=lf
+*.rs text eol=lf
+*.ts text eol=lf
+*.js text eol=lf
+
+# Web / frontend
+*.html text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.vue text eol=lf
+
+# =========================================
+# BINARY FILES (KHÔNG diff)
+# =========================================
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+
+# Fonts / assets
+*.ttf binary
+*.woff binary
+*.woff2 binary
+
+# Archives
+*.zip binary
+*.tar binary
+*.gz binary
+
+# =========================================
+# PROTO / GRPC (microservice rất quan trọng)
+# =========================================
+*.proto text eol=lf
+
+# =========================================
+# GIT SPECIAL BEHAVIOR
+# =========================================
+
+# tránh commit file local config nhạy cảm (chỉ ảnh hưởng archive)
+.env export-ignore
+*.local export-ignore
+
+# =========================================
+# MERGE STRATEGY (tuỳ chọn)
+# =========================================
+
+# lock file thường không merge
+package-lock.json merge=ours
+yarn.lock merge=ours
+go.sum merge=ours

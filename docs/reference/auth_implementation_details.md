@@ -62,6 +62,18 @@ RSASHA256(
     *   **Phát hiện tấn công:** Nếu một Refresh Token cũ (đã bị hủy) được sử dụng lại, Identity Service sẽ lập tức thu hồi toàn bộ các Refresh Token liên quan đến User đó để đảm bảo an toàn.
 *   **Lưu trữ:** Refresh Token được lưu trong Database (Identity DB) kèm trạng thái và ID thiết bị/phiên.
 
+### 1.3. Identity Propagation (Service Mesh)
+Sau khi Access Token được xác thực thành công tại tầng **Service Mesh (Istio Waypoint)**, các thông tin định danh sẽ được trích xuất từ Payload và inject vào HTTP Header của request trước khi chuyển tiếp đến các Microservice phía sau.
+
+**Header Mapping:**
+*   `user-id`: Giá trị từ claim `sub`.
+*   `user-email`: Giá trị từ claim `email`.
+*   `user-role`: Giá trị từ claim `role`.
+*   `user-status`: Giá trị từ claim `status`.
+
+> [!IMPORTANT]
+> Các Microservice không cần (và không nên) tự verify JWT. Application code mặc định coi như User đã được xác thực nếu request chạm tới tầng xử lý và sử dụng các Header trên để lấy thông tin ngữ cảnh người dùng.
+
 ---
 
 ## 2. QUẢN LÝ KHÓA (KEY MANAGEMENT - JWKS)

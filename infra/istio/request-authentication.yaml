@@ -1,0 +1,28 @@
+apiVersion: security.istio.io/v1
+kind: RequestAuthentication
+metadata:
+  name: jwt-auth
+  namespace: default
+spec:
+  # Không có targetRef → apply cho TOÀN BỘ workloads trong namespace default.
+  # Waypoint tự động enforce JWT verification cho mọi service được enroll vào mesh.
+  #
+  # Hành vi:
+  #   - Có JWT hợp lệ   → verify + inject claims vào headers bên dưới
+  #   - Không có JWT     → pass (không inject headers, không reject)
+  #   - JWT sai/hết hạn → 401 Unauthorized tại Waypoint
+  jwtRules:
+    - issuer: "rent-a-girlfriend-identity"
+      jwksUri: "http://identity-service.default.svc.cluster.local/.well-known/jwks.json"
+      # forwardOriginalToken: giữ lại JWT header để downstream service đọc nếu cần
+      forwardOriginalToken: true
+      # outputClaimToHeaders: inject JWT claims đã verify thành HTTP headers
+      outputClaimToHeaders:
+        - header: "user-id"
+          claim: "sub"
+        - header: "user-email"
+          claim: "email"
+        - header: "user-role"
+          claim: "role"
+        - header: "user-status"
+          claim: "status"

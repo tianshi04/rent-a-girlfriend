@@ -1,0 +1,12 @@
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default-mtls-strict
+  namespace: default
+spec:
+  # STRICT: reject mọi plain-text connection. Chỉ chấp nhận mTLS.
+  # Mặc định của Istio là PERMISSIVE — phải khai báo rõ STRICT.
+  # ztunnel tự động cấp X.509 certificate và thực hiện mTLS handshake
+  # cho mọi workload được enroll vào ambient mesh.
+  mtls:
+    mode: STRICT

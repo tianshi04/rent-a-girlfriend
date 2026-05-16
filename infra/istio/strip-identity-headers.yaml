@@ -1,0 +1,35 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: strip-identity-headers
+  namespace: default
+spec:
+  # workloadSelector nhắm vào Waypoint Proxy pods — KHÔNG phải ingress/edge gateway.
+  # Trong Ambient Mode (không có sidecar), Waypoint là L7 proxy gần nhất với workload,
+  # tương đương SIDECAR_INBOUND trong classic Istio.
+  #
+  # Strip xảy ra TRƯỚC khi RequestAuthentication inject headers:
+  #   1. Strip user-id, user-email, user-role, user-status từ mọi request đến
+  #   2. RequestAuthentication verify JWT (nếu có) và inject lại headers từ claims đã verify
+  # → Đảm bảo client không thể giả mạo identity headers.
+  workloadSelector:
+    labels:
+      gateway.networking.k8s.io/gateway-name: waypoint
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: GATEWAY
+        listener:
+          filterChain:
+            filter:
+              name: "envoy.filters.network.http_connection_manager"
+      patch:
+        operation: MERGE
+        value:
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+            request_headers_to_remove:
+              - "user-id"
+              - "user-email"
+              - "user-role"
+              - "user-status"
