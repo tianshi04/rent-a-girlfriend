@@ -14,15 +14,16 @@ globs: services/**/*
     - `internal/application/`: Commands, Queries, Saga.
     - `internal/infrastructure/`: DB/Broker/Client adapters.
     - `internal/interfaces/`: HTTP/gRPC/PubSub handlers.
+    - `deployments/`: K8s manifests và Istio policies riêng của service.
     - `api/`: Contracts (Protobuf, OpenAPI, Event schemas).
     - `docs/`: Tài liệu kỹ thuật riêng của service.
     - `tests/`: Integration & E2E tests.
 - **Principles**:
     - Dependency Direction: Ngoài vào trong (Domain là lõi).
     - Database Isolation: Không truy cập DB service khác.
-    - Encapsulation: Giấu chi tiết hạ tầng sau Interfaces.
+    - Service Autonomy: Mỗi service phải chứa đủ mọi thứ để có thể tách thành repo riêng và deploy độc lập (Independent Repo Ready).
 - **Deployment**:
-    - Standalone Dockerfile mỗi service. Multi-stage build.
+    - Standalone Dockerfile mỗi service đặt tại root của service. Multi-stage build.
     - Config qua biến môi trường (.env.example). No hard-code.
 - **Quality & Documentation**:
     - **Self-Documenting**: Mỗi service phải tự quản lý `docs/` riêng. Cập nhật tài liệu ngay khi thay đổi logic nghiệp vụ.

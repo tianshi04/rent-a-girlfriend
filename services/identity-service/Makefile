@@ -48,3 +48,7 @@ docker-down:
 # Tidy dependencies
 tidy:
 	go mod tidy
+
+# Deploy to k8s
+deploy:
+	kubectl apply -f deployments/k8s/
