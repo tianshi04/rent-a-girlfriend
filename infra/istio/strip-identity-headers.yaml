@@ -2,7 +2,7 @@ apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
   name: strip-identity-headers
-  namespace: default
+  namespace: istio-system
 spec:
   # workloadSelector nhắm vào Waypoint Proxy pods — KHÔNG phải ingress/edge gateway.
   # Trong Ambient Mode (không có sidecar), Waypoint là L7 proxy gần nhất với workload,

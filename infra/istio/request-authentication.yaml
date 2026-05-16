@@ -2,9 +2,9 @@ apiVersion: security.istio.io/v1
 kind: RequestAuthentication
 metadata:
   name: jwt-auth
-  namespace: default
+  namespace: istio-system
 spec:
-  # Không có targetRef → apply cho TOÀN BỘ workloads trong namespace default.
+  # Không có targetRef → apply cho TOÀN BỘ workloads trong toàn bộ Mesh.
   # Waypoint tự động enforce JWT verification cho mọi service được enroll vào mesh.
   #
   # Hành vi:
