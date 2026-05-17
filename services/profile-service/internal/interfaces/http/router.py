@@ -81,7 +81,7 @@ def get_auth_info(
 # --- Routes ---
 
 
-@router.get("/profile/companions", tags=["Catalogue Query"])
+@router.get("/companions", tags=["Catalogue Query"])
 async def search_companions(
     name: Optional[str] = Query(None),
     city: Optional[str] = Query(None),
@@ -108,7 +108,7 @@ async def search_companions(
         )
 
 
-@router.get("/profile/companions/{companion_id}", tags=["Catalogue Query"])
+@router.get("/companions/{companion_id}", tags=["Catalogue Query"])
 async def get_companion_detail(
     companion_id: str, query_service: ProfileQueryService = Depends(get_query_service)
 ):

@@ -6,13 +6,13 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/api/v1/profile/companions": {
+    "/api/v1/companions": {
       "get": {
         "tags": [
           "Catalogue Query"
         ],
         "summary": "Search Companions",
-        "operationId": "search_companions_api_v1_profile_companions_get",
+        "operationId": "search_companions_api_v1_companions_get",
         "parameters": [
           {
             "name": "name",
@@ -124,13 +124,13 @@
         }
       }
     },
-    "/api/v1/profile/companions/{companion_id}": {
+    "/api/v1/companions/{companion_id}": {
       "get": {
         "tags": [
           "Catalogue Query"
         ],
         "summary": "Get Companion Detail",
-        "operationId": "get_companion_detail_api_v1_profile_companions__companion_id__get",
+        "operationId": "get_companion_detail_api_v1_companions__companion_id__get",
         "parameters": [
           {
             "name": "companion_id",
