@@ -8,6 +8,8 @@ service ProfileService {
   // Commands (REST for Query, gRPC for Commands)
   rpc CreateProfile(CreateProfileRequest) returns (ProfileCommandResponse);
   rpc UpdateProfile(UpdateProfileRequest) returns (ProfileCommandResponse);
+  rpc ApproveProfile(ApproveProfileRequest) returns (ProfileCommandResponse);
+  rpc RejectProfile(RejectProfileRequest) returns (ProfileCommandResponse);
 
   // Scenario Commands
   // [INV-P01] Price must be > 0.
@@ -40,6 +42,17 @@ message UpdateProfileRequest {
   string intro_text = 3;
   repeated string available_cities = 4;
   string avatar_url = 5;
+}
+
+message ApproveProfileRequest {
+  string companion_id = 1;
+  string admin_id = 2;
+}
+
+message RejectProfileRequest {
+  string companion_id = 1;
+  string admin_id = 2;
+  string reason = 3;
 }
 
 message CreateScenarioRequest {
