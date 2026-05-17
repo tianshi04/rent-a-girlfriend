@@ -1,0 +1,118 @@
+openapi: 3.0.3
+info:
+  title: Dispute Resolution Service Query API
+  description: |
+    REST API for Admin Dashboard to search, list, and query details of client-companion disputes and reports.
+    Access is restricted to Admin role.
+    Complies with the rule: REST for Query, gRPC for Commands.
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: Dispute Resolution Service API Gateway
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    DisputeEvidenceItem:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [TEXT, IMAGE] }
+        content: { type: string, description: "Text explanation or Image storage URL", example: "https://storage.rentgf.com/evidence/123.png" }
+
+    DisputeDetailResponse:
+      type: object
+      properties:
+        disputeId: { type: string, format: uuid }
+        bookingId: { type: string, format: uuid }
+        reporterId: { type: string, format: uuid }
+        accusedId: { type: string, format: uuid }
+        reason: { type: string, example: "No-show (Companion did not appear after 30 minutes)" }
+        status: { type: string, enum: [OPEN, RESOLVING, REFUNDED, PAID_OUT, REJECTED], example: "OPEN" }
+        adminId: { type: string, format: uuid, nullable: true }
+        evidences:
+          type: array
+          items: { $ref: '#/components/schemas/DisputeEvidenceItem' }
+        createdAt: { type: string, format: date-time }
+        resolvedAt: { type: string, format: date-time, nullable: true }
+
+    DisputeCard:
+      type: object
+      description: Summary data of a dispute for the dashboard queue
+      properties:
+        disputeId: { type: string, format: uuid }
+        bookingId: { type: string, format: uuid }
+        reporterEmail: { type: string, format: email, example: "reporter@example.com" }
+        accusedEmail: { type: string, format: email, example: "accused@example.com" }
+        reason: { type: string }
+        status: { type: string }
+        priority: { type: string, enum: [LOW, MEDIUM, HIGH], example: "HIGH" }
+        createdAt: { type: string, format: date-time }
+
+    PaginatedDisputes:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/DisputeCard' }
+        total: { type: integer, format: int64 }
+        page: { type: integer }
+        pageSize: { type: integer }
+
+paths:
+  /disputes:
+    get:
+      tags: [Dispute Admin Query]
+      summary: List all disputes and reports for Admin review queue
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [OPEN, RESOLVING, REFUNDED, PAID_OUT, REJECTED] }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 10 }
+      responses:
+        '200':
+          description: Dispute queue successfully loaded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginatedDisputes' }
+        '401':
+          description: Unauthorized JWT
+        '403':
+          description: Forbidden (Requires ADMIN role claim)
+
+  /disputes/{id}:
+    get:
+      tags: [Dispute Admin Query]
+      summary: Retrieve detailed evidence and resolution data of a dispute
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Dispute found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DisputeDetailResponse' }
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Dispute not found
