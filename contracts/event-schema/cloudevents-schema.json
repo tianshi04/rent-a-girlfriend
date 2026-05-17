@@ -53,7 +53,17 @@
         { "$ref": "#/definitions/ReviewSubmittedPayload" },
         { "$ref": "#/definitions/ReportCreatedPayload" },
         { "$ref": "#/definitions/ViolationRecordedPayload" },
-        { "$ref": "#/definitions/AccountLockedPayload" }
+        { "$ref": "#/definitions/AccountLockedPayload" },
+        { "$ref": "#/definitions/ProfileCreatedPayload" },
+        { "$ref": "#/definitions/ProfileUpdatedPayload" },
+        { "$ref": "#/definitions/ProfileApprovedPayload" },
+        { "$ref": "#/definitions/ProfileRejectedPayload" },
+        { "$ref": "#/definitions/ScenarioCreatedPayload" },
+        { "$ref": "#/definitions/ScenarioUpdatedPayload" },
+        { "$ref": "#/definitions/ScenarioDeletedPayload" },
+        { "$ref": "#/definitions/VoiceIntroUploadedPayload" },
+        { "$ref": "#/definitions/VoiceIntroRejectedPayload" },
+        { "$ref": "#/definitions/AlbumImageUploadedPayload" }
       ]
     },
     "extensions": {
@@ -174,6 +184,110 @@
       "properties": {
         "userId": { "type": "string", "format": "uuid" },
         "reason": { "type": "string", "example": "Exceeded maximum violation count." }
+      }
+    },
+    "ProfileCreatedPayload": {
+      "type": "object",
+      "required": ["companionId", "userId", "displayName", "availableCities"],
+      "properties": {
+        "companionId": { "type": "string", "format": "uuid" },
+        "userId": { "type": "string", "format": "uuid" },
+        "displayName": { "type": "string" },
+        "availableCities": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "ProfileUpdatedPayload": {
+      "type": "object",
+      "required": ["companionId", "displayName", "availableCities"],
+      "properties": {
+        "companionId": { "type": "string", "format": "uuid" },
+        "displayName": { "type": "string" },
+        "introText": { "type": "string" },
+        "availableCities": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "ProfileApprovedPayload": {
+      "type": "object",
+      "required": ["companionId", "approvedBy"],
+      "properties": {
+        "companionId": { "type": "string", "format": "uuid" },
+        "approvedBy": { "type": "string", "format": "uuid" }
+      }
+    },
+    "ProfileRejectedPayload": {
+      "type": "object",
+      "required": ["companionId", "rejectedBy", "reason"],
+      "properties": {
+        "companionId": { "type": "string", "format": "uuid" },
+        "rejectedBy": { "type": "string", "format": "uuid" },
+        "reason": { "type": "string" }
+      }
+    },
+    "ScenarioCreatedPayload": {
+      "type": "object",
+      "required": ["scenarioId", "companionId", "title", "price", "durationMinutes"],
+      "properties": {
+        "scenarioId": { "type": "string", "format": "uuid" },
+        "companionId": { "type": "string", "format": "uuid" },
+        "title": { "type": "string" },
+        "price": { "type": "integer", "minimum": 1 },
+        "durationMinutes": { "type": "integer", "enum": [60, 120, 180] }
+      }
+    },
+    "ScenarioUpdatedPayload": {
+      "type": "object",
+      "required": ["scenarioId", "companionId", "title", "price", "durationMinutes", "status"],
+      "properties": {
+        "scenarioId": { "type": "string", "format": "uuid" },
+        "companionId": { "type": "string", "format": "uuid" },
+        "title": { "type": "string" },
+        "price": { "type": "integer", "minimum": 1 },
+        "durationMinutes": { "type": "integer", "enum": [60, 120, 180] },
+        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] }
+      }
+    },
+    "ScenarioDeletedPayload": {
+      "type": "object",
+      "required": ["scenarioId", "companionId"],
+      "properties": {
+        "scenarioId": { "type": "string", "format": "uuid" },
+        "companionId": { "type": "string", "format": "uuid" }
+      }
+    },
+    "VoiceIntroUploadedPayload": {
+      "type": "object",
+      "required": ["companionId", "assetId", "fileUrl", "durationSeconds", "sizeBytes"],
+      "properties": {
+        "companionId": { "type": "string", "format": "uuid" },
+        "assetId": { "type": "string", "format": "uuid" },
+        "fileUrl": { "type": "string", "format": "uri" },
+        "durationSeconds": { "type": "integer", "maximum": 30 },
+        "sizeBytes": { "type": "integer", "maximum": 5242880 }
+      }
+    },
+    "VoiceIntroRejectedPayload": {
+      "type": "object",
+      "required": ["companionId", "fileUrl", "reason"],
+      "properties": {
+        "companionId": { "type": "string", "format": "uuid" },
+        "fileUrl": { "type": "string", "format": "uri" },
+        "reason": { "type": "string" }
+      }
+    },
+    "AlbumImageUploadedPayload": {
+      "type": "object",
+      "required": ["companionId", "assetId", "fileUrl", "sizeBytes"],
+      "properties": {
+        "companionId": { "type": "string", "format": "uuid" },
+        "assetId": { "type": "string", "format": "uuid" },
+        "fileUrl": { "type": "string", "format": "uri" },
+        "sizeBytes": { "type": "integer", "maximum": 2097152 }
       }
     }
   }

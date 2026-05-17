@@ -1,0 +1,170 @@
+asyncapi: 2.6.0
+info:
+  title: Profile Service Events
+  version: 1.0.0
+  description: Events published by the Profile & Catalogue Service via Kafka.
+
+channels:
+  com.rentagf.profile.ProfileCreated.v1:
+    publish:
+      summary: Companion profile created
+      message:
+        $ref: '#/components/messages/ProfileCreated'
+
+  com.rentagf.profile.ProfileUpdated.v1:
+    publish:
+      summary: Companion profile updated
+      message:
+        $ref: '#/components/messages/ProfileUpdated'
+
+  com.rentagf.profile.ProfileApproved.v1:
+    publish:
+      summary: Companion profile approved by admin
+      message:
+        $ref: '#/components/messages/ProfileApproved'
+
+  com.rentagf.profile.ProfileRejected.v1:
+    publish:
+      summary: Companion profile rejected by admin
+      message:
+        $ref: '#/components/messages/ProfileRejected'
+
+  com.rentagf.profile.ScenarioCreated.v1:
+    publish:
+      summary: Companion scenario created
+      message:
+        $ref: '#/components/messages/ScenarioCreated'
+
+  com.rentagf.profile.ScenarioUpdated.v1:
+    publish:
+      summary: Companion scenario updated
+      message:
+        $ref: '#/components/messages/ScenarioUpdated'
+
+  com.rentagf.profile.ScenarioDeleted.v1:
+    publish:
+      summary: Companion scenario deleted
+      message:
+        $ref: '#/components/messages/ScenarioDeleted'
+
+  com.rentagf.profile.VoiceIntroUploaded.v1:
+    publish:
+      summary: Companion voice intro registered successfully
+      message:
+        $ref: '#/components/messages/VoiceIntroUploaded'
+
+  com.rentagf.profile.VoiceIntroRejected.v1:
+    publish:
+      summary: Companion voice intro rejected due to validation failure
+      message:
+        $ref: '#/components/messages/VoiceIntroRejected'
+
+  com.rentagf.profile.AlbumImageUploaded.v1:
+    publish:
+      summary: Companion album image uploaded
+      message:
+        $ref: '#/components/messages/AlbumImageUploaded'
+
+components:
+  messages:
+    ProfileCreated:
+      payload:
+        type: object
+        properties:
+          companionId: { type: string, format: uuid }
+          userId: { type: string, format: uuid }
+          displayName: { type: string }
+          availableCities:
+            type: array
+            items: { type: string }
+          timestamp: { type: string, format: date-time }
+
+    ProfileUpdated:
+      payload:
+        type: object
+        properties:
+          companionId: { type: string, format: uuid }
+          displayName: { type: string }
+          introText: { type: string }
+          availableCities:
+            type: array
+            items: { type: string }
+          timestamp: { type: string, format: date-time }
+
+    ProfileApproved:
+      payload:
+        type: object
+        properties:
+          companionId: { type: string, format: uuid }
+          approvedBy: { type: string, format: uuid }
+          timestamp: { type: string, format: date-time }
+
+    ProfileRejected:
+      payload:
+        type: object
+        properties:
+          companionId: { type: string, format: uuid }
+          rejectedBy: { type: string, format: uuid }
+          reason: { type: string }
+          timestamp: { type: string, format: date-time }
+
+    ScenarioCreated:
+      payload:
+        type: object
+        properties:
+          scenarioId: { type: string, format: uuid }
+          companionId: { type: string, format: uuid }
+          title: { type: string }
+          price: { type: integer }
+          durationMinutes: { type: integer }
+          timestamp: { type: string, format: date-time }
+
+    ScenarioUpdated:
+      payload:
+        type: object
+        properties:
+          scenarioId: { type: string, format: uuid }
+          companionId: { type: string, format: uuid }
+          title: { type: string }
+          price: { type: integer }
+          durationMinutes: { type: integer }
+          status: { type: string }
+          timestamp: { type: string, format: date-time }
+
+    ScenarioDeleted:
+      payload:
+        type: object
+        properties:
+          scenarioId: { type: string, format: uuid }
+          companionId: { type: string, format: uuid }
+          timestamp: { type: string, format: date-time }
+
+    VoiceIntroUploaded:
+      payload:
+        type: object
+        properties:
+          companionId: { type: string, format: uuid }
+          assetId: { type: string, format: uuid }
+          fileUrl: { type: string, format: uri }
+          durationSeconds: { type: integer }
+          sizeBytes: { type: integer }
+          timestamp: { type: string, format: date-time }
+
+    VoiceIntroRejected:
+      payload:
+        type: object
+        properties:
+          companionId: { type: string, format: uuid }
+          fileUrl: { type: string, format: uri }
+          reason: { type: string }
+          timestamp: { type: string, format: date-time }
+
+    AlbumImageUploaded:
+      payload:
+        type: object
+        properties:
+          companionId: { type: string, format: uuid }
+          assetId: { type: string, format: uuid }
+          fileUrl: { type: string, format: uri }
+          sizeBytes: { type: integer }
+          timestamp: { type: string, format: date-time }
