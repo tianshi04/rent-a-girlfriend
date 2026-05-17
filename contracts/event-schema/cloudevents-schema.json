@@ -1,0 +1,180 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Rent-a-Girlfriend CloudEvents Schema",
+  "description": "JSON Schema defining standard CloudEvents v1.0 envelope and domain-specific payloads.",
+  "type": "object",
+  "required": [
+    "specversion",
+    "id",
+    "source",
+    "type",
+    "datacontenttype",
+    "time",
+    "data"
+  ],
+  "properties": {
+    "specversion": {
+      "type": "string",
+      "enum": ["1.0"]
+    },
+    "id": {
+      "type": "string",
+      "description": "Unique UUID for the event. Used for Consumer Idempotency check."
+    },
+    "source": {
+      "type": "string",
+      "description": "URI-reference identifying the context where event happened.",
+      "example": "/rent-a-gf/booking-context/booking/bk_999"
+    },
+    "type": {
+      "type": "string",
+      "description": "Domain event type standard format: [domain].[context].[EventName].[version]",
+      "pattern": "^com\\.rentagf\\.[a-z]+\\.[A-Za-z]+(\\.v[0-9]+)$"
+    },
+    "datacontenttype": {
+      "type": "string",
+      "enum": ["application/json"]
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data": {
+      "type": "object",
+      "description": "Domain-specific payload.",
+      "oneOf": [
+        { "$ref": "#/definitions/BookingRequestedPayload" },
+        { "$ref": "#/definitions/BookingAcceptedPayload" },
+        { "$ref": "#/definitions/BookingCancelledPayload" },
+        { "$ref": "#/definitions/CoinFrozenPayload" },
+        { "$ref": "#/definitions/CoinEscrowedPayload" },
+        { "$ref": "#/definitions/PayoutProcessedPayload" },
+        { "$ref": "#/definitions/ChatRoomCreatedPayload" },
+        { "$ref": "#/definitions/ReviewSubmittedPayload" },
+        { "$ref": "#/definitions/ReportCreatedPayload" },
+        { "$ref": "#/definitions/ViolationRecordedPayload" },
+        { "$ref": "#/definitions/AccountLockedPayload" }
+      ]
+    },
+    "extensions": {
+      "type": "object",
+      "properties": {
+        "correlationId": {
+          "type": "string",
+          "description": "Used for cross-service distributed tracing."
+        }
+      },
+      "required": ["correlationId"]
+    }
+  },
+  "definitions": {
+    "BookingRequestedPayload": {
+      "type": "object",
+      "required": ["bookingId", "clientId", "companionId", "price", "startTime"],
+      "properties": {
+        "bookingId": { "type": "string", "format": "uuid" },
+        "clientId": { "type": "string", "format": "uuid" },
+        "companionId": { "type": "string", "format": "uuid" },
+        "price": { "type": "integer", "minimum": 1 },
+        "startTime": { "type": "string", "format": "date-time" },
+        "sagaId": { "type": "string", "format": "uuid" }
+      }
+    },
+    "BookingAcceptedPayload": {
+      "type": "object",
+      "required": ["bookingId", "companionId", "price", "sagaId"],
+      "properties": {
+        "bookingId": { "type": "string", "format": "uuid" },
+        "companionId": { "type": "string", "format": "uuid" },
+        "price": { "type": "integer", "minimum": 1 },
+        "sagaId": { "type": "string", "format": "uuid" }
+      }
+    },
+    "BookingCancelledPayload": {
+      "type": "object",
+      "required": ["bookingId", "actorRole", "isLate"],
+      "properties": {
+        "bookingId": { "type": "string", "format": "uuid" },
+        "actorRole": { "type": "string", "enum": ["CLIENT", "COMPANION"] },
+        "isLate": { 
+          "type": "boolean",
+          "description": "True if cancelled under 24 hours prior to startTime (BR-06, BR-07a)."
+        }
+      }
+    },
+    "CoinFrozenPayload": {
+      "type": "object",
+      "required": ["walletId", "amount", "refId"],
+      "properties": {
+        "walletId": { "type": "string", "format": "uuid" },
+        "amount": { "type": "integer" },
+        "refId": { "type": "string", "format": "uuid", "description": "Associated booking ID" }
+      }
+    },
+    "CoinEscrowedPayload": {
+      "type": "object",
+      "required": ["bookingId", "amount"],
+      "properties": {
+        "bookingId": { "type": "string", "format": "uuid" },
+        "amount": { "type": "integer" }
+      }
+    },
+    "PayoutProcessedPayload": {
+      "type": "object",
+      "required": ["bookingId", "companionId", "payoutAmount", "commissionAmount"],
+      "properties": {
+        "bookingId": { "type": "string", "format": "uuid" },
+        "companionId": { "type": "string", "format": "uuid" },
+        "payoutAmount": { "type": "integer", "description": "Net amount paid to companion (BR-03 commission deduction)." },
+        "commissionAmount": { "type": "integer", "description": "Amount withheld by system." }
+      }
+    },
+    "ChatRoomCreatedPayload": {
+      "type": "object",
+      "required": ["roomId", "bookingId", "clientUserId", "companionUserId"],
+      "properties": {
+        "roomId": { "type": "string", "format": "uuid" },
+        "bookingId": { "type": "string", "format": "uuid" },
+        "clientUserId": { "type": "string", "format": "uuid" },
+        "companionUserId": { "type": "string", "format": "uuid" }
+      }
+    },
+    "ReviewSubmittedPayload": {
+      "type": "object",
+      "required": ["reviewId", "bookingId", "clientId", "companionId", "rating"],
+      "properties": {
+        "reviewId": { "type": "string", "format": "uuid" },
+        "bookingId": { "type": "string", "format": "uuid" },
+        "clientId": { "type": "string", "format": "uuid" },
+        "companionId": { "type": "string", "format": "uuid" },
+        "rating": { "type": "integer", "minimum": 1, "maximum": 5 }
+      }
+    },
+    "ReportCreatedPayload": {
+      "type": "object",
+      "required": ["disputeId", "bookingId", "reporterId", "reason"],
+      "properties": {
+        "disputeId": { "type": "string", "format": "uuid" },
+        "bookingId": { "type": "string", "format": "uuid" },
+        "reporterId": { "type": "string", "format": "uuid" },
+        "reason": { "type": "string", "enum": ["NO_SHOW", "MISCONDUCT"] }
+      }
+    },
+    "ViolationRecordedPayload": {
+      "type": "object",
+      "required": ["userId", "currentCount"],
+      "properties": {
+        "userId": { "type": "string", "format": "uuid" },
+        "currentCount": { "type": "integer", "description": "Current violation count before policy evaluation." }
+      }
+    },
+    "AccountLockedPayload": {
+      "type": "object",
+      "required": ["userId", "reason"],
+      "properties": {
+        "userId": { "type": "string", "format": "uuid" },
+        "reason": { "type": "string", "example": "Exceeded maximum violation count." }
+      }
+    }
+  }
+}

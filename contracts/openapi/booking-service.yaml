@@ -1,0 +1,233 @@
+openapi: 3.0.3
+info:
+  title: Booking Service Query API
+  description: |
+    REST API for querying bookings and booking histories. 
+    Strictly query-only interface, in alignment with our CQRS and DDD philosophy (REST for Query, gRPC for Commands).
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: Booking Service Query API Gateway
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ScenarioSnapshot:
+      type: object
+      description: Captures companion scenario state at booking time (INV-B02 snapshot policy).
+      required: [price, duration]
+      properties:
+        price:
+          type: integer
+          description: Service price in Kano-Coin (integer format BR-04).
+          example: 500
+        duration:
+          type: integer
+          description: Duration in minutes (standardized: 60, 120, 180).
+          example: 120
+
+    BookingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "a8e9e1c0-2f3b-4861-a5bc-223455bdaef3"
+        clientId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        companionId:
+          type: string
+          format: uuid
+          example: "3b2c125a-4933-4f9b-81de-ea199277adcc"
+        scenarioSnapshot:
+          $ref: '#/components/schemas/ScenarioSnapshot'
+        startTime:
+          type: string
+          format: date-time
+          example: "2026-06-01T14:00:00Z"
+        endTime:
+          type: string
+          format: date-time
+          example: "2026-06-01T16:00:00Z"
+        status:
+          type: string
+          enum: [PENDING, ACCEPTED, REJECTED, COMPLETED, CANCELLED, DISPUTED]
+          example: "PENDING"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-05-17T10:00:00Z"
+
+    BookingHistoryItem:
+      type: object
+      description: Optimized read-model for client and companion booking history list view.
+      properties:
+        bookingId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING, ACCEPTED, REJECTED, COMPLETED, CANCELLED, DISPUTED]
+        companionName:
+          type: string
+          example: "Chizuru Mizuhara"
+        companionAvatar:
+          type: string
+          format: uri
+          example: "https://storage.rentgf.com/avatars/chizuru.png"
+        scenarioTitle:
+          type: string
+          example: "Hẹn hò rạp chiếu phim"
+        totalPrice:
+          type: integer
+          example: 500
+        startTime:
+          type: string
+          format: date-time
+        chatRoomId:
+          type: string
+          format: uuid
+          nullable: true
+          example: "6c2ef5f2-959c-4976-a70d-f2882ad367f0"
+        hasReviewed:
+          type: boolean
+          example: false
+
+    PaginatedBookings:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingResponse'
+        total:
+          type: integer
+          format: int64
+          example: 25
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 10
+
+    PaginatedBookingHistory:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingHistoryItem'
+        total:
+          type: integer
+          format: int64
+          example: 45
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 10
+
+paths:
+  /bookings:
+    get:
+      tags: [Booking Query]
+      summary: Retrieve paginated bookings for the authenticated user (Client or Companion)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          description: Query as client or companion role context
+          required: true
+          schema:
+            type: string
+            enum: [CLIENT, COMPANION]
+        - name: status
+          in: query
+          description: Filter by booking status
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, ACCEPTED, REJECTED, COMPLETED, CANCELLED, DISPUTED]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Successfully retrieved bookings list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBookings'
+        '401':
+          description: Unauthorized JWT token
+        '403':
+          description: Forbidden role request
+
+  /bookings/history:
+    get:
+      tags: [Booking History Query]
+      summary: Get optimized booking history read model for mobile/web dashboard
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Successfully retrieved optimized history projection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBookingHistory'
+        '401':
+          description: Unauthorized
+
+  /bookings/{id}:
+    get:
+      tags: [Booking Query]
+      summary: Retrieve detailed information of a specific booking
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detailed booking information found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Booking not found

@@ -1,0 +1,125 @@
+openapi: 3.0.3
+info:
+  title: Notification Service Query & Realtime API
+  description: |
+    REST API for querying historical and unread notifications, bulk marking notifications as read,
+    and establishing real-time Server-Sent Events (SSE) streaming for in-app alerts.
+    Complies with the rule: REST for Query, gRPC for Commands. (Note: Client-initiated operations like stream and mark-read are exposed via HTTP).
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: Notification Service API Gateway
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    NotificationItem:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        channel: { type: string, enum: [SSE, FCM, EMAIL] }
+        title: { type: string, example: "Đặt lịch mới" }
+        body: { type: string, example: "Bạn có yêu cầu đặt lịch mới từ Client A." }
+        isRead: { type: boolean, example: false, description: "True if the notification has been marked as read by the user." }
+        status: { type: string, enum: [PENDING, SENT, FAILED], description: "Delivery status of the notification channel." }
+        createdAt: { type: string, format: date-time }
+
+    PaginatedNotifications:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/NotificationItem' }
+        total: { type: integer, format: int64 }
+        page: { type: integer }
+        pageSize: { type: integer }
+
+    MarkReadRequest:
+      type: object
+      required: [notificationIds]
+      properties:
+        notificationIds:
+          type: array
+          items: { type: string, format: uuid }
+          description: List of specific notification UUIDs to mark as read. If empty, marks all user notifications as read.
+          example: ["6b2ef5f2-959c-4976-a70d-f2882ad367f0"]
+
+    MessageResponse:
+      type: object
+      properties:
+        message: { type: string }
+
+paths:
+  /notifications:
+    get:
+      tags: [Notification Query]
+      summary: Retrieve paginated notifications sent to the current user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: unread_only
+          in: query
+          description: If true, only fetches notifications where isRead is false.
+          required: false
+          schema: { type: boolean, default: false }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 10 }
+      responses:
+        '200':
+          description: Notifications successfully loaded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginatedNotifications' }
+        '401':
+          description: Unauthorized JWT
+
+  /notifications/read:
+    put:
+      tags: [Notification Commands]
+      summary: Bulk mark specified notification IDs as read
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MarkReadRequest' }
+      responses:
+        '200':
+          description: Notifications successfully marked as read
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessageResponse' }
+        '401':
+          description: Unauthorized JWT
+
+  /notifications/stream:
+    get:
+      tags: [Notification Realtime Stream]
+      summary: Establish Server-Sent Events (SSE) stream for real-time in-app notifications
+      security:
+        - bearerAuth: []
+      description: |
+        Establishing this stream allows the client to receive active notifications in-app via text/event-stream.
+        Keep-alive headers are emitted automatically.
+      responses:
+        '200':
+          description: Realtime SSE stream successfully established.
+          headers:
+            Content-Type:
+              schema: { type: string, example: "text/event-stream" }
+            Cache-Control:
+              schema: { type: string, example: "no-cache" }
+            Connection:
+              schema: { type: string, example: "keep-alive" }
+        '401':
+          description: Unauthorized JWT
