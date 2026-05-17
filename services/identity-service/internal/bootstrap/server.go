@@ -72,13 +72,16 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 	kafkaAdapter := messaging.NewKafkaAdapter(cfg.Kafka.Brokers)
 	outboxPublisher := persistence.NewOutboxPublisher(db)
 
-	outboxWorker := messaging.NewOutboxWorker(
-		db,
-		kafkaAdapter,
-		cfg.Outbox.PollingInterval,
-		cfg.Outbox.BatchSize,
-		cfg.Kafka.TopicIdentity,
-	)
+	var outboxWorker *messaging.OutboxWorker
+	if cfg.Kafka.Brokers != "" && cfg.Kafka.Brokers != "disabled" && cfg.Kafka.Brokers != "none" {
+		outboxWorker = messaging.NewOutboxWorker(
+			db,
+			kafkaAdapter,
+			cfg.Outbox.PollingInterval,
+			cfg.Outbox.BatchSize,
+			cfg.Kafka.TopicIdentity,
+		)
+	}
 
 	lockPolicy := service.NewAccountLockPolicyService(configRepo)
 
@@ -163,9 +166,13 @@ func (s *Server) Run(httpAddr, grpcAddr string) error {
 	errChan := make(chan error, 3)
 
 	// Start Outbox Worker
-	go func() {
-		s.outboxWorker.Start(ctx)
-	}()
+	if s.outboxWorker != nil {
+		go func() {
+			s.outboxWorker.Start(ctx)
+		}()
+	} else {
+		log.Println("[BOOTSTRAP] Outbox Worker is disabled")
+	}
 
 	// Start gRPC server
 	go func() {
