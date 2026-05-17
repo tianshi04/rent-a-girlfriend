@@ -2,13 +2,11 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any
 from internal.domain.events import DomainEvent
 
+
 class IStoragePort(ABC):
     @abstractmethod
     def generate_presigned_put_url(
-        self,
-        key: str,
-        content_type: str,
-        content_length: int
+        self, key: str, content_type: str, content_length: int
     ) -> str:
         """
         Generate S3 presigned PUT URL with content-length-range policy.

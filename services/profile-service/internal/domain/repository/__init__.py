@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 from internal.domain.aggregate import CompanionProfile, Scenario, MediaAsset
 
+
 class ICompanionProfileRepository(ABC):
     @abstractmethod
     async def save(self, profile: CompanionProfile) -> None:
@@ -23,7 +24,7 @@ class ICompanionProfileRepository(ABC):
         min_price: Optional[int],
         max_price: Optional[int],
         offset: int,
-        limit: int
+        limit: int,
     ) -> tuple[List[CompanionProfile], int]:
         pass
 
@@ -60,7 +61,9 @@ class IMediaAssetRepository(ABC):
         pass
 
     @abstractmethod
-    async def find_by_companion_id_and_type(self, companion_id: str, asset_type: str) -> List[MediaAsset]:
+    async def find_by_companion_id_and_type(
+        self, companion_id: str, asset_type: str
+    ) -> List[MediaAsset]:
         pass
 
     @abstractmethod

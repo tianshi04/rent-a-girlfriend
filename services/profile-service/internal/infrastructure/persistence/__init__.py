@@ -1,5 +1,15 @@
-from internal.infrastructure.persistence.models import Base, CompanionProfileModel, ScenarioModel, MediaAssetModel, OutboxModel
-from internal.infrastructure.persistence.repositories import CompanionProfileRepository, ScenarioRepository, MediaAssetRepository
+from internal.infrastructure.persistence.models import (
+    Base,
+    CompanionProfileModel,
+    ScenarioModel,
+    MediaAssetModel,
+    OutboxModel,
+)
+from internal.infrastructure.persistence.repositories import (
+    CompanionProfileRepository,
+    ScenarioRepository,
+    MediaAssetRepository,
+)
 
 __all__ = [
     "Base",
@@ -9,5 +19,5 @@ __all__ = [
     "OutboxModel",
     "CompanionProfileRepository",
     "ScenarioRepository",
-    "MediaAssetRepository"
+    "MediaAssetRepository",
 ]

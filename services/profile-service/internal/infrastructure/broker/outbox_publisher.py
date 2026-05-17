@@ -3,7 +3,7 @@ import json
 import logging
 from dataclasses import asdict
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy import select
 from aiokafka import AIOKafkaProducer
@@ -13,11 +13,13 @@ from internal.infrastructure.persistence.models import OutboxModel
 
 logger = logging.getLogger("outbox_publisher")
 
+
 class DatabaseEventPublisher(IEventPublisher):
     """
     Saves events directly to the Outbox table in the database.
     Part of the atomic business transaction.
     """
+
     def __init__(self, session: AsyncSession):
         self.session = session
 
@@ -25,11 +27,11 @@ class DatabaseEventPublisher(IEventPublisher):
         payload_dict = asdict(event)
         # Format occurred_at as ISO string
         payload_dict["occurred_at"] = event.occurred_at.isoformat()
-        
+
         outbox = OutboxModel(
             event_id=event.event_id,
             event_type=f"com.rentagf.profile.{event.__class__.__name__}.v1",
-            payload=json.dumps(payload_dict)
+            payload=json.dumps(payload_dict),
         )
         self.session.add(outbox)
 
@@ -39,13 +41,14 @@ class OutboxPublisherWorker:
     Background worker that polls the Outbox table and publishes events to Kafka.
     Guarantees At-Least-Once Delivery.
     """
+
     def __init__(
         self,
         session_factory: async_sessionmaker[AsyncSession],
         kafka_brokers: str,
         topic: str,
         polling_interval_ms: int = 500,
-        batch_size: int = 50
+        batch_size: int = 50,
     ):
         self.session_factory = session_factory
         self.kafka_brokers = kafka_brokers
@@ -60,7 +63,7 @@ class OutboxPublisherWorker:
         logger.info("Starting Outbox Publisher Worker...")
         self.producer = AIOKafkaProducer(
             bootstrap_servers=self.kafka_brokers,
-            value_serializer=lambda v: json.dumps(v).encode('utf-8')
+            value_serializer=lambda v: json.dumps(v).encode("utf-8"),
         )
         await self.producer.start()
         self._running = True
@@ -94,21 +97,21 @@ class OutboxPublisherWorker:
                 # Query unprocessed events
                 stmt = (
                     select(OutboxModel)
-                    .filter(OutboxModel.processed == False)
+                    .filter(OutboxModel.processed.is_(False))
                     .order_by(OutboxModel.created_at.asc())
                     .limit(self.batch_size)
                 )
                 result = await session.execute(stmt)
                 events = result.scalars().all()
-                
+
                 if not events:
                     return
 
                 logger.info(f"Processing outbox batch: {len(events)} events")
-                
+
                 for event in events:
                     payload = json.loads(event.payload)
-                    
+
                     # Construct standard CloudEvent v1.0 payload
                     cloudevent = {
                         "specversion": "1.0",
@@ -116,27 +119,28 @@ class OutboxPublisherWorker:
                         "source": f"/rent-a-gf/profile-service/{payload.get('companion_id') or payload.get('userId')}",
                         "type": event.event_type,
                         "datacontenttype": "application/json",
-                        "time": event.created_at.isoformat() if hasattr(event, 'created_at') else datetime.utcnow().isoformat(),
+                        "time": event.created_at.isoformat()
+                        if hasattr(event, "created_at")
+                        else datetime.utcnow().isoformat(),
                         "data": payload,
                         "extensions": {
                             "correlationId": payload.get("event_id", event.event_id)
-                        }
+                        },
                     }
-                    
+
                     # Publish to Kafka
                     if self.producer:
                         await self.producer.send_and_wait(
                             topic=self.topic,
-                            key=bytes(payload.get("companion_id", ""), 'utf-8'),
-                            value=cloudevent
+                            key=bytes(payload.get("companion_id", ""), "utf-8"),
+                            value=cloudevent,
                         )
-                    
+
                     # Mark as processed
                     event.processed = True
-                    
+
                 await session.commit()
-                logger.info(f"Outbox batch successfully committed and published")
+                logger.info("Outbox batch successfully committed and published")
             except Exception as e:
                 await session.rollback()
                 raise e
-

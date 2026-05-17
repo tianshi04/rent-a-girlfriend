@@ -5,9 +5,11 @@ from internal.interfaces.grpc import ProfileServiceServicer, profile_pb2
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.fixture
 def grpc_servicer(TestSessionLocal):
     return ProfileServiceServicer(TestSessionLocal)
+
 
 async def test_grpc_create_profile_success(grpc_servicer, db_session, integration_deps):
     # Mock gRPC Context
@@ -15,14 +17,14 @@ async def test_grpc_create_profile_success(grpc_servicer, db_session, integratio
     # Mock Istio authenticated headers in context
     context.invocation_metadata.return_value = [
         ("user-id", "companion_user_456"),
-        ("user-role", "COMPANION")
+        ("user-role", "COMPANION"),
     ]
 
     request = profile_pb2.CreateProfileRequest(
         user_id="companion_user_456",
         display_name="Asami Mami",
         intro_text="Cute and lovely rental girlfriend",
-        available_cities=["Hanoi", "HCM"]
+        available_cities=["Hanoi", "HCM"],
     )
 
     response = await grpc_servicer.CreateProfile(request, context)
@@ -35,7 +37,8 @@ async def test_grpc_create_profile_success(grpc_servicer, db_session, integratio
     profile = await profile_repo.find_by_id("companion_user_456")
     assert profile is not None
     assert profile.display_name == "Asami Mami"
-    assert profile.status == "PENDING" # Starts as pending for manual admin approval
+    assert profile.status == "PENDING"  # Starts as pending for manual admin approval
+
 
 async def test_grpc_admin_approve_profile(grpc_servicer, db_session, integration_deps):
     # Ensure profile exists before approval
@@ -47,7 +50,7 @@ async def test_grpc_admin_approve_profile(grpc_servicer, db_session, integration
             user_id="companion_user_456",
             display_name="Asami Mami",
             intro_text="Cute rental girlfriend",
-            available_cities=["Hanoi"]
+            available_cities=["Hanoi"],
         )
         await db_session.commit()
 
@@ -55,12 +58,11 @@ async def test_grpc_admin_approve_profile(grpc_servicer, db_session, integration
     # Admin context
     context.invocation_metadata.return_value = [
         ("user-id", "admin_user_99"),
-        ("user-role", "ADMIN")
+        ("user-role", "ADMIN"),
     ]
 
     request = profile_pb2.ApproveProfileRequest(
-        companion_id="companion_user_456",
-        admin_id="admin_user_99"
+        companion_id="companion_user_456", admin_id="admin_user_99"
     )
 
     response = await grpc_servicer.ApproveProfile(request, context)

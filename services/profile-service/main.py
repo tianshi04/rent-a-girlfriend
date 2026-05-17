@@ -10,9 +10,10 @@ from internal.interfaces.grpc import profile_pb2_grpc, ProfileServiceServicer
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 logger = logging.getLogger("server")
+
 
 async def run_grpc_server():
     server = grpc.aio.server()
@@ -24,16 +25,15 @@ async def run_grpc_server():
     await server.start()
     await server.wait_for_termination()
 
+
 async def run_http_server():
     config = uvicorn.Config(
-        app=app,
-        host="0.0.0.0",
-        port=settings.SERVER_PORT,
-        log_level="info"
+        app=app, host="0.0.0.0", port=settings.SERVER_PORT, log_level="info"
     )
     server = uvicorn.Server(config)
     logger.info(f"Starting HTTP/REST server on port {settings.SERVER_PORT}...")
     await server.serve()
+
 
 async def main():
     # Initialize Database Tables
@@ -43,13 +43,13 @@ async def main():
     try:
         await outbox_worker.start()
     except Exception as e:
-        logger.warning(f"Outbox Worker failed to start: {e}. Check your Kafka configuration.")
+        logger.warning(
+            f"Outbox Worker failed to start: {e}. Check your Kafka configuration."
+        )
 
     # Concurrently execute gRPC Server and FastAPI Server
-    await asyncio.gather(
-        run_grpc_server(),
-        run_http_server()
-    )
+    await asyncio.gather(run_grpc_server(), run_http_server())
+
 
 if __name__ == "__main__":
     try:

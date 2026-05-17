@@ -1,12 +1,13 @@
 import grpc
 import logging
-from typing import Dict, Any
+from typing import Dict
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from internal.bootstrap import bootstrap_services
 from internal.interfaces.grpc import profile_pb2, profile_pb2_grpc
 from internal.domain.errors import DomainError
 
 logger = logging.getLogger("grpc_servicer")
+
 
 class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
@@ -21,7 +22,7 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
             "user_id": metadata.get("user-id", ""),
             "user_role": metadata.get("user-role", ""),
             "user_status": metadata.get("user-status", ""),
-            "user_email": metadata.get("user-email", "")
+            "user_email": metadata.get("user-email", ""),
         }
 
     def _handle_exception(self, context, e: Exception):
@@ -49,18 +50,18 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
             async with self.session_factory() as session:
                 profile_cmd, _, _, _ = bootstrap_services(session)
                 companion_id = await profile_cmd.create_profile(
-                    companion_id=user_id, # companion_id is the user_id (1-to-1 profile mapped)
+                    companion_id=user_id,  # companion_id is the user_id (1-to-1 profile mapped)
                     user_id=user_id,
                     display_name=request.display_name,
                     intro_text=request.intro_text,
-                    available_cities=list(request.available_cities)
+                    available_cities=list(request.available_cities),
                 )
                 await session.commit()
 
             return profile_pb2.ProfileCommandResponse(
                 companion_id=companion_id,
                 status="SUCCESS",
-                message="Companion profile created successfully"
+                message="Companion profile created successfully",
             )
         except Exception as e:
             self._handle_exception(context, e)
@@ -70,7 +71,7 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
         try:
             auth_info = self._extract_auth_headers(context)
             companion_id = request.companion_id or auth_info.get("user_id")
-            
+
             async with self.session_factory() as session:
                 profile_cmd, _, _, _ = bootstrap_services(session)
                 await profile_cmd.update_profile(
@@ -78,14 +79,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                     display_name=request.display_name,
                     intro_text=request.intro_text,
                     available_cities=list(request.available_cities),
-                    avatar_url=request.avatar_url
+                    avatar_url=request.avatar_url,
                 )
                 await session.commit()
 
             return profile_pb2.ProfileCommandResponse(
                 companion_id=companion_id,
                 status="SUCCESS",
-                message="Companion profile updated successfully"
+                message="Companion profile updated successfully",
             )
         except Exception as e:
             self._handle_exception(context, e)
@@ -104,14 +105,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                 profile_cmd, _, _, _ = bootstrap_services(session)
                 await profile_cmd.approve_profile(
                     companion_id=request.companion_id,
-                    admin_id=request.admin_id or auth_info.get("user_id")
+                    admin_id=request.admin_id or auth_info.get("user_id"),
                 )
                 await session.commit()
 
             return profile_pb2.ProfileCommandResponse(
                 companion_id=request.companion_id,
                 status="SUCCESS",
-                message="Companion profile approved"
+                message="Companion profile approved",
             )
         except Exception as e:
             self._handle_exception(context, e)
@@ -130,14 +131,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                 await profile_cmd.reject_profile(
                     companion_id=request.companion_id,
                     admin_id=request.admin_id or auth_info.get("user_id"),
-                    reason=request.reason
+                    reason=request.reason,
                 )
                 await session.commit()
 
             return profile_pb2.ProfileCommandResponse(
                 companion_id=request.companion_id,
                 status="SUCCESS",
-                message="Companion profile rejected"
+                message="Companion profile rejected",
             )
         except Exception as e:
             self._handle_exception(context, e)
@@ -157,14 +158,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                     title=request.title,
                     description=request.description,
                     price=request.price,
-                    duration_minutes=request.duration_minutes
+                    duration_minutes=request.duration_minutes,
                 )
                 await session.commit()
 
             return profile_pb2.ScenarioCommandResponse(
                 scenario_id=scenario_id,
                 status="SUCCESS",
-                message="Scenario created successfully"
+                message="Scenario created successfully",
             )
         except Exception as e:
             self._handle_exception(context, e)
@@ -184,14 +185,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                     description=request.description,
                     price=request.price,
                     duration_minutes=request.duration_minutes,
-                    status=request.status
+                    status=request.status,
                 )
                 await session.commit()
 
             return profile_pb2.ScenarioCommandResponse(
                 scenario_id=request.scenario_id,
                 status="SUCCESS",
-                message="Scenario updated successfully"
+                message="Scenario updated successfully",
             )
         except Exception as e:
             self._handle_exception(context, e)
@@ -205,15 +206,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
             async with self.session_factory() as session:
                 _, scenario_cmd, _, _ = bootstrap_services(session)
                 await scenario_cmd.delete_scenario(
-                    scenario_id=request.scenario_id,
-                    companion_id=companion_id
+                    scenario_id=request.scenario_id, companion_id=companion_id
                 )
                 await session.commit()
 
             return profile_pb2.ScenarioCommandResponse(
                 scenario_id=request.scenario_id,
                 status="SUCCESS",
-                message="Scenario deleted successfully"
+                message="Scenario deleted successfully",
             )
         except Exception as e:
             self._handle_exception(context, e)
@@ -232,14 +232,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                     companion_id=companion_id,
                     file_url=request.file_url,
                     duration_seconds=request.duration_seconds,
-                    size_bytes=request.size_bytes
+                    size_bytes=request.size_bytes,
                 )
                 await session.commit()
 
             return profile_pb2.MediaCommandResponse(
                 asset_id=asset_id,
                 status="APPROVED",
-                message="Voice intro registered successfully"
+                message="Voice intro registered successfully",
             )
         except Exception as e:
             self._handle_exception(context, e)
@@ -255,14 +255,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                 asset_id = await media_cmd.register_album_image(
                     companion_id=companion_id,
                     file_url=request.file_url,
-                    size_bytes=request.size_bytes
+                    size_bytes=request.size_bytes,
                 )
                 await session.commit()
 
             return profile_pb2.MediaCommandResponse(
                 asset_id=asset_id,
                 status="APPROVED",
-                message="Album image registered successfully"
+                message="Album image registered successfully",
             )
         except Exception as e:
             self._handle_exception(context, e)
@@ -274,14 +274,16 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
         try:
             async with self.session_factory() as session:
                 _, _, _, query_service = bootstrap_services(session)
-                snapshot = await query_service.get_scenario_snapshot(request.scenario_id)
+                snapshot = await query_service.get_scenario_snapshot(
+                    request.scenario_id
+                )
 
             return profile_pb2.ScenarioSnapshotResponse(
                 scenario_id=snapshot["scenario_id"],
                 companion_id=snapshot["companion_id"],
                 title=snapshot["title"],
                 price=snapshot["price"],
-                duration_minutes=snapshot["duration_minutes"]
+                duration_minutes=snapshot["duration_minutes"],
             )
         except Exception as e:
             self._handle_exception(context, e)

@@ -16,10 +16,22 @@ class CreateProfileRequest(_message.Message):
     display_name: str
     intro_text: str
     available_cities: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, user_id: _Optional[str] = ..., display_name: _Optional[str] = ..., intro_text: _Optional[str] = ..., available_cities: _Optional[_Iterable[str]] = ...) -> None: ...
+    def __init__(
+        self,
+        user_id: _Optional[str] = ...,
+        display_name: _Optional[str] = ...,
+        intro_text: _Optional[str] = ...,
+        available_cities: _Optional[_Iterable[str]] = ...,
+    ) -> None: ...
 
 class UpdateProfileRequest(_message.Message):
-    __slots__ = ("companion_id", "display_name", "intro_text", "available_cities", "avatar_url")
+    __slots__ = (
+        "companion_id",
+        "display_name",
+        "intro_text",
+        "available_cities",
+        "avatar_url",
+    )
     COMPANION_ID_FIELD_NUMBER: _ClassVar[int]
     DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
     INTRO_TEXT_FIELD_NUMBER: _ClassVar[int]
@@ -30,7 +42,14 @@ class UpdateProfileRequest(_message.Message):
     intro_text: str
     available_cities: _containers.RepeatedScalarFieldContainer[str]
     avatar_url: str
-    def __init__(self, companion_id: _Optional[str] = ..., display_name: _Optional[str] = ..., intro_text: _Optional[str] = ..., available_cities: _Optional[_Iterable[str]] = ..., avatar_url: _Optional[str] = ...) -> None: ...
+    def __init__(
+        self,
+        companion_id: _Optional[str] = ...,
+        display_name: _Optional[str] = ...,
+        intro_text: _Optional[str] = ...,
+        available_cities: _Optional[_Iterable[str]] = ...,
+        avatar_url: _Optional[str] = ...,
+    ) -> None: ...
 
 class ApproveProfileRequest(_message.Message):
     __slots__ = ("companion_id", "admin_id")
@@ -38,7 +57,9 @@ class ApproveProfileRequest(_message.Message):
     ADMIN_ID_FIELD_NUMBER: _ClassVar[int]
     companion_id: str
     admin_id: str
-    def __init__(self, companion_id: _Optional[str] = ..., admin_id: _Optional[str] = ...) -> None: ...
+    def __init__(
+        self, companion_id: _Optional[str] = ..., admin_id: _Optional[str] = ...
+    ) -> None: ...
 
 class RejectProfileRequest(_message.Message):
     __slots__ = ("companion_id", "admin_id", "reason")
@@ -48,7 +69,12 @@ class RejectProfileRequest(_message.Message):
     companion_id: str
     admin_id: str
     reason: str
-    def __init__(self, companion_id: _Optional[str] = ..., admin_id: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+    def __init__(
+        self,
+        companion_id: _Optional[str] = ...,
+        admin_id: _Optional[str] = ...,
+        reason: _Optional[str] = ...,
+    ) -> None: ...
 
 class CreateScenarioRequest(_message.Message):
     __slots__ = ("companion_id", "title", "description", "price", "duration_minutes")
@@ -62,10 +88,25 @@ class CreateScenarioRequest(_message.Message):
     description: str
     price: int
     duration_minutes: int
-    def __init__(self, companion_id: _Optional[str] = ..., title: _Optional[str] = ..., description: _Optional[str] = ..., price: _Optional[int] = ..., duration_minutes: _Optional[int] = ...) -> None: ...
+    def __init__(
+        self,
+        companion_id: _Optional[str] = ...,
+        title: _Optional[str] = ...,
+        description: _Optional[str] = ...,
+        price: _Optional[int] = ...,
+        duration_minutes: _Optional[int] = ...,
+    ) -> None: ...
 
 class UpdateScenarioRequest(_message.Message):
-    __slots__ = ("scenario_id", "companion_id", "title", "description", "price", "duration_minutes", "status")
+    __slots__ = (
+        "scenario_id",
+        "companion_id",
+        "title",
+        "description",
+        "price",
+        "duration_minutes",
+        "status",
+    )
     SCENARIO_ID_FIELD_NUMBER: _ClassVar[int]
     COMPANION_ID_FIELD_NUMBER: _ClassVar[int]
     TITLE_FIELD_NUMBER: _ClassVar[int]
@@ -80,7 +121,16 @@ class UpdateScenarioRequest(_message.Message):
     price: int
     duration_minutes: int
     status: str
-    def __init__(self, scenario_id: _Optional[str] = ..., companion_id: _Optional[str] = ..., title: _Optional[str] = ..., description: _Optional[str] = ..., price: _Optional[int] = ..., duration_minutes: _Optional[int] = ..., status: _Optional[str] = ...) -> None: ...
+    def __init__(
+        self,
+        scenario_id: _Optional[str] = ...,
+        companion_id: _Optional[str] = ...,
+        title: _Optional[str] = ...,
+        description: _Optional[str] = ...,
+        price: _Optional[int] = ...,
+        duration_minutes: _Optional[int] = ...,
+        status: _Optional[str] = ...,
+    ) -> None: ...
 
 class DeleteScenarioRequest(_message.Message):
     __slots__ = ("scenario_id", "companion_id")
@@ -88,7 +138,9 @@ class DeleteScenarioRequest(_message.Message):
     COMPANION_ID_FIELD_NUMBER: _ClassVar[int]
     scenario_id: str
     companion_id: str
-    def __init__(self, scenario_id: _Optional[str] = ..., companion_id: _Optional[str] = ...) -> None: ...
+    def __init__(
+        self, scenario_id: _Optional[str] = ..., companion_id: _Optional[str] = ...
+    ) -> None: ...
 
 class RegisterVoiceIntroRequest(_message.Message):
     __slots__ = ("companion_id", "file_url", "duration_seconds", "size_bytes")
@@ -100,7 +152,13 @@ class RegisterVoiceIntroRequest(_message.Message):
     file_url: str
     duration_seconds: int
     size_bytes: int
-    def __init__(self, companion_id: _Optional[str] = ..., file_url: _Optional[str] = ..., duration_seconds: _Optional[int] = ..., size_bytes: _Optional[int] = ...) -> None: ...
+    def __init__(
+        self,
+        companion_id: _Optional[str] = ...,
+        file_url: _Optional[str] = ...,
+        duration_seconds: _Optional[int] = ...,
+        size_bytes: _Optional[int] = ...,
+    ) -> None: ...
 
 class RegisterAlbumImageRequest(_message.Message):
     __slots__ = ("companion_id", "file_url", "size_bytes")
@@ -110,7 +168,12 @@ class RegisterAlbumImageRequest(_message.Message):
     companion_id: str
     file_url: str
     size_bytes: int
-    def __init__(self, companion_id: _Optional[str] = ..., file_url: _Optional[str] = ..., size_bytes: _Optional[int] = ...) -> None: ...
+    def __init__(
+        self,
+        companion_id: _Optional[str] = ...,
+        file_url: _Optional[str] = ...,
+        size_bytes: _Optional[int] = ...,
+    ) -> None: ...
 
 class ProfileCommandResponse(_message.Message):
     __slots__ = ("companion_id", "status", "message")
@@ -120,7 +183,12 @@ class ProfileCommandResponse(_message.Message):
     companion_id: str
     status: str
     message: str
-    def __init__(self, companion_id: _Optional[str] = ..., status: _Optional[str] = ..., message: _Optional[str] = ...) -> None: ...
+    def __init__(
+        self,
+        companion_id: _Optional[str] = ...,
+        status: _Optional[str] = ...,
+        message: _Optional[str] = ...,
+    ) -> None: ...
 
 class ScenarioCommandResponse(_message.Message):
     __slots__ = ("scenario_id", "status", "message")
@@ -130,7 +198,12 @@ class ScenarioCommandResponse(_message.Message):
     scenario_id: str
     status: str
     message: str
-    def __init__(self, scenario_id: _Optional[str] = ..., status: _Optional[str] = ..., message: _Optional[str] = ...) -> None: ...
+    def __init__(
+        self,
+        scenario_id: _Optional[str] = ...,
+        status: _Optional[str] = ...,
+        message: _Optional[str] = ...,
+    ) -> None: ...
 
 class MediaCommandResponse(_message.Message):
     __slots__ = ("asset_id", "status", "message")
@@ -140,7 +213,12 @@ class MediaCommandResponse(_message.Message):
     asset_id: str
     status: str
     message: str
-    def __init__(self, asset_id: _Optional[str] = ..., status: _Optional[str] = ..., message: _Optional[str] = ...) -> None: ...
+    def __init__(
+        self,
+        asset_id: _Optional[str] = ...,
+        status: _Optional[str] = ...,
+        message: _Optional[str] = ...,
+    ) -> None: ...
 
 class GetScenarioSnapshotRequest(_message.Message):
     __slots__ = ("scenario_id",)
@@ -160,4 +238,11 @@ class ScenarioSnapshotResponse(_message.Message):
     title: str
     price: int
     duration_minutes: int
-    def __init__(self, scenario_id: _Optional[str] = ..., companion_id: _Optional[str] = ..., title: _Optional[str] = ..., price: _Optional[int] = ..., duration_minutes: _Optional[int] = ...) -> None: ...
+    def __init__(
+        self,
+        scenario_id: _Optional[str] = ...,
+        companion_id: _Optional[str] = ...,
+        title: _Optional[str] = ...,
+        price: _Optional[int] = ...,
+        duration_minutes: _Optional[int] = ...,
+    ) -> None: ...

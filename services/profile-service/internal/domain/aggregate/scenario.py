@@ -4,8 +4,9 @@ from internal.domain.events import (
     DomainEvent,
     ScenarioCreated,
     ScenarioUpdated,
-    ScenarioDeleted
+    ScenarioDeleted,
 )
+
 
 class Scenario:
     def __init__(
@@ -16,7 +17,7 @@ class Scenario:
         description: str,
         price: Money,
         duration_minutes: Duration,
-        status: str = "ACTIVE"
+        status: str = "ACTIVE",
     ):
         self.scenario_id = scenario_id
         self.companion_id = companion_id
@@ -24,7 +25,7 @@ class Scenario:
         self.description = description
         self.price = price
         self.duration_minutes = duration_minutes
-        self.status = status # ACTIVE, INACTIVE
+        self.status = status  # ACTIVE, INACTIVE
         self.events: List[DomainEvent] = []
 
     def add_event(self, event: DomainEvent):
@@ -43,8 +44,8 @@ class Scenario:
         title: str,
         description: str,
         price: Money,
-        duration_minutes: Duration
-    ) -> 'Scenario':
+        duration_minutes: Duration,
+    ) -> "Scenario":
         scenario = cls(
             scenario_id=scenario_id,
             companion_id=companion_id,
@@ -52,16 +53,16 @@ class Scenario:
             description=description,
             price=price,
             duration_minutes=duration_minutes,
-            status="ACTIVE"
+            status="ACTIVE",
         )
-        
+
         scenario.add_event(
             ScenarioCreated(
                 scenario_id=scenario_id,
                 companion_id=companion_id,
                 title=title,
                 price=price.amount,
-                duration_minutes=duration_minutes.minutes
+                duration_minutes=duration_minutes.minutes,
             )
         )
         return scenario
@@ -72,14 +73,14 @@ class Scenario:
         description: str,
         price: Money,
         duration_minutes: Duration,
-        status: str
+        status: str,
     ):
         self.title = title
         self.description = description
         self.price = price
         self.duration_minutes = duration_minutes
         self.status = status
-        
+
         self.add_event(
             ScenarioUpdated(
                 scenario_id=self.scenario_id,
@@ -87,14 +88,13 @@ class Scenario:
                 title=title,
                 price=price.amount,
                 duration_minutes=duration_minutes.minutes,
-                status=status
+                status=status,
             )
         )
 
     def delete(self):
         self.add_event(
             ScenarioDeleted(
-                scenario_id=self.scenario_id,
-                companion_id=self.companion_id
+                scenario_id=self.scenario_id, companion_id=self.companion_id
             )
         )

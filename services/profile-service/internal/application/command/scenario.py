@@ -4,17 +4,18 @@ from internal.domain.vo import Money, Duration
 from internal.domain.errors import (
     ProfileNotFoundError,
     ScenarioNotFoundError,
-    ScenarioLimitExceededError
+    ScenarioLimitExceededError,
 )
 from internal.domain.repository import ICompanionProfileRepository, IScenarioRepository
 from internal.application.port import IEventPublisher
+
 
 class ScenarioCommandService:
     def __init__(
         self,
         profile_repo: ICompanionProfileRepository,
         scenario_repo: IScenarioRepository,
-        event_publisher: IEventPublisher
+        event_publisher: IEventPublisher,
     ):
         self.profile_repo = profile_repo
         self.scenario_repo = scenario_repo
@@ -26,7 +27,7 @@ class ScenarioCommandService:
         title: str,
         description: str,
         price: int,
-        duration_minutes: int
+        duration_minutes: int,
     ) -> str:
         # Verify companion exists
         profile = await self.profile_repo.find_by_id(companion_id)
@@ -41,21 +42,21 @@ class ScenarioCommandService:
         money = Money(price)
         duration = Duration(duration_minutes)
         scenario_id = str(uuid.uuid4())
-        
+
         scenario = Scenario.create(
             scenario_id=scenario_id,
             companion_id=companion_id,
             title=title,
             description=description,
             price=money,
-            duration_minutes=duration
+            duration_minutes=duration,
         )
-        
+
         await self.scenario_repo.save(scenario)
-        
+
         for event in scenario.clear_events():
             self.event_publisher.publish(event)
-            
+
         return scenario_id
 
     async def update_scenario(
@@ -66,7 +67,7 @@ class ScenarioCommandService:
         description: str,
         price: int,
         duration_minutes: int,
-        status: str
+        status: str,
     ) -> None:
         scenario = await self.scenario_repo.find_by_id(scenario_id)
         if not scenario or scenario.companion_id != companion_id:
@@ -74,17 +75,17 @@ class ScenarioCommandService:
 
         money = Money(price)
         duration = Duration(duration_minutes)
-        
+
         scenario.update(
             title=title,
             description=description,
             price=money,
             duration_minutes=duration,
-            status=status
+            status=status,
         )
-        
+
         await self.scenario_repo.save(scenario)
-        
+
         for event in scenario.clear_events():
             self.event_publisher.publish(event)
 
@@ -95,6 +96,6 @@ class ScenarioCommandService:
 
         scenario.delete()
         await self.scenario_repo.delete(scenario_id, companion_id)
-        
+
         for event in scenario.clear_events():
             self.event_publisher.publish(event)

@@ -4,6 +4,7 @@ from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
+
 def utcnow_naive():
     """
     Returns a timezone-naive UTC datetime.
@@ -11,6 +12,7 @@ def utcnow_naive():
     and asyncpg strictly prohibits mixing offset-naive and offset-aware datetimes.
     """
     return datetime.now(timezone.utc).replace(tzinfo=None)
+
 
 class CompanionProfileModel(Base):
     __tablename__ = "companion_profiles"
@@ -25,15 +27,24 @@ class CompanionProfileModel(Base):
     created_at = Column(DateTime, default=utcnow_naive)
     updated_at = Column(DateTime, default=utcnow_naive, onupdate=utcnow_naive)
 
-    scenarios = relationship("ScenarioModel", back_populates="companion", cascade="all, delete-orphan")
-    media_assets = relationship("MediaAssetModel", back_populates="companion", cascade="all, delete-orphan")
+    scenarios = relationship(
+        "ScenarioModel", back_populates="companion", cascade="all, delete-orphan"
+    )
+    media_assets = relationship(
+        "MediaAssetModel", back_populates="companion", cascade="all, delete-orphan"
+    )
 
 
 class ScenarioModel(Base):
     __tablename__ = "scenarios"
 
     scenario_id = Column(String(36), primary_key=True)
-    companion_id = Column(String(36), ForeignKey("companion_profiles.companion_id", ondelete="CASCADE"), nullable=False, index=True)
+    companion_id = Column(
+        String(36),
+        ForeignKey("companion_profiles.companion_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     price = Column(Integer, nullable=False, index=True)  # Kano-Coin amount
@@ -48,7 +59,12 @@ class MediaAssetModel(Base):
     __tablename__ = "media_assets"
 
     asset_id = Column(String(36), primary_key=True)
-    companion_id = Column(String(36), ForeignKey("companion_profiles.companion_id", ondelete="CASCADE"), nullable=False, index=True)
+    companion_id = Column(
+        String(36),
+        ForeignKey("companion_profiles.companion_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     file_url = Column(String(500), nullable=False)
     asset_type = Column(String(30), nullable=False, index=True)  # VOICE_INTRO, ALBUM
     size_bytes = Column(Integer, nullable=False)
