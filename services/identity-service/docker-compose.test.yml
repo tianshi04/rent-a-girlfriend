@@ -54,7 +54,7 @@ services:
       JWT_ISSUER: "rent-a-girlfriend-identity"
       JWT_ACCESS_TTL_MINUTES: "15"
       JWT_REFRESH_TTL_DAYS: "7"
-      KAFKA_BROKERS: ""          # Kafka không cần thiết cho E2E test
+      KAFKA_BROKERS: "disabled"          # Kafka không cần thiết cho E2E test
       OUTBOX_POLLING_INTERVAL_MS: "500"
       ENABLE_TEST_ROUTES: "true" # Bật mock-login endpoint cho E2E
       # Google OAuth — giá trị giả, OAuth flow bị bypass qua mock-login
@@ -67,3 +67,15 @@ services:
       timeout: 5s
       retries: 12
       start_period: 15s
+
+  e2e-runner:
+    image: golang:1.25-alpine
+    volumes:
+      - .:/app
+    working_dir: /app
+    depends_on:
+      identity-service-test:
+        condition: service_healthy
+    environment:
+      E2E_BASE_URL: "http://identity-service-test:8080"
+    command: go test ./tests/e2e/... -v -count=1 -timeout 180s

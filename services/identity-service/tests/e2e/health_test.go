@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"net/http"
-	"os"
 	"testing"
 	"time"
 )
@@ -13,11 +12,7 @@ func TestHealthCheck(t *testing.T) {
 		t.Skip("skipping E2E test in short mode")
 	}
 
-	port := os.Getenv("SERVER_PORT")
-	if port == "" {
-		port = "8081"
-	}
-	url := "http://localhost:" + port + "/health"
+	url := getBaseURL() + "/health"
 
 	// Create a client with timeout
 	client := &http.Client{

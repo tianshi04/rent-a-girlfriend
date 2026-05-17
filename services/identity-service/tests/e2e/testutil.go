@@ -13,8 +13,11 @@ import (
 )
 
 // getBaseURL trả về base URL của Identity Service HTTP API.
-// Mặc định port 8081 — port mà docker-compose.test.yml expose ra host.
+// Có thể cấu hình qua E2E_BASE_URL, mặc định là http://localhost:8081.
 func getBaseURL() string {
+	if baseURL := os.Getenv("E2E_BASE_URL"); baseURL != "" {
+		return baseURL
+	}
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
 		port = "8081"
