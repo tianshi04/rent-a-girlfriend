@@ -152,6 +152,7 @@ app = FastAPI(
     title="Profile & Catalogue Service REST Query API",
     description="Query catalogue and manage profiles.",
     version="1.0.0",
+    openapi_url="/api/openapi.json",
 )
 
 from internal.interfaces.http.router import router  # noqa: E402
