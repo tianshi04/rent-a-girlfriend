@@ -69,23 +69,6 @@ httpRoute:
     - /.well-known/jwks.json
     - /health
 
-istio:
-  requestAuthentication:
-    enabled: true
-    jwtRules:
-      - issuer: "rent-a-girlfriend-identity"
-        jwksUri: "http://identity-service.identity-service.svc.cluster.local/.well-known/jwks.json"
-        forwardOriginalToken: true
-        outputClaimToHeaders:
-          - header: "user-id"
-            claim: "sub"
-          - header: "user-email"
-            claim: "email"
-          - header: "user-role"
-            claim: "role"
-          - header: "user-status"
-            claim: "status"
-
   authorizationPolicy:
     enabled: true
 
