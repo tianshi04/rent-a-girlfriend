@@ -10,6 +10,7 @@ mesh:
 	kubectl apply -f infra/istio/
 
 mesh-down:
+	kubectl delete -f infra/istio/ --ignore-not-found || true
 	bash infra/scripts/istio-uninstall.sh
 
 reset:
