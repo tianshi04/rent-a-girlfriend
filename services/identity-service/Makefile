@@ -1,4 +1,6 @@
-.PHONY: run build test-unit test-integration test-e2e test-all docker-up docker-down tidy
+IMAGE_TAG ?= latest
+
+.PHONY: run build test-unit test-integration test-e2e test-all docker-up docker-down tidy deploy
 
 # Run locally
 run:
@@ -51,4 +53,4 @@ tidy:
 
 # Deploy to k8s
 deploy:
-	kubectl apply -f deployments/k8s/
+	bash deploy.sh $(IMAGE_TAG)

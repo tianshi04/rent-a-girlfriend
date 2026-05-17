@@ -13,7 +13,7 @@ spec:
   #   - JWT sai/hết hạn → 401 Unauthorized tại Waypoint
   jwtRules:
     - issuer: "rent-a-girlfriend-identity"
-      jwksUri: "http://identity-service.default.svc.cluster.local/.well-known/jwks.json"
+      jwksUri: "http://identity-service.identity-service.svc.cluster.local/.well-known/jwks.json"
       # forwardOriginalToken: giữ lại JWT header để downstream service đọc nếu cần
       forwardOriginalToken: true
       # outputClaimToHeaders: inject JWT claims đã verify thành HTTP headers

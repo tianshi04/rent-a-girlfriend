@@ -30,3 +30,6 @@ build/
 *.log
 
 AGENTS.md
+
+# Secrets
+**/secrets.yaml

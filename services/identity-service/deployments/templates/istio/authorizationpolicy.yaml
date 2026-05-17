@@ -1,0 +1,18 @@
+{{- if .Values.istio.authorizationPolicy.enabled }}
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "identity-service.fullname" . }}-authz
+  labels:
+    {{- include "identity-service.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "identity-service.fullname" . }}
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/*/sa/*"
+{{- end }}
