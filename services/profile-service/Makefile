@@ -7,11 +7,11 @@ run:
 # Generate Python gRPC code from local proto definition
 generate-proto:
 	uv run python -m grpc_tools.protoc \
-		-Iapi/proto \
+		-I../../contracts/proto \
 		--python_out=internal/interfaces/grpc \
 		--pyi_out=internal/interfaces/grpc \
 		--grpc_python_out=internal/interfaces/grpc \
-		api/proto/profile.proto
+		profile.proto
 	# Fix absolute import issue in Python 3 for generated gRPC files
 	@sed -i -e 's/import profile_pb2 as profile__pb2/from . import profile_pb2 as profile__pb2/g' internal/interfaces/grpc/profile_pb2_grpc.py
 
