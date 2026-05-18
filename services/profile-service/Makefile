@@ -7,7 +7,7 @@ run:
 # Generate Python gRPC code from local proto definition
 generate-proto:
 	uv run python -m grpc_tools.protoc \
-		-I../../contracts/proto \
+		-I../../contracts/ \
 		--python_out=internal/interfaces/grpc \
 		--pyi_out=internal/interfaces/grpc \
 		--grpc_python_out=internal/interfaces/grpc \
