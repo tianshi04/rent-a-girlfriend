@@ -1,0 +1,10 @@
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: GitRepository
+metadata:
+  name: backend-gitops
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/viethung213/rent-a-girlfriend
+  ref:
+    branch: gitops
