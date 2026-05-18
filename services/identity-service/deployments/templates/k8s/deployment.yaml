@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "identity-service.fullname" . }}
+  labels:
+    {{- include "identity-service.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "identity-service.fullname" . }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  minReadySeconds: 10
+  revisionHistoryLimit: 3
+  template:
+    metadata:
+      labels:
+        app: {{ include "identity-service.fullname" . }}
+    spec:
+      serviceAccountName: {{ include "identity-service.fullname" . }}
+      securityContext:
+        runAsNonRoot: {{ .Values.podSecurityContext.runAsNonRoot }}
+        runAsUser: {{ .Values.podSecurityContext.runAsUser }}
+      nodeSelector:{{ toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations:{{ toYaml .Values.tolerations | nindent 8 }}
+      affinity:{{ toYaml .Values.affinity | nindent 8 }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: identity-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.ports.http }}
+              name: http
+            - containerPort: {{ .Values.service.ports.grpc }}
+              name: grpc
+          envFrom:
+            - configMapRef:
+                name: {{ include "identity-service.fullname" . }}-config
+            - secretRef:
+                name: {{ include "identity-service.fullname" . }}-secrets
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+            - name: secret-volume
+              mountPath: /etc/secrets
+              readOnly: true
+            {{- if .Values.extraVolumeMounts }}
+            {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+          resources:
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "identity-service.fullname" . }}-config
+        - name: secret-volume
+          secret:
+            secretName: {{ include "identity-service.fullname" . }}-secrets
+        {{- if .Values.extraVolumes }}
+        {{- toYaml .Values.extraVolumes | nindent 8 }}
+        {{- end }}

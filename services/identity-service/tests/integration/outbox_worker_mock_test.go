@@ -9,13 +9,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 
-	"github.com/rent-a-girlfriend/identity-service/internal/bootstrap"
+	"github.com/rent-a-girlfriend/identity-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/messaging"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/persistence"
+	"github.com/rent-a-girlfriend/identity-service/tests/testhelper"
 )
 
-// MockPublisher is a mock implementation of messaging.MessagePublisher
 type MockPublisher struct {
 	mock.Mock
 }
@@ -25,58 +26,115 @@ func (m *MockPublisher) PublishEvent(ctx context.Context, topic string, event me
 	return args.Error(0)
 }
 
+// TestOutboxWorker_WithMockKafka kiểm tra OutboxWorker xử lý đúng các event
+// trong DB và gọi MockPublisher. Không cần Kafka broker thật.
 func TestOutboxWorker_WithMockKafka(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Bỏ qua integration test trong chế độ short mode")
-	}
+	db := testhelper.StartPostgresContainer(t)
 
-	// 1. Setup
-	cfg := bootstrap.LoadConfig()
-	db, err := bootstrap.InitDatabase(cfg.Database)
-	require.NoError(t, err)
+	testhelper.WithTx(t, db, func(tx *gorm.DB) {
+		mockKafka := new(MockPublisher)
+		worker := messaging.NewOutboxWorker(
+			tx,
+			mockKafka,
+			100*time.Millisecond,
+			10,
+			"test-topic",
+		)
 
-	db.Exec("DELETE FROM outbox_events")
+		// Insert event chưa publish vào DB (trong transaction)
+		eventID := uuid.New()
+		testPayload := `{"userId":"user-mock-123","email":"mock@test.com"}`
+		err := tx.Create(&persistence.OutboxModel{
+			ID:        eventID,
+			EventType: "test.event.v1",
+			Payload:   testPayload,
+			Published: false,
+			CreatedAt: time.Now(),
+		}).Error
+		require.NoError(t, err)
 
-	mockKafka := new(MockPublisher)
-	worker := messaging.NewOutboxWorker(
-		db,
-		mockKafka,
-		100*time.Millisecond,
-		10,
-		"test-topic",
-	)
+		// Setup mock expectation
+		mockKafka.On("PublishEvent",
+			mock.Anything,
+			"test-topic",
+			mock.MatchedBy(func(ev messaging.CloudEvent) bool {
+				return ev.ID == eventID.String() && ev.Type == "test.event.v1"
+			}),
+		).Return(nil)
 
-	// 2. Insert some unpublished events directly into DB
-	eventID := uuid.New()
-	testPayload := `{"userId":"user-mock-123","email":"mock@test.com"}`
-	db.Create(&persistence.OutboxModel{
-		ID:        eventID,
-		EventType: "test.event.v1",
-		Payload:   testPayload,
-		Published: false,
-		CreatedAt: time.Now(),
+		// Chạy worker trong giới hạn thời gian
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		go worker.Start(ctx)
+
+		time.Sleep(500 * time.Millisecond)
+
+		// Assertions
+		mockKafka.AssertExpectations(t)
+
+		var entry persistence.OutboxModel
+		err = tx.Where("id = ?", eventID).First(&entry).Error
+		require.NoError(t, err)
+		assert.True(t, entry.Published, "Worker phải đánh dấu sự kiện là đã gửi")
 	})
+}
 
-	// 3. Setup mock expectations
-	mockKafka.On("PublishEvent", mock.Anything, "test-topic", mock.MatchedBy(func(ev messaging.CloudEvent) bool {
-		return ev.ID == eventID.String() && ev.Type == "test.event.v1"
-	})).Return(nil)
+// TestKafkaOutbox_E2E kiểm tra luồng Outbox → Worker → MockPublisher end-to-end.
+// Không cần Kafka broker thật — dùng mock để xác nhận CloudEvent được publish đúng.
+func TestKafkaOutbox_WithMockBroker(t *testing.T) {
+	db := testhelper.StartPostgresContainer(t)
 
-	// 4. Run worker briefly
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
+	testhelper.WithTx(t, db, func(tx *gorm.DB) {
+		mockKafka := new(MockPublisher)
+		outboxPublisher := persistence.NewOutboxPublisher(tx)
+		worker := messaging.NewOutboxWorker(
+			tx,
+			mockKafka,
+			200*time.Millisecond,
+			10,
+			"identity-events",
+		)
 
-	go worker.Start(ctx)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-	// Wait for worker to process
-	time.Sleep(500 * time.Millisecond)
+		// Publish event qua outbox
+		testUserID := "e2e-user-" + uuid.New().String()
+		testEvent := event.UserRegistered{
+			UserID:    testUserID,
+			Email:     "e2e-mock@test.com",
+			Role:      "CLIENT",
+			GoogleID:  "google-" + uuid.New().String(),
+			Timestamp: time.Now().UTC().Truncate(time.Second),
+		}
+		err := outboxPublisher.Publish(ctx, testEvent)
+		require.NoError(t, err)
 
-	// 5. Assertions
-	mockKafka.AssertExpectations(t)
+		// Xác định eventID từ DB để setup mock expectation chính xác
+		var entry persistence.OutboxModel
+		err = tx.Where("CAST(payload AS TEXT) LIKE ?", "%"+testUserID+"%").First(&entry).Error
+		require.NoError(t, err)
 
-	// Check if marked as published in DB
-	var entry persistence.OutboxModel
-	err = db.Where("id = ?", eventID).First(&entry).Error
-	require.NoError(t, err)
-	assert.True(t, entry.Published, "Worker phải đánh dấu sự kiện là đã gửi trong DB")
+		mockKafka.On("PublishEvent",
+			mock.Anything,
+			"identity-events",
+			mock.MatchedBy(func(ev messaging.CloudEvent) bool {
+				return ev.ID == entry.ID.String() && ev.Type == testEvent.EventType()
+			}),
+		).Return(nil)
+
+		// Chạy worker
+		workerCtx, workerCancel := context.WithTimeout(ctx, 3*time.Second)
+		defer workerCancel()
+		go worker.Start(workerCtx)
+		time.Sleep(1 * time.Second)
+
+		// Xác nhận mock được gọi và DB được mark published
+		mockKafka.AssertExpectations(t)
+
+		var updated persistence.OutboxModel
+		err = tx.Where("id = ?", entry.ID).First(&updated).Error
+		require.NoError(t, err)
+		assert.True(t, updated.Published, "DB row phải được mark là published")
+	})
 }

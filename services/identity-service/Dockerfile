@@ -19,6 +19,7 @@ RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /app
 COPY --from=builder /identity-service .
 
-EXPOSE 8081
+EXPOSE 8080
+EXPOSE 50051
 
 ENTRYPOINT ["./identity-service"]

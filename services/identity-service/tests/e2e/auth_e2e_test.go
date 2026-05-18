@@ -24,6 +24,9 @@ func TestAuthE2E(t *testing.T) {
 	assert.NotEmpty(t, accessToken)
 	assert.NotEmpty(t, refreshToken)
 
+	// Sleep 1 second to ensure iat changes for deterministic accessTokens
+	time.Sleep(1 * time.Second)
+
 	// 2. Refresh Token
 	refreshURL := fmt.Sprintf("%s/api/v1/auth/refresh", getBaseURL())
 	refreshPayload := map[string]string{

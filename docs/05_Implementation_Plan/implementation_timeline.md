@@ -9,7 +9,7 @@ Dựa trên tài liệu thiết kế hệ thống, lộ trình triển khai dự
 ### Giai đoạn 1: Hạ tầng & Nền tảng
 **Mục tiêu:** Thiết lập môi trường chạy Microservices và các thư viện dùng chung.
 - [x] **Infrastructure Setup:** Cấu hình Kubernetes (Local: Minikube/K3s), Docker Registry.
-- [ ] **Service Mesh:** Cài đặt **Istio Ambient Mode**. Cấu hình `ztunnel` cho mTLS và `Waypoint Proxy` cho L7 traffic/Auth.
+- [x] **Service Mesh:** Cài đặt **Istio Ambient Mode**. Cấu hình `ztunnel` cho mTLS và `Waypoint Proxy` cho L7 traffic/Auth.
 - [ ] **Shared Libraries:** Xây dựng package `common` (Standard Logging, Error Handling, Event Bus Wrapper).
 - [ ] **Contract Definition:** Hoàn thiện Protobuf/OpenAPI schemas cho toàn bộ hệ thống tại `/contracts`.
 
