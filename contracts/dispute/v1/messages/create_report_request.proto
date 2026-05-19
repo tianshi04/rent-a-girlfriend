@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package dispute.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/dispute;disputev1";
+
+message EvidenceItem {
+  string type = 1;
+  string content = 2;
+}
+
+message CreateReportRequest {
+  string booking_id = 1;
+  string reporter_id = 2;
+  string accused_id = 3;
+  string reason = 4;
+  repeated EvidenceItem evidences = 5;
+}

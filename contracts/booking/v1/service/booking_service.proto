@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package booking.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/booking;bookingv1";
+
+import "google/protobuf/timestamp.proto";
+import "common/v1/enums.proto";
+import "booking/v1/messages/request_booking_request.proto";
+import "booking/v1/messages/request_booking_response.proto";
+import "booking/v1/messages/accept_booking_request.proto";
+import "booking/v1/messages/accept_booking_response.proto";
+import "booking/v1/messages/cancel_booking_request.proto";
+import "booking/v1/messages/cancel_booking_response.proto";
+import "booking/v1/messages/complete_booking_request.proto";
+import "booking/v1/messages/complete_booking_response.proto";
+import "booking/v1/messages/get_booking_request.proto";
+import "booking/v1/messages/booking_detail_response.proto";
+
+service BookingService {
+  rpc RequestBooking(RequestBookingRequest) returns (BookingCommandResponse);
+  rpc AcceptBooking(AcceptBookingRequest) returns (BookingCommandResponse);
+  rpc CancelBooking(CancelBookingRequest) returns (BookingCommandResponse);
+  rpc CompleteBooking(CompleteBookingRequest) returns (BookingCommandResponse);
+  rpc GetBooking(GetBookingRequest) returns (BookingDetailResponse);
+}

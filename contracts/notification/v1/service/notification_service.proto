@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/notification;notificationv1";
+
+import "notification/v1/messages/send_notification_request.proto";
+import "notification/v1/messages/notification_response.proto";
+
+service NotificationService {
+  rpc SendNotification(SendNotificationRequest) returns (NotificationResponse);
+}

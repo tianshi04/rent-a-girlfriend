@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package finance.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/finance;financev1";
+
+import "finance/v1/messages/freeze_coin_request.proto";
+import "finance/v1/messages/transfer_to_escrow_request.proto";
+import "finance/v1/messages/process_payout_request.proto";
+import "finance/v1/messages/refund_escrow_request.proto";
+import "finance/v1/messages/get_wallet_request.proto";
+import "finance/v1/messages/finance_command_response.proto";
+import "finance/v1/messages/get_wallet_response.proto";
+
+service FinanceService {
+  rpc FreezeCoin(FreezeCoinRequest) returns (FinanceCommandResponse);
+  rpc TransferToEscrow(TransferToEscrowRequest) returns (FinanceCommandResponse);
+  rpc ProcessPayout(ProcessPayoutRequest) returns (FinanceCommandResponse);
+  rpc RefundEscrow(RefundEscrowRequest) returns (FinanceCommandResponse);
+  rpc GetWallet(GetWalletRequest) returns (GetWalletResponse);
+}

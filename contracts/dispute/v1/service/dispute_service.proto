@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package dispute.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/dispute;disputev1";
+
+import "dispute/v1/messages/create_report_request.proto";
+import "dispute/v1/messages/resolve_dispute_request.proto";
+import "dispute/v1/messages/dispute_command_response.proto";
+
+service DisputeService {
+  rpc CreateReport(CreateReportRequest) returns (DisputeCommandResponse);
+  rpc ResolveDispute(ResolveDisputeRequest) returns (DisputeCommandResponse);
+}
