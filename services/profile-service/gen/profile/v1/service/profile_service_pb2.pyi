@@ -1,0 +1,18 @@
+from profile.v1.messages import create_profile_request_pb2 as _create_profile_request_pb2
+from profile.v1.messages import update_profile_request_pb2 as _update_profile_request_pb2
+from profile.v1.messages import approve_profile_request_pb2 as _approve_profile_request_pb2
+from profile.v1.messages import reject_profile_request_pb2 as _reject_profile_request_pb2
+from profile.v1.messages import profile_command_response_pb2 as _profile_command_response_pb2
+from profile.v1.messages import create_scenario_request_pb2 as _create_scenario_request_pb2
+from profile.v1.messages import update_scenario_request_pb2 as _update_scenario_request_pb2
+from profile.v1.messages import delete_scenario_request_pb2 as _delete_scenario_request_pb2
+from profile.v1.messages import scenario_command_response_pb2 as _scenario_command_response_pb2
+from profile.v1.messages import get_scenario_snapshot_request_pb2 as _get_scenario_snapshot_request_pb2
+from profile.v1.messages import scenario_snapshot_response_pb2 as _scenario_snapshot_response_pb2
+from profile.v1.messages import register_voice_intro_request_pb2 as _register_voice_intro_request_pb2
+from profile.v1.messages import register_album_image_request_pb2 as _register_album_image_request_pb2
+from profile.v1.messages import media_command_response_pb2 as _media_command_response_pb2
+from google.protobuf import descriptor as _descriptor
+from typing import ClassVar as _ClassVar
+
+DESCRIPTOR: _descriptor.FileDescriptor
