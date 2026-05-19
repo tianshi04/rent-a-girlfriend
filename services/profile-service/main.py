@@ -5,7 +5,8 @@ import grpc
 import uvicorn
 
 from internal.bootstrap import settings, SessionLocal, outbox_worker, app, init_db
-from internal.interfaces.grpc import profile_pb2_grpc, ProfileServiceServicer
+from gen.profile.v1.service import profile_service_pb2_grpc
+from internal.interfaces.grpc.servicer import ProfileServiceServicer
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,7 +19,7 @@ logger = logging.getLogger("server")
 async def run_grpc_server():
     server = grpc.aio.server()
     servicer = ProfileServiceServicer(SessionLocal)
-    profile_pb2_grpc.add_ProfileServiceServicer_to_server(servicer, server)
+    profile_service_pb2_grpc.add_ProfileServiceServicer_to_server(servicer, server)
     listen_addr = f"0.0.0.0:{settings.GRPC_PORT}"
     server.add_insecure_port(listen_addr)
     logger.info(f"Starting gRPC server on {listen_addr}...")

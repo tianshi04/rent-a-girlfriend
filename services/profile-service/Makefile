@@ -2,19 +2,19 @@
 
 # Run FastAPI & gRPC server locally using uv
 run:
-	uv run main.py
+	PYTHONPATH=$$(pwd)/gen uv run main.py
 
 # Generate Python gRPC code from local proto definition
 generate-proto:
+	@mkdir -p gen
 	uv run python -m grpc_tools.protoc \
 		-I../../contracts/ \
-		--python_out=internal/interfaces/grpc \
-		--pyi_out=internal/interfaces/grpc \
-		--grpc_python_out=internal/interfaces/grpc \
-		profile.proto
-	# Fix absolute import issue in Python 3 for generated gRPC files
-	@sed -i -e 's/import profile_pb2 as profile__pb2/from . import profile_pb2 as profile__pb2/g' internal/interfaces/grpc/profile_pb2_grpc.py
+		--python_out=gen \
+		--pyi_out=gen \
+		--grpc_python_out=gen \
+		$$(find ../../contracts/profile -name "*.proto")
+	@find gen -type d -exec touch {}/__init__.py \;
 
 # Run all tests sequentially
 test:
-	uv run pytest -v
+	PYTHONPATH=$$(pwd)/gen uv run pytest -v
