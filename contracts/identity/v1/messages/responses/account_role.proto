@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package identity.v1;
+
+option go_package = "github.com/rent-a-girlfriend/identity-service/internal/gen/proto;identityv1";
+
+// AccountRole — các vai trò khả dụng trên hệ thống.
+enum AccountRole {
+  ACCOUNT_ROLE_UNSPECIFIED = 0;
+  ACCOUNT_ROLE_CLIENT      = 1;
+  ACCOUNT_ROLE_COMPANION   = 2;
+  ACCOUNT_ROLE_ADMIN       = 3;
+}

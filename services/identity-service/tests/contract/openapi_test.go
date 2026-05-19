@@ -109,7 +109,7 @@ func TestContract_ResponseSchemaValidation(t *testing.T) {
 			method:         "GET",
 			path:           "/api/v1/admin/accounts/550e8400-e29b-41d4-a716-446655440000",
 			expectedStatus: 200,
-			body:           `{"id":"550e8400-e29b-41d4-a716-446655440000","email":"test@example.com","role":"CLIENT","status":"ACTIVE","violationCount":0,"createdAt":"2026-05-10T11:00:00Z"}`,
+			body:           `{"id":"550e8400-e29b-41d4-a716-446655440000","email":"test@example.com","role":"ACCOUNT_ROLE_CLIENT","status":"ACCOUNT_STATUS_ACTIVE","violationCount":0,"createdAt":"2026-05-10T11:00:00Z"}`,
 		},
 	}
 

@@ -47,7 +47,7 @@ func TestCompanionUpgradeE2E(t *testing.T) {
 	adminAccessToken, _, _ := mockLogin(t, adminEmail, adminGoogleID, "ADMIN")
 
 	// 4. Admin lists upgrade requests
-	listURL := fmt.Sprintf("%s/api/v1/admin/upgrade-requests?status=PENDING", getBaseURL())
+	listURL := fmt.Sprintf("%s/api/v1/admin/upgrade-requests?status=UPGRADE_STATUS_PENDING", getBaseURL())
 	listReq, _ := http.NewRequest(http.MethodGet, listURL, nil)
 	injectMeshHeaders(t, listReq, adminAccessToken)
 

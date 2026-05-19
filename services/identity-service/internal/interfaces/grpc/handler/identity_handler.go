@@ -12,6 +12,7 @@ import (
 	"github.com/rent-a-girlfriend/identity-service/internal/application/query"
 	"github.com/rent-a-girlfriend/identity-service/internal/interfaces/grpc/util"
 	domainerr "github.com/rent-a-girlfriend/identity-service/internal/domain/errors"
+	"github.com/rent-a-girlfriend/identity-service/internal/domain/vo"
 )
 
 type IdentityGRPCHandler struct {
@@ -67,8 +68,8 @@ func (h *IdentityGRPCHandler) GetAccount(ctx context.Context, req *identityv1.Ge
 	return &identityv1.AccountResponse{
 		Id:             account.ID().String(),
 		Email:          account.Email().String(),
-		Role:           string(account.Role()),
-		Status:         string(account.Status()),
+		Role:           mapRole(account.Role()),
+		Status:         mapAccountStatus(account.Status()),
 		ViolationCount: int32(account.ViolationCount()),
 		CreatedAt:      timestamppb.New(account.CreatedAt()),
 	}, nil
@@ -76,8 +77,17 @@ func (h *IdentityGRPCHandler) GetAccount(ctx context.Context, req *identityv1.Ge
 
 func (h *IdentityGRPCHandler) ListUpgradeRequests(ctx context.Context, req *identityv1.ListUpgradeRequestsRequest) (*identityv1.ListUpgradeRequestsResponse, error) {
 	var statusPtr *string
-	if req.Status != "" {
-		statusPtr = &req.Status
+	if req.Status != identityv1.UpgradeStatus_UPGRADE_STATUS_UNSPECIFIED {
+		var s string
+		switch req.Status {
+		case identityv1.UpgradeStatus_UPGRADE_STATUS_PENDING:
+			s = "PENDING"
+		case identityv1.UpgradeStatus_UPGRADE_STATUS_APPROVED:
+			s = "APPROVED"
+		case identityv1.UpgradeStatus_UPGRADE_STATUS_REJECTED:
+			s = "REJECTED"
+		}
+		statusPtr = &s
 	}
 
 	requests, total, err := h.listUpgradeReqs.Handle(ctx, query.ListUpgradeRequestsQuery{
@@ -94,7 +104,7 @@ func (h *IdentityGRPCHandler) ListUpgradeRequests(ctx context.Context, req *iden
 		item := &identityv1.UpgradeRequestItem{
 			Id:           r.ID().String(),
 			UserId:       r.UserID().String(),
-			Status:       string(r.Status()),
+			Status:       mapUpgradeStatus(r.Status()),
 			Reason:       r.Reason(),
 			RejectReason: r.RejectReason(),
 			ReviewedBy:   r.ReviewedBy(),
@@ -257,5 +267,42 @@ func mapDomainError(err error) error {
 		return status.Error(codes.FailedPrecondition, err.Error())
 	default:
 		return status.Error(codes.Internal, err.Error())
+	}
+}
+
+func mapRole(r vo.Role) identityv1.AccountRole {
+	switch r {
+	case vo.RoleClient:
+		return identityv1.AccountRole_ACCOUNT_ROLE_CLIENT
+	case vo.RoleCompanion:
+		return identityv1.AccountRole_ACCOUNT_ROLE_COMPANION
+	case vo.RoleAdmin:
+		return identityv1.AccountRole_ACCOUNT_ROLE_ADMIN
+	default:
+		return identityv1.AccountRole_ACCOUNT_ROLE_UNSPECIFIED
+	}
+}
+
+func mapAccountStatus(s vo.AccountStatus) identityv1.AccountStatus {
+	switch s {
+	case vo.StatusActive:
+		return identityv1.AccountStatus_ACCOUNT_STATUS_ACTIVE
+	case vo.StatusLocked:
+		return identityv1.AccountStatus_ACCOUNT_STATUS_LOCKED
+	default:
+		return identityv1.AccountStatus_ACCOUNT_STATUS_UNSPECIFIED
+	}
+}
+
+func mapUpgradeStatus(s vo.UpgradeStatus) identityv1.UpgradeStatus {
+	switch s {
+	case vo.UpgradeStatusPending:
+		return identityv1.UpgradeStatus_UPGRADE_STATUS_PENDING
+	case vo.UpgradeStatusApproved:
+		return identityv1.UpgradeStatus_UPGRADE_STATUS_APPROVED
+	case vo.UpgradeStatusRejected:
+		return identityv1.UpgradeStatus_UPGRADE_STATUS_REJECTED
+	default:
+		return identityv1.UpgradeStatus_UPGRADE_STATUS_UNSPECIFIED
 	}
 }
