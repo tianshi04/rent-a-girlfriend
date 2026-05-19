@@ -5,7 +5,11 @@ from internal.domain.errors import (
     VoiceIntroSizeExceededError,
     AlbumImageSizeExceededError,
 )
-from internal.domain.events import DomainEvent, VoiceIntroUploaded, AlbumImageUploaded
+from internal.domain.events import (
+    DomainEvent,
+    VoiceIntroRegistered,
+    AlbumImageRegistered,
+)
 
 
 class MediaAsset:
@@ -64,7 +68,7 @@ class MediaAsset:
         )
 
         media.add_event(
-            VoiceIntroUploaded(
+            VoiceIntroRegistered(
                 companion_id=companion_id,
                 asset_id=asset_id,
                 file_url=file_url.url,
@@ -92,7 +96,7 @@ class MediaAsset:
         )
 
         media.add_event(
-            AlbumImageUploaded(
+            AlbumImageRegistered(
                 companion_id=companion_id,
                 asset_id=asset_id,
                 file_url=file_url.url,
