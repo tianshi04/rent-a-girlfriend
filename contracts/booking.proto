@@ -5,6 +5,7 @@ package booking.v1;
 option go_package = "github.com/rent-a-girlfriend/contracts/proto/booking;bookingv1";
 
 import "google/protobuf/timestamp.proto";
+import "common/v1/enums.proto";
 
 service BookingService {
   // Commands (Atomic business state mutators - REST for Query, gRPC for Commands)
@@ -52,13 +53,12 @@ message AcceptBookingRequest {
 message CancelBookingRequest {
   string booking_id = 1;
   string actor_id = 2;
-  string actor_role = 3; // CLIENT or COMPANION (determines refund/penalty policies BR-05, BR-06, BR-07a)
-  string reason = 4;
+  common.v1.CancellationReason reason = 3; 
 }
 
 message BookingCommandResponse {
   string booking_id = 1;
-  string status = 2;
+  common.v1.BookingStatus status = 2;
   string message = 3;
 }
 
@@ -74,6 +74,6 @@ message BookingDetailResponse {
   int32 duration_minutes = 5;
   google.protobuf.Timestamp start_time = 6;
   google.protobuf.Timestamp end_time = 7;
-  string status = 8;
+  common.v1.BookingStatus status = 8;
   google.protobuf.Timestamp created_at = 9;
 }
