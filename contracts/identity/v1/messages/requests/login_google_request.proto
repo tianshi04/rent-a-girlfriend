@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package identity.v1;
+
+option go_package = "github.com/rent-a-girlfriend/identity-service/internal/gen/proto;identityv1";
+
+// LoginGoogleRequest — hoàn thành Google OAuth2 callback với authorization code.
+message LoginGoogleRequest {
+  string code  = 1;
+  string state = 2;
+}

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package identity.v1;
+
+option go_package = "github.com/rent-a-girlfriend/identity-service/internal/gen/proto;identityv1";
+
+import "identity/v1/messages/responses/upgrade_request_item.proto";
+
+// ListUpgradeRequestsResponse — danh sách yêu cầu nâng cấp có phân trang.
+message ListUpgradeRequestsResponse {
+  repeated UpgradeRequestItem data      = 1;
+  int64                       total     = 2;
+  int32                       page      = 3;
+  int32                       page_size = 4;
+}

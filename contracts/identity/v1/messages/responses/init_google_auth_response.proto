@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package identity.v1;
+
+option go_package = "github.com/rent-a-girlfriend/identity-service/internal/gen/proto;identityv1";
+
+// InitGoogleAuthResponse — trả về URL redirect Google OAuth2 và PKCE state.
+message InitGoogleAuthResponse {
+  string auth_url       = 1;
+  string state          = 2;
+  string code_challenge = 3;
+}

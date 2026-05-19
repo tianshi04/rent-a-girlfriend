@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package common.v1;
+
+option go_package = "github.com/rent-a-girlfriend/identity-service/internal/gen/proto;identityv1";
+
+// MessageResponse là response chung cho tất cả command không trả dữ liệu.
+message MessageResponse {
+  string message = 1;
+}

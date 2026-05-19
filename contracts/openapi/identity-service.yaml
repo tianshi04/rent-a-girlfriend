@@ -194,9 +194,9 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/MessageResponse' }
 
-  /accounts/{id}:
+  /admin/accounts/{id}:
     get:
-      tags: [Account]
+      tags: [Admin]
       summary: Get account details
       security: [{ bearerAuth: [] }]
       parameters:

@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package identity.v1.events;
+
+option go_package = "github.com/rent-a-girlfriend/identity-service/internal/gen/proto;identityv1";
+
+// UpgradeApprovedPayload — payload của domain event UpgradeApproved.
+// Phát ra khi Admin duyệt yêu cầu nâng cấp → profile-service tạo Companion profile.
+// CloudEvent type: com.rentagf.identity.UpgradeApproved.v1
+message UpgradeApprovedPayload {
+  string user_id     = 1;
+  string request_id  = 2;
+  string approved_by = 3; // Admin user ID
+}
