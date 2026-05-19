@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package profile.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/profile;profilev1";
+
+message GetScenarioSnapshotRequest {
+  string scenario_id = 1;
+}

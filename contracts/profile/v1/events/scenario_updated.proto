@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package profile.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/profile;profilev1";
+
+message ScenarioUpdated {
+  string scenario_id = 1;
+  string companion_id = 2;
+  string title = 3;
+  string description = 4;
+  int64 price = 5;
+  int32 duration_minutes = 6;
+  string status = 7;
+}
