@@ -8,6 +8,7 @@ globs: services/**/*
     - Application (Use Cases/Handlers).
     - Infrastructure (DB/Broker Adapters).
     - Interfaces (HTTP/gRPC/PubSub).
+- **Contracts as SSOT**: Tất cả giao tiếp (gRPC, Async Events) phải được định nghĩa tại thư mục `/contracts` ở root. Đây là Single Source of Truth duy nhất. Không được phép định nghĩa lại message/event trong từng service. Các service phải generate code từ các file proto này.
 - **Directory Structure**:
     - `cmd/server/`: Điểm khởi chạy (Entry point).
     - `internal/domain/`: Aggregate, VO, Repository port, Events.
