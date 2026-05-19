@@ -18,9 +18,9 @@ import "booking/v1/messages/get_booking_request.proto";
 import "booking/v1/messages/booking_detail_response.proto";
 
 service BookingService {
-  rpc RequestBooking(RequestBookingRequest) returns (BookingCommandResponse);
-  rpc AcceptBooking(AcceptBookingRequest) returns (BookingCommandResponse);
-  rpc CancelBooking(CancelBookingRequest) returns (BookingCommandResponse);
-  rpc CompleteBooking(CompleteBookingRequest) returns (BookingCommandResponse);
+  rpc RequestBooking(RequestBookingRequest) returns (RequestBookingResponse);
+  rpc AcceptBooking(AcceptBookingRequest) returns (AcceptBookingResponse);
+  rpc CancelBooking(CancelBookingRequest) returns (CancelBookingResponse);
+  rpc CompleteBooking(CompleteBookingRequest) returns (CompleteBookingResponse);
   rpc GetBooking(GetBookingRequest) returns (BookingDetailResponse);
 }

@@ -6,7 +6,7 @@ option go_package = "github.com/rent-a-girlfriend/contracts/proto/booking;bookin
 
 import "common/v1/enums.proto";
 
-message BookingCommandResponse {
+message CompleteBookingResponse {
   string booking_id = 1;
   common.v1.BookingStatus status = 2;
   string message = 3;
