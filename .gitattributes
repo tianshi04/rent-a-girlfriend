@@ -83,6 +83,11 @@ Makefile text eol=lf
 # =========================================
 *.proto text eol=lf
 
+# Bỏ qua thống kê code sinh ra từ proto
+*_pb2.py linguist-generated
+*_pb2_grpc.py linguist-generated
+*.pyi linguist-generated
+
 # =========================================
 # GIT SPECIAL BEHAVIOR
 # =========================================

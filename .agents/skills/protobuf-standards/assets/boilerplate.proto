@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package acme.user.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// The Golden Standard Boilerplate
+// Follows: 1-1-1 Rule, Naming Standards, and Evolution Best Practices.
+
+// Service definition with unique Request/Response pairs.
+service UserService {
+  // GetUser retrieves a single user by ID.
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+}
+
+// Dedicated request message.
+message GetUserRequest {
+  // User unique identifier.
+  string user_id = 1;
+}
+
+// Dedicated response message.
+message GetUserResponse {
+  User user = 1;
+}
+
+// Core domain message.
+message User {
+  // Tag 1-15 for high-frequency fields.
+  string id = 1;
+  string display_name = 2;
+
+  // Use Enums instead of booleans for status.
+  UserStatus status = 3;
+
+  // Use well-known types for time.
+  google.protobuf.Timestamp created_at = 4;
+
+  // Reserved fields for future-proofing after deletion.
+  reserved 5, 10 to 12;
+  reserved "deprecated_field";
+}
+
+// Enum with prefixed values and UNSPECIFIED 0-tag.
+enum UserStatus {
+  USER_STATUS_UNSPECIFIED = 0;
+  USER_STATUS_ACTIVE = 1;
+  USER_STATUS_SUSPENDED = 2;
+  USER_STATUS_DELETED = 3;
+}

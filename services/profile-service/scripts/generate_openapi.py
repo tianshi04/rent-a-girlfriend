@@ -10,8 +10,8 @@ project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-import json # noqa: E402
-from internal.bootstrap import app # noqa: E402
+import json  # noqa: E402
+from internal.bootstrap import app  # noqa: E402
 
 
 def generate_openapi():

@@ -1,7 +1,9 @@
 import pytest
 from unittest.mock import MagicMock
 
-from internal.interfaces.grpc import ProfileServiceServicer, profile_pb2
+from internal.interfaces.grpc.servicer import ProfileServiceServicer
+from gen.profile.v1.messages.create_profile_request_pb2 import CreateProfileRequest
+from gen.profile.v1.messages.approve_profile_request_pb2 import ApproveProfileRequest
 
 pytestmark = pytest.mark.asyncio
 
@@ -20,7 +22,7 @@ async def test_grpc_create_profile_success(grpc_servicer, db_session, integratio
         ("user-role", "COMPANION"),
     ]
 
-    request = profile_pb2.CreateProfileRequest(
+    request = CreateProfileRequest(
         user_id="companion_user_456",
         display_name="Asami Mami",
         intro_text="Cute and lovely rental girlfriend",
@@ -61,7 +63,7 @@ async def test_grpc_admin_approve_profile(grpc_servicer, db_session, integration
         ("user-role", "ADMIN"),
     ]
 
-    request = profile_pb2.ApproveProfileRequest(
+    request = ApproveProfileRequest(
         companion_id="companion_user_456", admin_id="admin_user_99"
     )
 

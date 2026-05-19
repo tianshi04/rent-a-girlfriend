@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package events.v1;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+message EventEnvelope {
+  string event_id      = 1;
+  string event_type    = 2;
+  string source        = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+  string correlation_id = 5;
+  google.protobuf.Any payload = 6;
+}

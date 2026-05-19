@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package profile.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/profile;profilev1";
+
+message CreateScenarioRequest {
+  string companion_id = 1;
+  string title = 2;
+  string description = 3;
+  int64 price = 4; // Kano-Coin (BR-04 integer representation)
+  int32 duration_minutes = 5; // Standard values: 60, 120, 180 (INV-P02)
+}
