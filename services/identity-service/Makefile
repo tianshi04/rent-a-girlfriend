@@ -1,6 +1,13 @@
 IMAGE_TAG ?= latest
 
-.PHONY: run build test-unit test-integration test-e2e test-all docker-up docker-down tidy deploy
+# OS Detection for proto generation
+ifeq ($(OS),Windows_NT)
+    GEN_PROTO_CMD = powershell -ExecutionPolicy Bypass -File scripts/gen_proto.ps1
+else
+    GEN_PROTO_CMD = chmod +x scripts/gen_proto.sh && ./scripts/gen_proto.sh
+endif
+
+.PHONY: run build test-unit test-integration test-e2e test-all docker-up docker-down tidy deploy generate-proto
 
 # Run locally
 run:
@@ -47,6 +54,10 @@ docker-up:
 # Docker compose down
 docker-down:
 	docker compose down -v
+
+# Generate cả gRPC stubs lẫn HTTP gateway
+generate-proto:
+	$(GEN_PROTO_CMD)
 
 # Tidy dependencies
 tidy:
