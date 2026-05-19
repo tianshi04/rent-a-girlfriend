@@ -3,13 +3,21 @@ import logging
 from typing import Dict
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from internal.bootstrap import bootstrap_services
-from internal.interfaces.grpc import profile_pb2, profile_pb2_grpc
+from gen.profile.v1.service import profile_service_pb2_grpc
+from gen.profile.v1.messages.profile_command_response_pb2 import ProfileCommandResponse
+from gen.profile.v1.messages.scenario_command_response_pb2 import (
+    ScenarioCommandResponse,
+)
+from gen.profile.v1.messages.media_command_response_pb2 import MediaCommandResponse
+from gen.profile.v1.messages.scenario_snapshot_response_pb2 import (
+    ScenarioSnapshotResponse,
+)
 from internal.domain.errors import DomainError
 
 logger = logging.getLogger("grpc_servicer")
 
 
-class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
+class ProfileServiceServicer(profile_service_pb2_grpc.ProfileServiceServicer):
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
         self.session_factory = session_factory
 
@@ -45,7 +53,7 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
             if not user_id:
                 context.set_code(grpc.StatusCode.UNAUTHENTICATED)
                 context.set_details("User identity missing")
-                return profile_pb2.ProfileCommandResponse()
+                return ProfileCommandResponse()
 
             async with self.session_factory() as session:
                 profile_cmd, _, _, _ = bootstrap_services(session)
@@ -58,14 +66,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                 )
                 await session.commit()
 
-            return profile_pb2.ProfileCommandResponse(
+            return ProfileCommandResponse(
                 companion_id=companion_id,
                 status="SUCCESS",
                 message="Companion profile created successfully",
             )
         except Exception as e:
             self._handle_exception(context, e)
-            return profile_pb2.ProfileCommandResponse(status="FAILED")
+            return ProfileCommandResponse(status="FAILED")
 
     async def UpdateProfile(self, request, context):
         try:
@@ -83,14 +91,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                 )
                 await session.commit()
 
-            return profile_pb2.ProfileCommandResponse(
+            return ProfileCommandResponse(
                 companion_id=companion_id,
                 status="SUCCESS",
                 message="Companion profile updated successfully",
             )
         except Exception as e:
             self._handle_exception(context, e)
-            return profile_pb2.ProfileCommandResponse(status="FAILED")
+            return ProfileCommandResponse(status="FAILED")
 
     async def ApproveProfile(self, request, context):
         try:
@@ -99,7 +107,7 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
             if auth_info.get("user_role") != "ADMIN":
                 context.set_code(grpc.StatusCode.PERMISSION_DENIED)
                 context.set_details("Admin only operation")
-                return profile_pb2.ProfileCommandResponse()
+                return ProfileCommandResponse()
 
             async with self.session_factory() as session:
                 profile_cmd, _, _, _ = bootstrap_services(session)
@@ -109,14 +117,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                 )
                 await session.commit()
 
-            return profile_pb2.ProfileCommandResponse(
+            return ProfileCommandResponse(
                 companion_id=request.companion_id,
                 status="SUCCESS",
                 message="Companion profile approved",
             )
         except Exception as e:
             self._handle_exception(context, e)
-            return profile_pb2.ProfileCommandResponse(status="FAILED")
+            return ProfileCommandResponse(status="FAILED")
 
     async def RejectProfile(self, request, context):
         try:
@@ -124,7 +132,7 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
             if auth_info.get("user_role") != "ADMIN":
                 context.set_code(grpc.StatusCode.PERMISSION_DENIED)
                 context.set_details("Admin only operation")
-                return profile_pb2.ProfileCommandResponse()
+                return ProfileCommandResponse()
 
             async with self.session_factory() as session:
                 profile_cmd, _, _, _ = bootstrap_services(session)
@@ -135,14 +143,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                 )
                 await session.commit()
 
-            return profile_pb2.ProfileCommandResponse(
+            return ProfileCommandResponse(
                 companion_id=request.companion_id,
                 status="SUCCESS",
                 message="Companion profile rejected",
             )
         except Exception as e:
             self._handle_exception(context, e)
-            return profile_pb2.ProfileCommandResponse(status="FAILED")
+            return ProfileCommandResponse(status="FAILED")
 
     # --- Scenario Commands ---
 
@@ -162,14 +170,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                 )
                 await session.commit()
 
-            return profile_pb2.ScenarioCommandResponse(
+            return ScenarioCommandResponse(
                 scenario_id=scenario_id,
                 status="SUCCESS",
                 message="Scenario created successfully",
             )
         except Exception as e:
             self._handle_exception(context, e)
-            return profile_pb2.ScenarioCommandResponse(status="FAILED")
+            return ScenarioCommandResponse(status="FAILED")
 
     async def UpdateScenario(self, request, context):
         try:
@@ -189,14 +197,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                 )
                 await session.commit()
 
-            return profile_pb2.ScenarioCommandResponse(
+            return ScenarioCommandResponse(
                 scenario_id=request.scenario_id,
                 status="SUCCESS",
                 message="Scenario updated successfully",
             )
         except Exception as e:
             self._handle_exception(context, e)
-            return profile_pb2.ScenarioCommandResponse(status="FAILED")
+            return ScenarioCommandResponse(status="FAILED")
 
     async def DeleteScenario(self, request, context):
         try:
@@ -210,14 +218,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                 )
                 await session.commit()
 
-            return profile_pb2.ScenarioCommandResponse(
+            return ScenarioCommandResponse(
                 scenario_id=request.scenario_id,
                 status="SUCCESS",
                 message="Scenario deleted successfully",
             )
         except Exception as e:
             self._handle_exception(context, e)
-            return profile_pb2.ScenarioCommandResponse(status="FAILED")
+            return ScenarioCommandResponse(status="FAILED")
 
     # --- Media Commands ---
 
@@ -236,14 +244,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                 )
                 await session.commit()
 
-            return profile_pb2.MediaCommandResponse(
+            return MediaCommandResponse(
                 asset_id=asset_id,
                 status="APPROVED",
                 message="Voice intro registered successfully",
             )
         except Exception as e:
             self._handle_exception(context, e)
-            return profile_pb2.MediaCommandResponse(status="FAILED")
+            return MediaCommandResponse(status="FAILED")
 
     async def RegisterAlbumImage(self, request, context):
         try:
@@ -259,14 +267,14 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                 )
                 await session.commit()
 
-            return profile_pb2.MediaCommandResponse(
+            return MediaCommandResponse(
                 asset_id=asset_id,
                 status="APPROVED",
                 message="Album image registered successfully",
             )
         except Exception as e:
             self._handle_exception(context, e)
-            return profile_pb2.MediaCommandResponse(status="FAILED")
+            return MediaCommandResponse(status="FAILED")
 
     # --- Internal Queries ---
 
@@ -278,7 +286,7 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
                     request.scenario_id
                 )
 
-            return profile_pb2.ScenarioSnapshotResponse(
+            return ScenarioSnapshotResponse(
                 scenario_id=snapshot["scenario_id"],
                 companion_id=snapshot["companion_id"],
                 title=snapshot["title"],
@@ -287,4 +295,4 @@ class ProfileServiceServicer(profile_pb2_grpc.ProfileServiceServicer):
             )
         except Exception as e:
             self._handle_exception(context, e)
-            return profile_pb2.ScenarioSnapshotResponse()
+            return ScenarioSnapshotResponse()
