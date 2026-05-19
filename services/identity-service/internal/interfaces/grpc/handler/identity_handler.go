@@ -4,11 +4,14 @@ import (
 	"context"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
-	identityv1 "github.com/rent-a-girlfriend/identity-service/api/proto"
+	identityv1 "github.com/rent-a-girlfriend/identity-service/internal/gen/proto"
 	"github.com/rent-a-girlfriend/identity-service/internal/application/command"
 	"github.com/rent-a-girlfriend/identity-service/internal/application/query"
 	"github.com/rent-a-girlfriend/identity-service/internal/interfaces/grpc/util"
+	domainerr "github.com/rent-a-girlfriend/identity-service/internal/domain/errors"
 )
 
 type IdentityGRPCHandler struct {
@@ -58,7 +61,7 @@ func NewIdentityGRPCHandler(
 func (h *IdentityGRPCHandler) GetAccount(ctx context.Context, req *identityv1.GetAccountRequest) (*identityv1.AccountResponse, error) {
 	account, err := h.getAccount.Handle(ctx, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 
 	return &identityv1.AccountResponse{
@@ -83,7 +86,7 @@ func (h *IdentityGRPCHandler) ListUpgradeRequests(ctx context.Context, req *iden
 		PageSize: int(req.PageSize),
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 
 	items := make([]*identityv1.UpgradeRequestItem, 0, len(requests))
@@ -119,7 +122,7 @@ func (h *IdentityGRPCHandler) RequestUpgrade(ctx context.Context, req *identityv
 		Reason: req.Reason,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 
 	return &identityv1.MessageResponse{Message: "upgrade request submitted"}, nil
@@ -132,7 +135,7 @@ func (h *IdentityGRPCHandler) ApproveUpgrade(ctx context.Context, req *identityv
 		AdminID:   adminID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 	return &identityv1.MessageResponse{Message: "upgrade approved"}, nil
 }
@@ -145,7 +148,7 @@ func (h *IdentityGRPCHandler) RejectUpgrade(ctx context.Context, req *identityv1
 		RejectReason: req.Reason,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 	return &identityv1.MessageResponse{Message: "upgrade rejected"}, nil
 }
@@ -158,7 +161,7 @@ func (h *IdentityGRPCHandler) LockAccount(ctx context.Context, req *identityv1.L
 		AdminID: adminID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 	return &identityv1.MessageResponse{Message: "account locked"}, nil
 }
@@ -170,7 +173,7 @@ func (h *IdentityGRPCHandler) UnlockAccount(ctx context.Context, req *identityv1
 		AdminID: adminID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 	return &identityv1.MessageResponse{Message: "account unlocked"}, nil
 }
@@ -180,7 +183,7 @@ func (h *IdentityGRPCHandler) UnlockAccount(ctx context.Context, req *identityv1
 func (h *IdentityGRPCHandler) InitGoogleAuth(ctx context.Context, _ *identityv1.InitGoogleAuthRequest) (*identityv1.InitGoogleAuthResponse, error) {
 	result, err := h.initGoogleAuth.Handle(ctx)
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 
 	return &identityv1.InitGoogleAuthResponse{
@@ -196,7 +199,7 @@ func (h *IdentityGRPCHandler) LoginGoogle(ctx context.Context, req *identityv1.L
 		State: req.State,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 
 	return &identityv1.TokenResponse{
@@ -211,7 +214,7 @@ func (h *IdentityGRPCHandler) RefreshToken(ctx context.Context, req *identityv1.
 		RefreshToken: req.RefreshToken,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 
 	return &identityv1.TokenResponse{
@@ -226,8 +229,33 @@ func (h *IdentityGRPCHandler) Logout(ctx context.Context, req *identityv1.Logout
 		RefreshToken: req.RefreshToken,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 
 	return &identityv1.MessageResponse{Message: "logged out"}, nil
+}
+
+func mapDomainError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	switch err {
+	case domainerr.ErrAccountNotFound:
+		return status.Error(codes.NotFound, err.Error())
+	case domainerr.ErrAccountLocked:
+		return status.Error(codes.PermissionDenied, err.Error())
+	case domainerr.ErrInvalidRefreshToken, domainerr.ErrRefreshTokenReuse, domainerr.ErrInvalidOAuthToken:
+		return status.Error(codes.Unauthenticated, err.Error())
+	case domainerr.ErrInvalidEmail, domainerr.ErrInvalidRole, domainerr.ErrPKCEStateNotFound:
+		return status.Error(codes.InvalidArgument, err.Error())
+	case domainerr.ErrEmailAlreadyExists, domainerr.ErrConcurrencyConflict, domainerr.ErrAlreadyCompanion, domainerr.ErrUpgradeRequestPending:
+		return status.Error(codes.AlreadyExists, err.Error())
+	case domainerr.ErrUpgradeRequestNotFound:
+		return status.Error(codes.NotFound, err.Error())
+	case domainerr.ErrInvalidUpgradeStatus, domainerr.ErrNotClient:
+		return status.Error(codes.FailedPrecondition, err.Error())
+	default:
+		return status.Error(codes.Internal, err.Error())
+	}
 }

@@ -32,6 +32,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        BUILD_TAGS: ""
     ports:
       - "8081:8080"
       - "50052:50051"

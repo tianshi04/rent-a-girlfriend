@@ -11,16 +11,33 @@ import (
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/vo"
 )
 
-// AuthInterceptor checks for user identity in metadata.
+// AuthInterceptor checks for user identity and status in metadata propagated by the service mesh.
 func AuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	// List of public methods that bypass authentication
+	publicMethods := map[string]bool{
+		"/identity.v1.IdentityService/InitGoogleAuth": true,
+		"/identity.v1.IdentityService/LoginGoogle":    true,
+		"/identity.v1.IdentityService/RefreshToken":   true,
+		"/identity.v1.IdentityService/Logout":         true,
+	}
+
+	if publicMethods[info.FullMethod] {
+		return handler(ctx, req)
+	}
+
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "metadata is not provided")
 	}
 
-	userIDs := md.Get("x-user-id")
+	userIDs := md.Get("user-id")
 	if len(userIDs) == 0 || userIDs[0] == "" {
 		return nil, status.Error(codes.Unauthenticated, "missing user identity")
+	}
+
+	userStatuses := md.Get("user-status")
+	if len(userStatuses) > 0 && userStatuses[0] != "" && userStatuses[0] != string(vo.StatusActive) {
+		return nil, status.Error(codes.PermissionDenied, "account is locked or inactive")
 	}
 
 	return handler(ctx, req)
@@ -40,7 +57,7 @@ func AdminInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServ
 
 	if adminMethods[info.FullMethod] {
 		md, _ := metadata.FromIncomingContext(ctx)
-		roles := md.Get("x-user-role")
+		roles := md.Get("user-role")
 		if len(roles) == 0 || roles[0] != string(vo.RoleAdmin) {
 			return nil, status.Error(codes.PermissionDenied, "admin role required")
 		}
@@ -48,3 +65,4 @@ func AdminInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServ
 
 	return handler(ctx, req)
 }
+

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
 	"gorm.io/gorm"
 
@@ -20,31 +20,28 @@ import (
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/store"
 	grpchandler "github.com/rent-a-girlfriend/identity-service/internal/interfaces/grpc/handler"
 	grpcinterceptor "github.com/rent-a-girlfriend/identity-service/internal/interfaces/grpc/interceptor"
-	httphandler "github.com/rent-a-girlfriend/identity-service/internal/interfaces/http/handler"
-	router "github.com/rent-a-girlfriend/identity-service/internal/interfaces/http"
+	gateway "github.com/rent-a-girlfriend/identity-service/internal/interfaces/http"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/messaging"
-	identityv1 "github.com/rent-a-girlfriend/identity-service/api/proto"
+	identityv1 "github.com/rent-a-girlfriend/identity-service/internal/gen/proto"
 )
 
 // Server holds all wired dependencies.
 type Server struct {
-	Router       *gin.Engine
-	GRPCServer   *grpc.Server
-	outboxWorker *messaging.OutboxWorker
-	kafkaAdapter *messaging.KafkaAdapter
+	GRPCServer       *grpc.Server
+	outboxWorker     *messaging.OutboxWorker
+	kafkaAdapter     *messaging.KafkaAdapter
+	getJWKSHandler   *query.GetJWKSHandler
+	mockLoginHandler *command.MockLoginHandler
 }
 
 // NewServer wires all dependencies and returns a configured server.
 func NewServer(db *gorm.DB, cfg *Config) *Server {
-	gin.SetMode(cfg.Server.Mode)
-
 	// --- Infrastructure: Cache ---
 	redisAdapter, err := cache.NewRedisAdapter(cfg.Redis.URL)
 	if err != nil {
 		log.Fatalf("[CACHE] Failed to initialize Redis: %v", err)
 	}
 
-	// ... (Infrastructure and Domain logic remains same)
 	accountRepo := persistence.NewUserAccountRepoImpl(db, redisAdapter)
 	upgradeRepo := persistence.NewUpgradeRequestRepoImpl(db)
 	configRepo := persistence.NewSystemConfigRepoImpl(db, redisAdapter)
@@ -103,26 +100,6 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 	getJWKSHandler := query.NewGetJWKSHandler(keyProvider)
 	listUpgradeReqsHandler := query.NewListUpgradeRequestsHandler(upgradeRepo)
 
-	// --- Interfaces (HTTP Handlers) ---
-	authHandler := httphandler.NewAuthHandler(
-		initGoogleAuthHandler,
-		loginGoogleHandler,
-		refreshTokenHandler,
-		logoutHandler,
-		getJWKSHandler,
-		requestUpgradeHandler,
-		mockLoginHandler,
-	)
-
-	adminHandler := httphandler.NewAdminHandler(
-		getAccountHandler,
-		lockAccountHandler,
-		unlockAccountHandler,
-		approveUpgradeHandler,
-		rejectUpgradeHandler,
-		listUpgradeReqsHandler,
-	)
-
 	// --- Interfaces (gRPC Handlers) ---
 	grpcHandler := grpchandler.NewIdentityGRPCHandler(
 		getAccountHandler,
@@ -147,14 +124,12 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 	)
 	identityv1.RegisterIdentityServiceServer(gServer, grpcHandler)
 
-	// --- Router ---
-	r := router.NewRouter(authHandler, adminHandler)
-
 	return &Server{
-		Router:       r,
-		GRPCServer:   gServer,
-		outboxWorker: outboxWorker,
-		kafkaAdapter: kafkaAdapter,
+		GRPCServer:       gServer,
+		outboxWorker:     outboxWorker,
+		kafkaAdapter:     kafkaAdapter,
+		getJWKSHandler:   getJWKSHandler,
+		mockLoginHandler: mockLoginHandler,
 	}
 }
 
@@ -186,15 +161,27 @@ func (s *Server) Run(httpAddr, grpcAddr string) error {
 			errChan <- fmt.Errorf("failed to serve gRPC: %w", err)
 		}
 	}()
-
-	// Start HTTP server
+	// Start HTTP server (gRPC Gateway)
 	go func() {
-		log.Printf("[HTTP] Identity Service starting on %s", httpAddr)
-		if err := s.Router.Run(httpAddr); err != nil {
+		gatewayOpts := s.getTestGatewayOptions()
+
+		// Initialize the gateway
+		gwHandler, err := gateway.NewGateway(ctx, grpcAddr, s.getJWKSHandler, gatewayOpts...)
+		if err != nil {
+			errChan <- fmt.Errorf("failed to initialize HTTP Gateway: %w", err)
+			return
+		}
+
+		httpServer := &http.Server{
+			Addr:    httpAddr,
+			Handler: gwHandler,
+		}
+
+		log.Printf("[HTTP] Identity Service starting on %s (grpc-gateway)", httpAddr)
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errChan <- fmt.Errorf("failed to start HTTP server: %w", err)
 		}
 	}()
 
 	return <-errChan
 }
-
