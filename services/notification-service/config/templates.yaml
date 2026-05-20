@@ -4,9 +4,9 @@
 
 events:
   # --- BOOKING EVENTS ---
-  rentagf.booking.requested.v1:
+  com.rentagf.booking.BookingRequested.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "companion_id"
+    recipient_field: "companionId"
     priority: "HIGH"
     channels: ["SSE", "FCM"]
     template:
@@ -17,49 +17,62 @@ events:
         title: "New Request! 🔔"
         body: "You have a new booking request from a client."
 
-  rentagf.booking.accepted.v1:
+  com.rentagf.booking.BookingAccepted.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "client_id"
+    recipient_field: "clientId"
     priority: "HIGH"
     channels: ["SSE", "FCM"]
     template:
       vi:
         title: "Yêu cầu được chấp nhận ✅"
-        body: "Companion đã chấp nhận yêu cầu #{{booking_id}} của bạn."
+        body: "Companion đã chấp nhận yêu cầu #{{bookingId}} của bạn."
       en:
         title: "Booking Accepted ✅"
-        body: "Companion has accepted your booking request #{{booking_id}}."
+        body: "Companion has accepted your booking request #{{bookingId}}."
 
-  rentagf.booking.rejected.v1:
+  com.rentagf.booking.BookingRejected.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "client_id"
+    recipient_field: "clientId"
     priority: "HIGH"
     channels: ["SSE", "FCM"]
     template:
       vi:
         title: "Yêu cầu bị từ chối ❌"
-        body: "Rất tiếc, yêu cầu đặt lịch #{{booking_id}} đã bị từ chối."
+        body: "Rất tiếc, yêu cầu đặt lịch #{{bookingId}} đã bị từ chối. Lý do: {{reason}}."
       en:
         title: "Booking Rejected ❌"
-        body: "Sorry, your booking request #{{booking_id}} has been rejected."
+        body: "Sorry, your booking request #{{bookingId}} has been rejected. Reason: {{reason}}."
 
-  rentagf.booking.cancelled.v1:
+  com.rentagf.booking.BookingCancelled.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "_dynamic"  # Xác định bởi logic: đối phương của actor_role
+    recipient_field: "_dynamic"  # Xác định bởi logic: đối phương của actorRole
     priority: "HIGH"
     channels: ["SSE", "FCM"]
     template:
       vi:
         title: "Lịch hẹn bị hủy ⚠️"
-        body: "Lịch hẹn #{{booking_id}} đã bị hủy bởi {{actor_role}}."
+        body: "Lịch hẹn #{{bookingId}} đã bị hủy bởi {{actorRole}}."
       en:
         title: "Booking Cancelled ⚠️"
-        body: "Booking #{{booking_id}} has been cancelled by {{actor_role}}."
+        body: "Booking #{{bookingId}} has been cancelled by {{actorRole}}."
+
+  com.rentagf.booking.BookingAcceptSagaFailed.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "clientId"
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Lỗi chấp nhận yêu cầu ❌"
+        body: "Rất tiếc, hệ thống gặp sự cố khi chấp nhận yêu cầu #{{bookingId}}. Chúng tôi đã hoàn trả lại Kano-Coin của bạn."
+      en:
+        title: "Booking Acceptance Failed ❌"
+        body: "Sorry, a technical issue occurred while accepting booking #{{bookingId}}. Your Kano-Coin has been refunded."
 
   # --- FINANCE EVENTS ---
-  rentagf.finance.topup.completed.v1:
+  com.rentagf.finance.KanoCoinDeposited.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "user_id"
+    recipient_field: "userId"
     priority: "MEDIUM"
     channels: ["SSE"]
     template:
@@ -70,36 +83,49 @@ events:
         title: "Top-up Successful 💰"
         body: "You have successfully topped up {{amount}} Kano-Coin."
 
-  rentagf.finance.payout.processed.v1:
+  com.rentagf.finance.DepositFailed.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "companion_id"
+    recipient_field: "userId"
+    priority: "HIGH"
+    channels: ["SSE"]
+    template:
+      vi:
+        title: "Nạp tiền thất bại ❌"
+        body: "Giao dịch nạp {{amount}} Kano-Coin của bạn đã thất bại. Lý do: {{reason}}."
+      en:
+        title: "Top-up Failed ❌"
+        body: "Your deposit of {{amount}} Kano-Coin failed. Reason: {{reason}}."
+
+  com.rentagf.finance.PayoutProcessed.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "companionId"
     priority: "MEDIUM"
     channels: ["SSE", "FCM"]
     template:
       vi:
         title: "Thu nhập mới 💸"
-        body: "Bạn đã nhận được thanh toán {{payout_amount}} Kano-Coin cho booking #{{booking_id}}."
+        body: "Bạn đã nhận được thanh toán {{payoutAmount}} Kano-Coin cho booking #{{bookingId}}."
       en:
         title: "New Income 💸"
-        body: "You received {{payout_amount}} Kano-Coin for booking #{{booking_id}}."
+        body: "You received {{payoutAmount}} Kano-Coin for booking #{{bookingId}}."
 
   # --- INTERACTION EVENTS ---
-  rentagf.chat.message.sent.v1:
+  com.rentagf.interaction.ChatMessageSent.v1:
     type: "INTERACTION"
-    recipient_field: "recipient_id"
+    recipient_field: "recipientId"
     priority: "MEDIUM"
     channels: ["SSE", "FCM"]
     template:
       vi:
-        title: "Tin nhắn từ {{sender_name}}"
+        title: "Tin nhắn từ {{senderName}}"
         body: "{{snippet}}"
       en:
-        title: "Message from {{sender_name}}"
+        title: "Message from {{senderName}}"
         body: "{{snippet}}"
 
-  rentagf.interaction.review.submitted.v1:
+  com.rentagf.interaction.ReviewSubmitted.v1:
     type: "INTERACTION"
-    recipient_field: "companion_id"
+    recipient_field: "companionId"
     priority: "MEDIUM"
     channels: ["SSE"]
     template:
@@ -111,9 +137,9 @@ events:
         body: "You just received a {{rating}}⭐ review from a client."
 
   # --- PROFILE EVENTS ---
-  rentagf.profile.companion.approved.v1:
+  com.rentagf.profile.ProfileApproved.v1:
     type: "PROMOTIONAL"
-    recipient_field: "companion_id"
+    recipient_field: "companionId"
     priority: "LOW"
     channels: ["SSE", "FCM"]
     template:
@@ -124,9 +150,9 @@ events:
         title: "Welcome Companion! 🎉"
         body: "Your profile has been approved. Start accepting bookings now!"
 
-  rentagf.profile.companion.rejected.v1:
+  com.rentagf.profile.ProfileRejected.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "companion_id"
+    recipient_field: "companionId"
     priority: "HIGH"
     channels: ["SSE", "FCM"]
     template:
@@ -137,9 +163,9 @@ events:
         title: "Profile Rejected 😔"
         body: "Sorry, your Companion profile was not approved. Reason: {{reason}}."
 
-  rentagf.profile.scenario.rejected.v1:
+  com.rentagf.profile.ScenarioRejected.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "companion_id"
+    recipient_field: "companionId"
     priority: "MEDIUM"
     channels: ["SSE"]
     template:
@@ -150,9 +176,9 @@ events:
         title: "Scenario Rejected ❌"
         body: "Your scenario has been rejected. Reason: {{reason}}."
 
-  rentagf.profile.voice_intro.rejected.v1:
+  com.rentagf.profile.VoiceIntroRejected.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "companion_id"
+    recipient_field: "companionId"
     priority: "MEDIUM"
     channels: ["SSE"]
     template:
@@ -163,9 +189,9 @@ events:
         title: "Voice Intro Rejected 🎤"
         body: "Your voice intro has been rejected. Reason: {{reason}}."
 
-  rentagf.profile.album_image.rejected.v1:
+  com.rentagf.profile.AlbumImageRejected.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "companion_id"
+    recipient_field: "companionId"
     priority: "MEDIUM"
     channels: ["SSE"]
     template:
@@ -177,9 +203,9 @@ events:
         body: "Your album image has been rejected. Reason: {{reason}}."
 
   # --- IDENTITY EVENTS ---
-  rentagf.identity.upgrade.approved.v1:
+  com.rentagf.identity.UpgradeApproved.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "user_id"
+    recipient_field: "userId"
     priority: "HIGH"
     channels: ["SSE", "FCM"]
     template:
@@ -190,9 +216,9 @@ events:
         title: "Upgrade Approved! 🚀"
         body: "You have been upgraded to Companion. Complete your profile now!"
 
-  rentagf.identity.upgrade.rejected.v1:
+  com.rentagf.identity.UpgradeRejected.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "user_id"
+    recipient_field: "userId"
     priority: "HIGH"
     channels: ["SSE", "FCM"]
     template:
@@ -203,9 +229,9 @@ events:
         title: "Upgrade Rejected 😔"
         body: "Sorry, your Companion upgrade request was rejected. Reason: {{reason}}."
 
-  rentagf.identity.account.locked.v1:
+  com.rentagf.identity.AccountLocked.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "user_id"
+    recipient_field: "userId"
     priority: "HIGH"
     channels: ["SSE", "FCM"]
     template:
@@ -217,9 +243,9 @@ events:
         body: "Your account has been locked. Reason: {{reason}}."
 
   # --- DISPUTE EVENTS ---
-  rentagf.dispute.report.created.v1:
+  com.rentagf.dispute.ReportCreated.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "accused_id"
+    recipient_field: "accusedId"
     priority: "HIGH"
     channels: ["SSE", "FCM"]
     template:
@@ -230,9 +256,9 @@ events:
         title: "You Have Been Reported ⚠️"
         body: "You have been reported for a violation. Reason: {{reason}}."
 
-  rentagf.dispute.resolved.v1:
+  com.rentagf.dispute.DisputeResolved.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "_dynamic"  # Gửi cho cả client_id và companion_id
+    recipient_field: "_dynamic"  # Gửi cho cả clientId và companionId
     priority: "HIGH"
     channels: ["SSE", "FCM"]
     template:
