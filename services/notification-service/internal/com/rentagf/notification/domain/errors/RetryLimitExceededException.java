@@ -1,4 +1,4 @@
-package com.rentagf.notification.domain.exception;
+package com.rentagf.notification.domain.errors;
 
 /**
  * [INV-N01] Vi phạm: Số lần retry đã đạt giới hạn tối đa (3 lần).

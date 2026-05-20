@@ -1,10 +1,10 @@
-package com.rentagf.notification.interfaces.rest;
+package com.rentagf.notification.interfaces.http;
 
-import com.rentagf.notification.domain.exception.DuplicateEventException;
-import com.rentagf.notification.domain.exception.NotificationAlreadyCompletedException;
-import com.rentagf.notification.domain.exception.NotificationDomainException;
-import com.rentagf.notification.domain.exception.NotificationNotFoundException;
-import com.rentagf.notification.domain.exception.RetryLimitExceededException;
+import com.rentagf.notification.domain.errors.DuplicateEventException;
+import com.rentagf.notification.domain.errors.NotificationAlreadyCompletedException;
+import com.rentagf.notification.domain.errors.NotificationDomainException;
+import com.rentagf.notification.domain.errors.NotificationNotFoundException;
+import com.rentagf.notification.domain.errors.RetryLimitExceededException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

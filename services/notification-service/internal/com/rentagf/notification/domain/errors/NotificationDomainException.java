@@ -1,4 +1,4 @@
-package com.rentagf.notification.domain.exception;
+package com.rentagf.notification.domain.errors;
 
 /**
  * Base class cho tất cả Domain Errors của Notification Service.

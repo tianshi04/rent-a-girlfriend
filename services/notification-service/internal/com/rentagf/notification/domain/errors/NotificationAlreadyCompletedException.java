@@ -1,4 +1,4 @@
-package com.rentagf.notification.domain.exception;
+package com.rentagf.notification.domain.errors;
 
 /**
  * [INV-N02] Vi phạm: Không được tạo attempt mới sau khi Notification đã COMPLETED.

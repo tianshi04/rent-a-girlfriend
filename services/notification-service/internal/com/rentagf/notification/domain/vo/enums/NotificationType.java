@@ -1,4 +1,4 @@
-package com.rentagf.notification.domain.enums;
+package com.rentagf.notification.domain.vo.enums;
 
 /**
  * Loại thông báo — quyết định chính sách phân phối mặc định.

@@ -1,4 +1,4 @@
-package com.rentagf.notification.domain.enums;
+package com.rentagf.notification.domain.vo.enums;
 
 /**
  * Trạng thái của một DeliveryAttempt.
