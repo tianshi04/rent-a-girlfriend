@@ -1,4 +1,4 @@
-package com.rentagf.notification.domain.model;
+package com.rentagf.notification.domain.vo;
 
 /**
  * Placeholder cho DeliveryAttempt Entity.

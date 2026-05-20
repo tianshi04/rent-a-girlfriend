@@ -1,4 +1,4 @@
-package com.rentagf.notification.domain.exception;
+package com.rentagf.notification.domain.errors;
 
 /**
  * [INV-N03] Vi phạm: Event đã được xử lý trước đó (duplicate eventId + userId).

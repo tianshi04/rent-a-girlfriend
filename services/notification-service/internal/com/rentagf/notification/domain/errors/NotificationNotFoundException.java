@@ -1,4 +1,4 @@
-package com.rentagf.notification.domain.exception;
+package com.rentagf.notification.domain.errors;
 
 /**
  * Notification không tìm thấy trong DB.

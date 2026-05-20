@@ -1,6 +1,6 @@
-package com.rentagf.notification.domain.port;
+package com.rentagf.notification.domain.repository;
 
-import com.rentagf.notification.domain.model.Notification;
+import com.rentagf.notification.domain.aggregate.Notification;
 
 import java.time.Instant;
 import java.util.List;
