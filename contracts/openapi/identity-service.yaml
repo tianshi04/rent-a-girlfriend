@@ -1,0 +1,314 @@
+openapi: 3.0.3
+info:
+  title: Identity Service API
+  description: API for managing user authentication, accounts, and companion upgrade requests.
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: V1 API Gateway
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LoginGoogleRequest:
+      type: object
+      required: [code, state]
+      properties:
+        code: { type: string }
+        state: { type: string }
+    
+    TokenResponse:
+      type: object
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        expiresIn: { type: integer, format: int64 }
+
+    InitAuthResponse:
+      type: object
+      properties:
+        authUrl: { type: string }
+        state: { type: string }
+        codeChallenge: { type: string }
+
+    RequestUpgradeRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string }
+
+    AccountResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        role: { type: string, enum: [ACCOUNT_ROLE_UNSPECIFIED, ACCOUNT_ROLE_CLIENT, ACCOUNT_ROLE_COMPANION, ACCOUNT_ROLE_ADMIN] }
+        status: { type: string, enum: [ACCOUNT_STATUS_UNSPECIFIED, ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_LOCKED] }
+        violationCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    UpgradeRequestResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        status: { type: string, enum: [UPGRADE_STATUS_UNSPECIFIED, UPGRADE_STATUS_PENDING, UPGRADE_STATUS_APPROVED, UPGRADE_STATUS_REJECTED] }
+        reason: { type: string }
+        rejectReason: { type: string }
+        reviewedBy: { type: string }
+        reviewedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    PaginatedUpgradeRequests:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/UpgradeRequestResponse' }
+        total: { type: integer, format: int64 }
+        page: { type: integer }
+        pageSize: { type: integer }
+
+    LockAccountRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string }
+
+    MessageResponse:
+      type: object
+      properties:
+        message: { type: string }
+
+paths:
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  service: { type: string }
+
+  /.well-known/jwks.json:
+    get:
+      tags: [Auth]
+      summary: Get JWKS public keys
+      description: Returns the public keys used to verify JWT tokens issued by this service.
+      responses:
+        '200':
+          description: OK
+
+  /auth/google/init:
+    get:
+      tags: [Auth]
+      summary: Initialize Google OAuth flow
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InitAuthResponse' }
+
+  /auth/google/callback:
+    get:
+      tags: [Auth]
+      summary: Handle Google OAuth callback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginGoogleRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessageResponse' }
+
+  /upgrade-requests:
+    post:
+      tags: [Upgrade]
+      summary: Request upgrade to companion role
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequestUpgradeRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessageResponse' }
+
+  /admin/accounts/{id}:
+    get:
+      tags: [Admin]
+      summary: Get account details
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountResponse' }
+
+  /admin/upgrade-requests:
+    get:
+      tags: [Admin]
+      summary: List all upgrade requests
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [UPGRADE_STATUS_UNSPECIFIED, UPGRADE_STATUS_PENDING, UPGRADE_STATUS_APPROVED, UPGRADE_STATUS_REJECTED] }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 10 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginatedUpgradeRequests' }
+
+  /admin/upgrade-requests/{id}/approve:
+    put:
+      tags: [Admin]
+      summary: Approve an upgrade request
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessageResponse' }
+
+  /admin/upgrade-requests/{id}/reject:
+    put:
+      tags: [Admin]
+      summary: Reject an upgrade request
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessageResponse' }
+
+  /admin/accounts/{id}/lock:
+    put:
+      tags: [Admin]
+      summary: Lock a user account
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LockAccountRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessageResponse' }
+
+  /admin/accounts/{id}/unlock:
+    put:
+      tags: [Admin]
+      summary: Unlock a user account
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessageResponse' }

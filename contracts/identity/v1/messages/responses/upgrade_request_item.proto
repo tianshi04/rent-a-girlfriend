@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package identity.v1;
+
+option go_package = "github.com/rent-a-girlfriend/identity-service/gen/proto;identityv1";
+
+import "google/protobuf/timestamp.proto";
+import "identity/v1/messages/responses/upgrade_status.proto";
+
+// UpgradeRequestItem — một bản ghi yêu cầu nâng cấp Companion.
+message UpgradeRequestItem {
+  string                    id            = 1;
+  string                    user_id       = 2;
+  UpgradeStatus             status        = 3;
+  string                    reason        = 4;
+  string                    reject_reason = 5;
+  string                    reviewed_by   = 6;
+  google.protobuf.Timestamp reviewed_at   = 7;
+  google.protobuf.Timestamp created_at    = 8;
+}

@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package booking.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/booking;bookingv1";
+
+import "common/v1/enums.proto";
+
+message CancelBookingRequest {
+  string booking_id = 1;
+  string actor_id = 2;
+  common.v1.CancellationReason reason = 3;
+}

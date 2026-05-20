@@ -1,0 +1,89 @@
+namespace:
+  create: true
+  labels:
+    team: backend
+    purpose: identity-authentication
+    service: identity-service
+
+replicaCount: 3
+
+image:
+  repository: your-registry/identity-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  ports:
+    http: 8080
+    grpc: 50051
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+config:
+  SERVER_PORT: "8080"
+  GRPC_PORT: "50051"
+  GIN_MODE: "release"
+  DB_HOST: "ep-crimson-darkness-aojztyoh-pooler.c-2.ap-southeast-1.aws.neon.tech"
+  DB_PORT: "5432"
+  DB_USER: "neondb_owner"
+  DB_NAME: "neondb"
+  DB_SSLMODE: "require"
+  KAFKA_BROKERS: "kafka-1:9092,kafka-2:9092,kafka-3:9092"
+  KAFKA_TOPIC_IDENTITY: "identity-events"
+  JWT_ISSUER: "rent-a-girlfriend-identity"
+  OUTBOX_POLLING_INTERVAL_MS: "500"
+  OUTBOX_BATCH_SIZE: "50"
+
+secrets:
+  DB_PASSWORD: ""
+  GOOGLE_CLIENT_ID: ""
+  GOOGLE_CLIENT_SECRET: ""
+  GOOGLE_REDIRECT_URI: ""
+  REDIS_URL: ""
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+gateway:
+  enabled: false
+  hostname: "identity.example.com"
+  tls:
+    certificateName: "identity-service-tls"
+
+httpRoute:
+  enabled: true
+  hosts:
+    - "identity.example.com"
+  paths:
+    - /api/v1
+    - /.well-known/jwks.json
+    - /health
+
+  authorizationPolicy:
+    enabled: true
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+
+tolerations: []
+
+nodeSelector: {}
+
+affinity: {}
+
+extraEnv: []
+
+extraVolumeMounts: []
+
+extraVolumes: []

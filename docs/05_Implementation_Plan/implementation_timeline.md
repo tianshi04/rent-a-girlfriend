@@ -15,7 +15,7 @@ Dựa trên tài liệu thiết kế hệ thống, lộ trình triển khai dự
 
 ### Giai đoạn 2: Identity & Notification
 **Mục tiêu:** Xây dựng hệ thống định danh và thông báo làm nền tảng cho các service khác.
-- [ ] **Identity Service (Generic):** 
+- [x] **Identity Service (Generic):** 
     - Tích hợp Google OAuth.
     - Cung cấp JWKS endpoint cho Istio Waypoint xác thực tập trung.
     - Quản lý Role (Client/Companion/Admin) và Onboarding flow.
@@ -25,7 +25,7 @@ Dựa trên tài liệu thiết kế hệ thống, lộ trình triển khai dự
 
 ### Giai đoạn 3: Profile & Catalogue
 **Mục tiêu:** Cho phép Companion tạo hồ sơ và kịch bản (Scenario).
-- [ ] **Profile Service (Core):** 
+- [x] **Profile Service (Core):** 
     - Implement Hexagonal Architecture cho Companion Profile.
     - Media Asset management: Tích hợp Presigned URL (S3/Cloudinary) cho Voice Intro và Ảnh.
     - Scenario CRUD: Cho phép thiết kế kịch bản và giá dịch vụ.

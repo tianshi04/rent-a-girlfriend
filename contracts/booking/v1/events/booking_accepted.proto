@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package booking.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/booking/events;bookingv1events";
+
+import "google/protobuf/timestamp.proto";
+
+message BookingAccepted {
+  string booking_id = 1;
+  string companion_id = 2;
+  google.protobuf.Timestamp occurred_at = 3;
+}

@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package profile.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/profile;profilev1";
+
+message RegisterVoiceIntroRequest {
+  string companion_id = 1;
+  string file_url = 2;
+  int32 duration_seconds = 3; // Max 30s (INV-P04)
+  int64 size_bytes = 4; // Max 5MB (INV-P05)
+}

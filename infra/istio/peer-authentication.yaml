@@ -2,7 +2,7 @@ apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
   name: default-mtls-strict
-  namespace: default
+  namespace: istio-system
 spec:
   # STRICT: reject mọi plain-text connection. Chỉ chấp nhận mTLS.
   # Mặc định của Istio là PERMISSIVE — phải khai báo rõ STRICT.

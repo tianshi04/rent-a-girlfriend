@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package booking.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/booking;bookingv1";
+
+message AcceptBookingRequest {
+  string booking_id = 1;
+  string companion_id = 2;
+}

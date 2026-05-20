@@ -41,12 +41,15 @@ services/[service-name]/
 │       ├── http/          # REST API Controllers & Routes
 │       ├── grpc/          # gRPC Request Handlers
 │       └── event_sub/     # Lắng nghe (Subscribe) các sự kiện bên ngoài
+├── gen/                   # Code được generated từ Protobuf/AsyncAPI
+├── deployments/           # HẠ TẦNG TRIỂN KHAI (DOCKER-READY/REPO-READY)
+│   ├── k8s/               # Kubernetes Manifests (Deployment, Service, HPA)
+│   └── istio/             # Istio Policies
 ├── tests/                 # Integration & E2E Tests
-├── api/                   # Contracts (Protobuf, OpenAPI, Event Schemas)
 ├── docs/                  # Tài liệu kỹ thuật riêng cho service này
 ├── README.md              # Hướng dẫn nhanh
-├── Dockerfile             # Containerization
-├── Makefile               # Phím tắt cho các lệnh common (build, test, run)
+├── Dockerfile             # Containerization (đặt tại root service)
+├── Makefile               # Phím tắt cho các lệnh common (build, test, run, deploy)
 └── .env.example           # Cấu hình mẫu
 ```
 

@@ -8,52 +8,42 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 
-	"github.com/rent-a-girlfriend/identity-service/internal/bootstrap"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/persistence"
+	"github.com/rent-a-girlfriend/identity-service/tests/testhelper"
 )
 
 func TestOutboxPublisher_Integration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Bỏ qua integration test trong chế độ short mode")
-	}
+	db := testhelper.StartPostgresContainer(t)
 
-	// 1. Setup
-	cfg := bootstrap.LoadConfig()
-	db, err := bootstrap.InitDatabase(cfg.Database)
-	require.NoError(t, err)
+	testhelper.WithTx(t, db, func(tx *gorm.DB) {
+		publisher := persistence.NewOutboxPublisher(tx)
+		ctx := context.Background()
 
-	// Clean up
-	db.Exec("DELETE FROM outbox_events")
+		testUserID := uuid.New().String()
+		testEvent := event.UserRegistered{
+			UserID:    testUserID,
+			Email:     "integration@test.com",
+			Role:      "CLIENT",
+			GoogleID:  "google-" + uuid.New().String(),
+			Timestamp: time.Now().UTC().Truncate(time.Second),
+		}
 
-	publisher := persistence.NewOutboxPublisher(db)
-	ctx := context.Background()
+		err := publisher.Publish(ctx, testEvent)
+		require.NoError(t, err)
 
-	// 2. Publish a test event
-	testUserID := uuid.New().String()
-	testEvent := event.UserRegistered{
-		UserID:    testUserID,
-		Email:     "integration@test.com",
-		Role:      "CLIENT",
-		GoogleID:  "google-" + uuid.New().String(),
-		Timestamp: time.Now().UTC().Truncate(time.Second),
-	}
+		var entry persistence.OutboxModel
+		err = tx.Where("CAST(payload AS TEXT) LIKE ?", "%"+testUserID+"%").First(&entry).Error
+		require.NoError(t, err)
 
-	err = publisher.Publish(ctx, testEvent)
-	require.NoError(t, err)
-
-	// 3. Verify in DB
-	var entry persistence.OutboxModel
-	err = db.Where("CAST(payload AS TEXT) LIKE ?", "%"+testUserID+"%").First(&entry).Error
-	require.NoError(t, err)
-
-	assert.Equal(t, testEvent.EventType(), entry.EventType)
-	assert.False(t, entry.Published, "Sự kiện mới phải có published = false")
-	assert.NotNil(t, entry.ID)
-	assert.WithinDuration(t, time.Now(), entry.CreatedAt, 2*time.Second)
-
-	// Verify payload content
-	assert.Contains(t, entry.Payload, testUserID)
-	assert.Contains(t, entry.Payload, "integration@test.com")
+		assert.Equal(t, testEvent.EventType(), entry.EventType)
+		assert.False(t, entry.Published, "Sự kiện mới phải có published = false")
+		assert.NotEqual(t, uuid.Nil, entry.ID)
+		assert.WithinDuration(t, time.Now(), entry.CreatedAt, 2*time.Second)
+		assert.Contains(t, entry.Payload, testUserID)
+		assert.Contains(t, entry.Payload, "integration@test.com")
+	})
+	// Transaction đã được ROLLBACK tự động — không có dữ liệu bẩn
 }

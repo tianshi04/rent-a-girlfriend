@@ -1,0 +1,18 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: identity-service
+  namespace: identity-namespace
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: ./services/identity-service/deployments
+      sourceRef:
+        kind: GitRepository
+        name: backend-gitops
+        namespace: flux-system
+  values:
+    image:
+      repository: ghcr.io/viethung213/identity-service
+      tag: latest

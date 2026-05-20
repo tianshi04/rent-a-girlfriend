@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package interaction.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/interaction;interactionv1";
+
+import "interaction/v1/messages/create_chat_room_request.proto";
+import "interaction/v1/messages/lock_chat_room_request.proto";
+import "interaction/v1/messages/submit_review_request.proto";
+import "interaction/v1/messages/hide_review_request.proto";
+import "interaction/v1/messages/chat_command_response.proto";
+import "interaction/v1/messages/review_command_response.proto";
+
+service InteractionService {
+  rpc CreateChatRoom(CreateChatRoomRequest) returns (ChatCommandResponse);
+  rpc LockChatRoom(LockChatRoomRequest) returns (ChatCommandResponse);
+  rpc SubmitReview(SubmitReviewRequest) returns (ReviewCommandResponse);
+  rpc HideReview(HideReviewRequest) returns (ReviewCommandResponse);
+}

@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package dispute.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/dispute;disputev1";
+
+message ResolveDisputeRequest {
+  string dispute_id = 1;
+  string admin_id = 2;
+  string resolution = 3; 
+  string notes = 4;
+}

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package identity.v1;
+
+option go_package = "github.com/rent-a-girlfriend/identity-service/gen/proto;identityv1";
+
+// RejectUpgradeRequest — Admin từ chối yêu cầu nâng cấp Companion.
+message RejectUpgradeRequest {
+  string id     = 1;
+  string reason = 2;
+}

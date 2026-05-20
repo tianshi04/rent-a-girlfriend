@@ -8,21 +8,23 @@ globs: services/**/*
     - Application (Use Cases/Handlers).
     - Infrastructure (DB/Broker Adapters).
     - Interfaces (HTTP/gRPC/PubSub).
+- **Contracts as SSOT**: Tất cả giao tiếp (gRPC, Async Events) phải được định nghĩa tại thư mục `/contracts` ở root. Đây là Single Source of Truth duy nhất. Không được phép định nghĩa lại message/event trong từng service. Các service phải generate code từ các file proto này.
 - **Directory Structure**:
     - `cmd/server/`: Điểm khởi chạy (Entry point).
     - `internal/domain/`: Aggregate, VO, Repository port, Events.
     - `internal/application/`: Commands, Queries, Saga.
     - `internal/infrastructure/`: DB/Broker/Client adapters.
     - `internal/interfaces/`: HTTP/gRPC/PubSub handlers.
-    - `api/`: Contracts (Protobuf, OpenAPI, Event schemas).
+    - `deployments/`: K8s manifests và Istio policies riêng của service.
+    - `gen/`: Code được generated từ Protobuf/AsyncAPI.
     - `docs/`: Tài liệu kỹ thuật riêng của service.
     - `tests/`: Integration & E2E tests.
 - **Principles**:
     - Dependency Direction: Ngoài vào trong (Domain là lõi).
     - Database Isolation: Không truy cập DB service khác.
-    - Encapsulation: Giấu chi tiết hạ tầng sau Interfaces.
+    - Service Autonomy: Mỗi service phải chứa đủ mọi thứ để có thể tách thành repo riêng và deploy độc lập (Independent Repo Ready).
 - **Deployment**:
-    - Standalone Dockerfile mỗi service. Multi-stage build.
+    - Standalone Dockerfile mỗi service đặt tại root của service. Multi-stage build.
     - Config qua biến môi trường (.env.example). No hard-code.
 - **Quality & Documentation**:
     - **Self-Documenting**: Mỗi service phải tự quản lý `docs/` riêng. Cập nhật tài liệu ngay khi thay đổi logic nghiệp vụ.
