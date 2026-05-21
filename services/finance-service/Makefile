@@ -1,4 +1,4 @@
-.PHONY: run test sync generate-proto build
+.PHONY: run test sync generate-proto build lint
 
 # Run FastAPI & gRPC server locally using uv
 run:
@@ -7,6 +7,11 @@ run:
 # Generate Python gRPC code from local proto definition
 generate-proto:
 	uv run python scripts/generate_proto.py
+
+# Lint and format check code using ruff
+lint:
+	uv run ruff check internal
+	uv run ruff format --check internal
 
 # Build Docker image from local context (Includes automatic testing)
 build:
