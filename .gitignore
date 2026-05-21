@@ -29,7 +29,21 @@ build/
 # Logs
 *.log
 
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+.uv/
+
+# Project Specific
+**/gen/
+
 AGENTS.md
 
 # Secrets
 **/secrets.yaml
+
+# Antigravity CLI
+.antigravitycli
