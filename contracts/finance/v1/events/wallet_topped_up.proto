@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package finance.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/finance/events;financev1events";
+
+import "google/protobuf/timestamp.proto";
+
+message WalletToppedUp {
+  string transaction_id = 1;
+  string user_id = 2;
+  int64 amount = 3;
+  int64 vnpay_amount_vnd = 4;
+  google.protobuf.Timestamp occurred_at = 5;
+}
