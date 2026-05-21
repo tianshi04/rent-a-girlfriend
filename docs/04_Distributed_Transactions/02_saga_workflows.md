@@ -84,8 +84,8 @@ Tương tự Refund, Dispute gọi Finance để `PayoutFromEscrow()`, sau đó 
 *   **Đặc điểm:** Các hành động nhánh hoàn toàn độc lập, không cần liên kết hủy bỏ (rollback) nhau. Dựa vào Event phát ra, các service tự chịu trách nhiệm logic nghiệp vụ.
 
 ### Luồng Booking Cancel (Bởi Client hoặc Companion)
-*   `Booking Context` phát sự kiện `BookingCancelled`.
-*   `Finance Context` lắng nghe: tự tính toán thời gian sớm/muộn để quyết định Hoàn 100% cho Client hay Phạt chuyển tiền bồi thường cho Companion.
+*   `Booking Context` phát sự kiện `BookingCancelledEarly` hoặc `BookingCancelledLate`.
+*   `Finance Context` lắng nghe: tự tính toán (hoặc dựa trên loại sự kiện hủy sớm/muộn) để quyết định Hoàn 100% cho Client hay Phạt chuyển tiền bồi thường cho Companion.
 *   `Interaction Context` lắng nghe: tự thực hiện khóa Chat.
 *   *Lỗi của Interaction khóa Chat không làm ảnh hưởng luồng hoàn tiền.*
 

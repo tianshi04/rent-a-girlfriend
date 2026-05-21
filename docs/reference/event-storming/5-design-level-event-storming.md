@@ -7,13 +7,15 @@ Aggregate là ranh giới nhất quán của dữ liệu. Mọi Command đi vào
 ### 1.1. Bounded Context: BOOKING
 **Aggregate Root:** `Booking`
 *   **Trách nhiệm:** Quản lý State Machine của cuộc hẹn và đảm bảo tính hợp lệ về mặt thời gian, trạng thái.
-*   **State (Trạng thái lưu trữ):** `BookingId`, `ClientId`, `CompanionId`, `ScenarioSnapshot` (Giá, Thời lượng), `StartTime`, `EndTime`, `Status` (PENDING, ACCEPTED, REJECTED, COMPLETED, CANCELLED).
+*   **State (Trạng thái lưu trữ):** `BookingId`, `ClientId`, `CompanionId`, `ScenarioSnapshot` (Giá, Thời lượng), `StartTime`, `EndTime`, `Status` (PENDING, ACCEPTED, REJECTED, COMPLETED, CANCELLED, DISPUTED, RESOLVED).
 *   **Invariants (Quy tắc bất biến):**
     *   [INV-B01] `StartTime` phải lớn hơn thời gian hiện tại ít nhất 2 giờ.
     *   [INV-B02] `EndTime` phải bằng `StartTime` + `Scenario.Duration`.
     *   [INV-B03] Chỉ có thể `Accept` hoặc `Reject` khi Status đang là `PENDING`.
-    *   [INV-B04] Client không thể gửi quá 10 Request `PENDING` cho cùng 1 Companion.
-    *   [INV-B05] Không thể `Cancel` nếu Status đã là `COMPLETED` hoặc `CANCELLED`.
+    *   [INV-B04] Companion không thể nhận quá 10 yêu cầu ở trạng thái `PENDING` từ tất cả các Client để tránh quá tải (Pending Cap Policy).
+    *   [INV-B05] Không thể `Cancel` nếu Status đã là `COMPLETED` hoặc `CANCELLED` hoặc `RESOLVED`.
+    *   [INV-B06] Client không được phép có hai booking chồng lặp (overlap) thời gian hoạt động (ở trạng thái `PENDING` hoặc `ACCEPTED`).
+    *   [INV-B07] Companion không được phép chấp nhận (`Accept`) hai booking chồng lặp (overlap) thời gian hoạt động (ở trạng thái `ACCEPTED`).
 
 **Thiết kế Command & Event:**
 | Lệnh (Command) | Dữ liệu đầu vào (Payload Payload) | Sự kiện phát ra (Event Payload) |
