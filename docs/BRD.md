@@ -108,6 +108,9 @@ Hệ thống tập trung vào các cơ chế bảo vệ cơ bản cho giao dịc
 - **BR-07:** Hủy sớm (trước 24h) → Hoàn 100% coin cho Client. Không phạt Companion.
   - **BR-07a:** Hủy muộn (dưới 24h) hoặc No-show → Hoàn 100% coin cho Client. Companion bị hệ thống ghi nhận vi phạm (Tích lũy vi phạm sẽ bị khóa tài khoản hoặc trừ uy tín theo cấu hình Admin).
 
+**Đối với Hệ thống (System):**
+- **BR-07b (Hủy tự động do lỗi kỹ thuật/trùng lặp SAGA):** Nếu xảy ra lỗi kỹ thuật hoặc hệ thống phát hiện trùng lặp lịch đặt (khi hai cuộc hẹn chồng lặp cùng được chấp nhận tại một thời điểm), hệ thống sẽ tự động hủy cuộc hẹn với vai trò `SYSTEM` (hủy sớm), đóng phòng chat và hoàn trả 100% tiền từ quỹ đảm bảo (Escrow) về ví cho Client.
+
 ### 6.3. Đánh giá
 - **BR-08:** Client được phép đánh giá ngay khi thời gian hiện tại đã đến hoặc vượt quá `end_time` của booking ở trạng thái ACCEPTED. Không cần chờ hệ thống chuyển sang COMPLETED.
   - **BR-08a:** Nếu một booking có review đã được gửi, sau đó chuyển sang trạng thái DISPUTED và Admin resolve với kết quả REFUND cho Client hoặc CANCEL booking, hệ thống tự động chuyển review sang trạng thái HIDDEN (soft delete khỏi public view). Review không bị xóa cứng trong DB để phục vụ audit.
