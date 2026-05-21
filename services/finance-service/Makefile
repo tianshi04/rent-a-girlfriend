@@ -10,8 +10,8 @@ generate-proto:
 
 # Lint and format check code using ruff
 lint:
-	uv run ruff check internal
-	uv run ruff format --check internal
+	uv run ruff check .
+	uv run ruff format --check .
 
 # Build Docker image from local context (Includes automatic testing)
 build:
