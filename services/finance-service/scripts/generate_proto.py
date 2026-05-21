@@ -9,7 +9,17 @@ def main():
     service_dir = os.path.dirname(script_dir)
     workspace_dir = os.path.dirname(os.path.dirname(service_dir))
 
-    contracts_dir = os.path.join(workspace_dir, "contracts")
+    # Allow overriding via environment variable for Docker builds or different environments
+    contracts_dir = os.environ.get("CONTRACTS_PATH")
+    
+    if not contracts_dir:
+        # Default logic for local development in monorepo structure
+        contracts_dir = os.path.join(workspace_dir, "contracts")
+        
+        # Fallback for standalone/Docker build context where contracts is copied into the service root
+        if not os.path.exists(contracts_dir):
+            contracts_dir = os.path.join(service_dir, "contracts")
+
     gen_dir = os.path.join(service_dir, "gen")
 
     os.makedirs(gen_dir, exist_ok=True)
