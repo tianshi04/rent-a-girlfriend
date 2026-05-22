@@ -51,7 +51,7 @@ impl IntoResponse for ApiError {
     }
 }
 
-/// Helper to extract user-id from headers
+#[allow(clippy::result_large_err)]
 fn get_user_id(headers: &HeaderMap) -> Result<String, Response> {
     if let Some(user_id_val) = headers.get("user-id").or_else(|| headers.get("x-user-id")) {
         if let Ok(user_id_str) = user_id_val.to_str() {

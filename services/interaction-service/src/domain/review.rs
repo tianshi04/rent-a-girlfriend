@@ -17,6 +17,7 @@ pub struct Review {
 }
 
 impl Review {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         review_id: String,
         booking_id: String,

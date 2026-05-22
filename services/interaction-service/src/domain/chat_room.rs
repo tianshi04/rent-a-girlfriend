@@ -16,8 +16,12 @@ impl ChatRoomStatus {
             ChatRoomStatus::Locked => "LOCKED",
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Result<Self, String> {
+impl std::str::FromStr for ChatRoomStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "ACTIVE" => Ok(ChatRoomStatus::Active),
             "LOCKED" => Ok(ChatRoomStatus::Locked),

@@ -5,7 +5,7 @@ pub struct Rating(i32);
 
 impl Rating {
     pub fn new(val: i32) -> Result<Self, DomainError> {
-        if val < 1 || val > 5 {
+        if !(1..=5).contains(&val) {
             return Err(DomainError::InvalidRating(val));
         }
         Ok(Self(val))

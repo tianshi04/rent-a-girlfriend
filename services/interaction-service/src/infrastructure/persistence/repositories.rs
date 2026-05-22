@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use async_trait::async_trait;
 use sqlx::{PgPool, Postgres, Transaction, Row};
 use uuid::Uuid;
@@ -114,7 +115,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         if let Some(r) = row {
             let status_str: String = r.get("status");
             let status = ChatRoomStatus::from_str(&status_str)
-                .map_err(|e| DomainError::ChatRoomNotFound(e))?;
+                .map_err(DomainError::ChatRoomNotFound)?;
             Ok(Some(ChatRoom::new(
                 r.get("room_id"),
                 r.get("booking_id"),
@@ -144,7 +145,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         if let Some(r) = row {
             let status_str: String = r.get("status");
             let status = ChatRoomStatus::from_str(&status_str)
-                .map_err(|e| DomainError::ChatRoomNotFound(e))?;
+                .map_err(DomainError::ChatRoomNotFound)?;
             Ok(Some(ChatRoom::new(
                 r.get("room_id"),
                 r.get("booking_id"),

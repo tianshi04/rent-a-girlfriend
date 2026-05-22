@@ -22,7 +22,7 @@ impl ReviewUseCases {
         comment: String,
     ) -> Result<Review, DomainError> {
         // [INV-I04] Each booking_id can only have exactly 1 review
-        if let Some(_) = self.repo.find_by_booking_id(&booking_id).await? {
+        if self.repo.find_by_booking_id(&booking_id).await?.is_some() {
             return Err(DomainError::ReviewAlreadyExists(booking_id));
         }
 
