@@ -35,8 +35,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 2. Load Configurations from Env
     let app_env = std::env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
-    let server_port = std::env::var("SERVER_PORT").unwrap_or_else(|_| "8083".to_string());
-    let grpc_port = std::env::var("GRPC_PORT").unwrap_or_else(|_| "50054".to_string());
+    let server_port = std::env::var("SERVER_PORT").unwrap_or_else(|_| "8080".to_string());
+    let grpc_port = std::env::var("GRPC_PORT").unwrap_or_else(|_| "50051".to_string());
 
     let db_host = std::env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string());
     let db_port = std::env::var("DB_PORT").unwrap_or_else(|_| "5432".to_string());

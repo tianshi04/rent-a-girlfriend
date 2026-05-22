@@ -65,8 +65,8 @@ services/interaction-service/
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
-| `SERVER_PORT` | HTTP REST API listening port | `8083` |
-| `GRPC_PORT` | Tonic gRPC server listening port | `50054` |
+| `SERVER_PORT` | HTTP REST API listening port | `8080` |
+| `GRPC_PORT` | Tonic gRPC server listening port | `50051` |
 | `APP_ENV` | Environment mode (`development`/`production`) | `development` |
 | `RUST_LOG` | Logger filter configuration | `info` |
 | `DB_HOST` | PostgreSQL Host | `localhost` |

@@ -44,6 +44,6 @@ WORKDIR /app
 # Copy compiled binary from builder
 COPY --from=builder /usr/src/app/target/release/interaction-service /app/interaction-service
 
-EXPOSE 8083 50054
+EXPOSE 8080 50051
 
 CMD ["/app/interaction-service"]
