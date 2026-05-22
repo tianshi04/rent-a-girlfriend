@@ -1,0 +1,157 @@
+use std::sync::Arc;
+use tokio::time::sleep;
+use rdkafka::consumer::{StreamConsumer, Consumer};
+use rdkafka::config::ClientConfig;
+use rdkafka::Message as KafkaMessage;
+use serde::Deserialize;
+use chrono::{DateTime, Utc, Duration};
+use tracing::{info, error, warn, debug};
+
+use crate::application::chat_use_cases::ChatUseCases;
+
+#[derive(Deserialize, Debug)]
+struct BookingCloudEvent {
+    #[serde(rename = "type")]
+    event_type: String,
+    data: BookingEventData,
+}
+
+#[derive(Deserialize, Debug)]
+struct BookingEventData {
+    booking_id: String,
+    end_time: Option<String>,
+}
+
+pub struct BookingEventListener {
+    chat_cases: Arc<ChatUseCases>,
+    kafka_brokers: String,
+    topic: String,
+    group_id: String,
+}
+
+impl BookingEventListener {
+    pub fn new(
+        chat_cases: Arc<ChatUseCases>,
+        kafka_brokers: String,
+        topic: String,
+        group_id: String,
+    ) -> Self {
+        Self {
+            chat_cases,
+            kafka_brokers,
+            topic,
+            group_id,
+        }
+    }
+
+    pub async fn start(self: Arc<Self>) {
+        info!("Starting Kafka Booking Event Listener...");
+
+        let consumer: StreamConsumer = match ClientConfig::new()
+            .set("bootstrap.servers", &self.kafka_brokers)
+            .set("group.id", &self.group_id)
+            .set("enable.partition.eof", "false")
+            .set("session.timeout.ms", "6000")
+            .set("enable.auto.commit", "true")
+            .set("auto.offset.reset", "earliest")
+            .create()
+        {
+            Ok(c) => c,
+            Err(e) => {
+                error!("Failed to create Kafka consumer for Booking Events: {}. Consumer loop disabled.", e);
+                return;
+            }
+        };
+
+        if let Err(e) = consumer.subscribe(&[&self.topic]) {
+            error!("Failed to subscribe to topic {}: {}. Consumer loop disabled.", self.topic, e);
+            return;
+        }
+
+        loop {
+            match consumer.recv().await {
+                Ok(borrowed_message) => {
+                    let payload = match borrowed_message.payload_view::<str>() {
+                        None => continue,
+                        Some(Ok(s)) => s,
+                        Some(Err(e)) => {
+                            error!("Error parsing message payload as string: {:?}", e);
+                            continue;
+                        }
+                    };
+
+                    if let Err(e) = self.handle_message(payload).await {
+                        error!("Error handling booking event: {:?}", e);
+                    }
+                }
+                Err(e) => {
+                    error!("Error receiving message from Kafka: {:?}", e);
+                    sleep(tokio::time::Duration::from_secs(2)).await;
+                }
+            }
+        }
+    }
+
+    async fn handle_message(&self, payload: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let cloudevent: BookingCloudEvent = match serde_json::from_str(payload) {
+            Ok(ce) => ce,
+            Err(e) => {
+                warn!("Ignoring non-compliant booking event. Failed to parse: {:?}", e);
+                return Ok(());
+            }
+        };
+
+        info!("Received booking event: {} for Booking ID: {}", cloudevent.event_type, cloudevent.data.booking_id);
+
+        let booking_id = cloudevent.data.booking_id.clone();
+        let chat_cases = self.chat_cases.clone();
+
+        match cloudevent.event_type.as_str() {
+            "com.rentagf.booking.BookingCancelled.v1" 
+            | "com.rentagf.booking.BookingCancelledEarly.v1" 
+            | "com.rentagf.booking.BookingCancelledLate.v1" => {
+                info!("Booking {} cancelled. Locking chat room immediately.", booking_id);
+                if let Err(e) = chat_cases.lock_chat_room(&booking_id).await {
+                    error!("Failed to lock chat room for booking {}: {:?}", booking_id, e);
+                }
+            }
+            "com.rentagf.booking.BookingCompleted.v1" => {
+                let mut delay_seconds = 24 * 3600; // default 24 hours in seconds
+                
+                if let Some(end_time_str) = cloudevent.data.end_time {
+                    if let Ok(end_time) = DateTime::parse_from_rfc3339(&end_time_str) {
+                        let end_time_utc = end_time.with_timezone(&Utc);
+                        let lock_time = end_time_utc + Duration::hours(24);
+                        let now = Utc::now();
+                        let diff = lock_time - now;
+                        if diff.num_seconds() > 0 {
+                            delay_seconds = diff.num_seconds() as u64;
+                        } else {
+                            delay_seconds = 0; // immediate lock since 24 hours has already passed
+                        }
+                    }
+                }
+
+                info!("Booking {} completed. Scheduling chat room lock in {} seconds (24h post-end).", booking_id, delay_seconds);
+
+                tokio::spawn(async move {
+                    if delay_seconds > 0 {
+                        sleep(tokio::time::Duration::from_secs(delay_seconds)).await;
+                    }
+                    info!("Executing scheduled lock for booking {}...", booking_id);
+                    if let Err(e) = chat_cases.lock_chat_room(&booking_id).await {
+                        error!("Failed to lock chat room on completion schedule for booking {}: {:?}", booking_id, e);
+                    } else {
+                        info!("Successfully locked chat room on completion schedule for booking {}.", booking_id);
+                    }
+                });
+            }
+            _ => {
+                // Ignore other event types
+                debug!("Ignoring unrelated event type: {}", cloudevent.event_type);
+            }
+        }
+
+        Ok(())
+    }
+}
