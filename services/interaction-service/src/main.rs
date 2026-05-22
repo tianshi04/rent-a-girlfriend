@@ -10,7 +10,9 @@ use tracing_subscriber::EnvFilter;
 use interaction_service::application::chat_use_cases::ChatUseCases;
 use interaction_service::application::review_use_cases::ReviewUseCases;
 use interaction_service::infrastructure::broker::OutboxWorker;
-use interaction_service::infrastructure::persistence::{SqlxChatRoomRepository, SqlxReviewRepository};
+use interaction_service::infrastructure::persistence::{
+    SqlxChatRoomRepository, SqlxReviewRepository,
+};
 use interaction_service::interfaces::grpc::servicer::proto::interaction_service_server::InteractionServiceServer;
 use interaction_service::interfaces::grpc::servicer::InteractionServicer;
 use interaction_service::interfaces::http::{create_router, AppState};
