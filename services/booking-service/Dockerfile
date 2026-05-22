@@ -1,5 +1,5 @@
 # ---- Stage 1: Build ----
-FROM golang:1.23-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
@@ -20,6 +20,6 @@ WORKDIR /app
 COPY --from=builder /booking-service .
 COPY --from=builder /app/migrations ./migrations
 
-EXPOSE 8080
+EXPOSE 8080 50051
 
 ENTRYPOINT ["./booking-service"]
