@@ -2,9 +2,10 @@ syntax = "proto3";
 
 package booking.v1;
 
-option go_package = "github.com/rent-a-girlfriend/contracts/proto/booking;bookingv1";
+option go_package = "github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1";
 
 import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
 import "common/v1/enums.proto";
 import "booking/v1/messages/request_booking_request.proto";
 import "booking/v1/messages/request_booking_response.proto";
@@ -14,13 +15,58 @@ import "booking/v1/messages/cancel_booking_request.proto";
 import "booking/v1/messages/cancel_booking_response.proto";
 import "booking/v1/messages/complete_booking_request.proto";
 import "booking/v1/messages/complete_booking_response.proto";
+import "booking/v1/messages/reject_booking_request.proto";
+import "booking/v1/messages/reject_booking_response.proto";
+import "booking/v1/messages/list_bookings_request.proto";
+import "booking/v1/messages/list_bookings_response.proto";
 import "booking/v1/messages/get_booking_request.proto";
 import "booking/v1/messages/booking_detail_response.proto";
 
 service BookingService {
-  rpc RequestBooking(RequestBookingRequest) returns (RequestBookingResponse);
-  rpc AcceptBooking(AcceptBookingRequest) returns (AcceptBookingResponse);
-  rpc CancelBooking(CancelBookingRequest) returns (CancelBookingResponse);
-  rpc CompleteBooking(CompleteBookingRequest) returns (CompleteBookingResponse);
-  rpc GetBooking(GetBookingRequest) returns (BookingDetailResponse);
+  rpc RequestBooking(RequestBookingRequest) returns (RequestBookingResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/bookings"
+      body: "*"
+    };
+  }
+
+  rpc AcceptBooking(AcceptBookingRequest) returns (AcceptBookingResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/bookings/{booking_id}/accept"
+      body: "*"
+    };
+  }
+
+  rpc CancelBooking(CancelBookingRequest) returns (CancelBookingResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/bookings/{booking_id}/cancel"
+      body: "*"
+    };
+  }
+
+  rpc CompleteBooking(CompleteBookingRequest) returns (CompleteBookingResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/bookings/{booking_id}/complete"
+      body: "*"
+    };
+  }
+
+  rpc RejectBooking(RejectBookingRequest) returns (RejectBookingResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/bookings/{booking_id}/reject"
+      body: "*"
+    };
+  }
+
+  rpc GetBooking(GetBookingRequest) returns (BookingDetailResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/bookings/{booking_id}"
+    };
+  }
+
+  rpc ListBookings(ListBookingsRequest) returns (ListBookingsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/bookings"
+    };
+  }
 }

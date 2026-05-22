@@ -4,10 +4,8 @@ package booking.v1;
 
 option go_package = "github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1";
 
-import "common/v1/enums.proto";
-
-message CancelBookingResponse {
+message RejectBookingRequest {
   string booking_id = 1;
-  common.v1.BookingStatus status = 2;
-  string message = 3;
+  string companion_id = 2;
+  string reason = 3;
 }
