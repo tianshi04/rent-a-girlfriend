@@ -2,16 +2,8 @@ package com.rentagf.notification.application.port.outbound;
 
 /**
  * Port cho SSE delivery — driven adapter.
+ * Kế thừa NotificationSender phục vụ Strategy Pattern.
  * Infrastructure implement để gửi notification qua SSE stream.
  */
-public interface SsePort {
-
-    /**
-     * Gửi notification tới user qua SSE.
-     *
-     * @param userId  ID người nhận
-     * @param payload JSON payload
-     * @return true nếu user đang online và nhận được, false nếu offline
-     */
-    boolean send(String userId, String payload);
+public interface SsePort extends NotificationSender {
 }
