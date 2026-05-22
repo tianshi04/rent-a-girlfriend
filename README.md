@@ -43,6 +43,7 @@ Tài liệu được cấu trúc theo phương pháp **Progressive Disclosure** 
 - [Phân tách Bounded Contexts](/docs/01_Architecture_Overview/02_domain_and_contexts.md): Cách chúng tôi chia nhỏ hệ thống.
 - [Luồng nghiệp vụ lõi](/docs/01_Architecture_Overview/03_core_business_flows.md): Booking loop, Payment flow, Dispute flow.
 - [Service Template](/docs/01_Architecture_Overview/04_service_template.md): Chuẩn hoá cấu trúc thư mục và phân lớp code.
+- [Quy chuẩn AI Agent Workspace](/docs/01_Architecture_Overview/05_agent_workspace_standards.md): Giới thiệu về thư mục .agents, hệ thống luật lệ (rules) và kỹ năng (skills) định hình cách các AI Coding Assistant đồng hành phát triển dự án.
 
 ### 2. 🧩 Chi tiết từng Bounded Context (The Components)
 Mỗi context có đặc tả chi tiết về **Aggregate, Command, Event, Invariant**:
