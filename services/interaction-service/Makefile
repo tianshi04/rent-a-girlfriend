@@ -21,4 +21,6 @@ lint:
 	cargo fmt -- --check
 	cargo clippy -- -D warnings
 
-
+# Build docker image using the workspace root as context
+docker-build:
+	docker build -t interaction-service:latest -f Dockerfile ../..

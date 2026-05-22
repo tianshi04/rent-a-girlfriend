@@ -1,5 +1,5 @@
 # --- Builder Stage ---
-FROM rust:1.79-slim AS builder
+FROM rust:slim-bookworm AS builder
 
 WORKDIR /usr/src/app
 
@@ -9,24 +9,25 @@ RUN apt-get update && apt-get install -y \
     cmake \
     build-essential \
     libssl-dev \
+    libcurl4-openssl-dev \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy cargo manifest and build files
-COPY Cargo.toml ./
+# Copy cargo manifest and lock file
+COPY services/interaction-service/Cargo.toml services/interaction-service/Cargo.lock ./
 # Create dummy src file to cache dependencies
 RUN mkdir src && echo "fn main() {}" > src/main.rs
 # Build dependencies to cache them
 RUN cargo build --release
 RUN rm -rf src
 
-# Copy real source and contracts
-COPY build.rs ./
-COPY src/ ./src/
-# Copy the contracts directory which is outside this service directory
-# (Note: In standard Docker context you must run from workspace root, but for local Kubernetes
-# setup we assume standard build context will copy contracts or we use volume mount)
-COPY ../../contracts/ ../../contracts/
+# Copy real source, migrations, and contracts
+COPY services/interaction-service/build.rs ./
+COPY services/interaction-service/src/ ./src/
+COPY services/interaction-service/migrations/ ./migrations/
+# Copy the contracts directory which is outside this service directory.
+# This requires running docker build with the repository root as context.
+COPY contracts/ /usr/contracts/
 
 # Force compile target using actual source files
 RUN touch src/main.rs && cargo build --release
