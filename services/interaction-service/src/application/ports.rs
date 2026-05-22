@@ -1,7 +1,7 @@
-use async_trait::async_trait;
+use crate::domain::chat_room::{ChatMessage, ChatRoom};
 use crate::domain::errors::DomainError;
-use crate::domain::chat_room::{ChatRoom, ChatMessage};
 use crate::domain::review::Review;
+use async_trait::async_trait;
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -10,7 +10,12 @@ pub trait ChatRoomRepository: Send + Sync {
     async fn find_by_id(&self, room_id: &str) -> Result<Option<ChatRoom>, DomainError>;
     async fn find_by_booking_id(&self, booking_id: &str) -> Result<Option<ChatRoom>, DomainError>;
     async fn save_message(&self, message: &ChatMessage) -> Result<(), DomainError>;
-    async fn get_messages(&self, room_id: &str, limit: i64, offset: i64) -> Result<Vec<ChatMessage>, DomainError>;
+    async fn get_messages(
+        &self,
+        room_id: &str,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<ChatMessage>, DomainError>;
 }
 
 #[cfg_attr(test, mockall::automock)]
@@ -22,8 +27,12 @@ pub trait ReviewRepository: Send + Sync {
     async fn find_by_companion_id(&self, companion_id: &str) -> Result<Vec<Review>, DomainError>;
 }
 
-
 #[async_trait]
 pub trait EventPublisher: Send + Sync {
-    async fn publish_outbox(&self, event_id: &str, event_type: &str, payload: serde_json::Value) -> Result<(), DomainError>;
+    async fn publish_outbox(
+        &self,
+        event_id: &str,
+        event_type: &str,
+        payload: serde_json::Value,
+    ) -> Result<(), DomainError>;
 }

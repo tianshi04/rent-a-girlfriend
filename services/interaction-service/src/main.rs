@@ -1,23 +1,23 @@
-pub mod domain;
 pub mod application;
+pub mod domain;
 pub mod infrastructure;
 pub mod interfaces;
 
+use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tonic::transport::Server;
-use sqlx::postgres::PgPoolOptions;
-use tracing::{info, error, warn};
+use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
-use crate::infrastructure::persistence::{SqlxChatRoomRepository, SqlxReviewRepository};
 use crate::application::chat_use_cases::ChatUseCases;
 use crate::application::review_use_cases::ReviewUseCases;
 use crate::infrastructure::broker::OutboxWorker;
-use crate::interfaces::grpc::servicer::InteractionServicer;
+use crate::infrastructure::persistence::{SqlxChatRoomRepository, SqlxReviewRepository};
 use crate::interfaces::grpc::servicer::proto::interaction_service_server::InteractionServiceServer;
+use crate::interfaces::grpc::servicer::InteractionServicer;
 use crate::interfaces::http::{create_router, AppState};
 use crate::interfaces::listeners::BookingEventListener;
 
@@ -25,7 +25,7 @@ use crate::interfaces::listeners::BookingEventListener;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Initialize dotenv & Logging
     dotenvy::dotenv().ok();
-    
+
     // Set RUST_LOG environment filter, fallback to info
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_env = std::env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
     let server_port = std::env::var("SERVER_PORT").unwrap_or_else(|_| "8083".to_string());
     let grpc_port = std::env::var("GRPC_PORT").unwrap_or_else(|_| "50054".to_string());
-    
+
     let db_host = std::env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string());
     let db_port = std::env::var("DB_PORT").unwrap_or_else(|_| "5432".to_string());
     let db_user = std::env::var("DB_USER").unwrap_or_else(|_| "postgres".to_string());
@@ -45,10 +45,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "interaction_service".to_string());
     let db_sslmode = std::env::var("DB_SSLMODE").unwrap_or_else(|_| "disable".to_string());
 
-    let kafka_brokers = std::env::var("KAFKA_BROKERS").unwrap_or_else(|_| "localhost:9092".to_string());
-    let kafka_topic_interaction = std::env::var("KAFKA_TOPIC_INTERACTION").unwrap_or_else(|_| "interaction-events".to_string());
-    let kafka_topic_booking = std::env::var("KAFKA_TOPIC_BOOKING").unwrap_or_else(|_| "booking-events".to_string());
-    let kafka_group_id = std::env::var("KAFKA_GROUP_ID").unwrap_or_else(|_| "interaction-service-group".to_string());
+    let kafka_brokers =
+        std::env::var("KAFKA_BROKERS").unwrap_or_else(|_| "localhost:9092".to_string());
+    let kafka_topic_interaction = std::env::var("KAFKA_TOPIC_INTERACTION")
+        .unwrap_or_else(|_| "interaction-events".to_string());
+    let kafka_topic_booking =
+        std::env::var("KAFKA_TOPIC_BOOKING").unwrap_or_else(|_| "booking-events".to_string());
+    let kafka_group_id =
+        std::env::var("KAFKA_GROUP_ID").unwrap_or_else(|_| "interaction-service-group".to_string());
 
     let outbox_polling_ms = std::env::var("OUTBOX_POLLING_INTERVAL_MS")
         .unwrap_or_else(|_| "500".to_string())
@@ -127,7 +131,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let http_router = create_router(app_state);
     let http_addr: SocketAddr = format!("0.0.0.0:{}", server_port).parse()?;
-    
+
     info!("Binding Axum HTTP REST server to: {}", http_addr);
     let http_listener = TcpListener::bind(http_addr).await?;
     let http_server = axum::serve(http_listener, http_router);

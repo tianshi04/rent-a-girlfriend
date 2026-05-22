@@ -1,8 +1,8 @@
-use std::sync::Arc;
-use tonic::{Request, Response, Status};
 use crate::application::chat_use_cases::ChatUseCases;
 use crate::application::review_use_cases::ReviewUseCases;
 use crate::domain::errors::DomainError;
+use std::sync::Arc;
+use tonic::{Request, Response, Status};
 
 // Include the generated Tonic proto structures from Cargo's OUT_DIR
 pub mod proto {
@@ -11,10 +11,8 @@ pub mod proto {
 
 use proto::interaction_service_server::InteractionService;
 use proto::{
-    CreateChatRoomRequest, ChatCommandResponse,
-    LockChatRoomRequest,
-    SubmitReviewRequest, ReviewCommandResponse,
-    HideReviewRequest,
+    ChatCommandResponse, CreateChatRoomRequest, HideReviewRequest, LockChatRoomRequest,
+    ReviewCommandResponse, SubmitReviewRequest,
 };
 
 pub struct InteractionServicer {
@@ -37,15 +35,18 @@ fn map_domain_error(err: DomainError) -> Status {
         DomainError::ChatRoomLocked(msg) => {
             Status::failed_precondition(format!("[INV-I02] Room locked: {}", msg))
         }
-        DomainError::UnauthorizedSender { room_id, user_id } => {
-            Status::permission_denied(format!("[INV-I01] User {} unauthorized in room {}", user_id, room_id))
-        }
-        DomainError::InvalidRating(r) => {
-            Status::invalid_argument(format!("[INV-I05] Invalid rating value: {}. Must be 1-5.", r))
-        }
-        DomainError::ReviewAlreadyExists(booking_id) => {
-            Status::already_exists(format!("[INV-I04] Review already exists for booking: {}", booking_id))
-        }
+        DomainError::UnauthorizedSender { room_id, user_id } => Status::permission_denied(format!(
+            "[INV-I01] User {} unauthorized in room {}",
+            user_id, room_id
+        )),
+        DomainError::InvalidRating(r) => Status::invalid_argument(format!(
+            "[INV-I05] Invalid rating value: {}. Must be 1-5.",
+            r
+        )),
+        DomainError::ReviewAlreadyExists(booking_id) => Status::already_exists(format!(
+            "[INV-I04] Review already exists for booking: {}",
+            booking_id
+        )),
         DomainError::ChatRoomNotFound(msg) => Status::not_found(msg),
         DomainError::ReviewNotFound(msg) => Status::not_found(msg),
         DomainError::ChatRoomAlreadyExists(msg) => Status::already_exists(msg),

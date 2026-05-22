@@ -1,18 +1,17 @@
-use std::sync::Arc;
 use axum::{
-    routing::{get, post},
-    Router,
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
-    Json,
+    routing::{get, post},
+    Json, Router,
 };
 use serde_json::json;
+use std::sync::Arc;
 
+use super::dto::{ChatMessageResponse, PaginationQuery, ReviewResponse, SendMessageRequest};
 use crate::application::chat_use_cases::ChatUseCases;
 use crate::application::review_use_cases::ReviewUseCases;
 use crate::domain::errors::DomainError;
-use super::dto::{SendMessageRequest, ChatMessageResponse, ReviewResponse, PaginationQuery};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -69,8 +68,14 @@ fn get_user_id(headers: &HeaderMap) -> Result<String, Response> {
 
 pub fn create_router(state: AppState) -> Router {
     Router::new()
-        .route("/api/v1/interaction/rooms/:room_id/messages", post(send_message_handler).get(get_messages_handler))
-        .route("/api/v1/interaction/reviews/companion/:companion_id", get(get_companion_reviews_handler))
+        .route(
+            "/api/v1/interaction/rooms/:room_id/messages",
+            post(send_message_handler).get(get_messages_handler),
+        )
+        .route(
+            "/api/v1/interaction/reviews/companion/:companion_id",
+            get(get_companion_reviews_handler),
+        )
         .with_state(state)
 }
 

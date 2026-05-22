@@ -1,7 +1,7 @@
-use chrono::{DateTime, Utc};
-use uuid::Uuid;
 use crate::domain::errors::DomainError;
 use crate::domain::value_objects::Rating;
+use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Review {
@@ -137,4 +137,3 @@ mod tests {
         assert!(!review.is_visible);
     }
 }
-

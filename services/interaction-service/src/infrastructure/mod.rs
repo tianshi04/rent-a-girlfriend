@@ -1,2 +1,2 @@
-pub mod persistence;
 pub mod broker;
+pub mod persistence;

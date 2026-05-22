@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use crate::application::ports::ReviewRepository;
 use crate::domain::errors::DomainError;
 use crate::domain::review::Review;
 use crate::domain::value_objects::Rating;
-use crate::application::ports::ReviewRepository;
+use std::sync::Arc;
 
 pub struct ReviewUseCases {
     repo: Arc<dyn ReviewRepository>,
@@ -46,12 +46,18 @@ impl ReviewUseCases {
         Ok(())
     }
 
-    pub async fn get_companion_reviews(&self, companion_id: &str) -> Result<Vec<Review>, DomainError> {
+    pub async fn get_companion_reviews(
+        &self,
+        companion_id: &str,
+    ) -> Result<Vec<Review>, DomainError> {
         let reviews = self.repo.find_by_companion_id(companion_id).await?;
         Ok(reviews)
     }
 
-    pub async fn get_booking_review(&self, booking_id: &str) -> Result<Option<Review>, DomainError> {
+    pub async fn get_booking_review(
+        &self,
+        booking_id: &str,
+    ) -> Result<Option<Review>, DomainError> {
         let review = self.repo.find_by_booking_id(booking_id).await?;
         Ok(review)
     }
@@ -69,24 +75,25 @@ mod tests {
         let mut mock_repo = MockReviewRepository::new();
 
         // Mock find_by_booking_id to return None (no existing review)
-        mock_repo.expect_find_by_booking_id()
+        mock_repo
+            .expect_find_by_booking_id()
             .with(mockall::predicate::eq("booking-123"))
             .times(1)
             .returning(|_| Ok(None));
 
         // Mock save to return Ok(())
-        mock_repo.expect_save()
-            .times(1)
-            .returning(|_| Ok(()));
+        mock_repo.expect_save().times(1).returning(|_| Ok(()));
 
         let use_cases = ReviewUseCases::new(Arc::new(mock_repo));
-        let res = use_cases.submit_review(
-            "booking-123".to_string(),
-            "client-789".to_string(),
-            "companion-456".to_string(),
-            5,
-            "Outstanding service!".to_string(),
-        ).await;
+        let res = use_cases
+            .submit_review(
+                "booking-123".to_string(),
+                "client-789".to_string(),
+                "companion-456".to_string(),
+                5,
+                "Outstanding service!".to_string(),
+            )
+            .await;
 
         assert!(res.is_ok());
         let review = res.unwrap();
@@ -109,23 +116,25 @@ mod tests {
         );
 
         // Mock find_by_booking_id to return the existing review
-        mock_repo.expect_find_by_booking_id()
+        mock_repo
+            .expect_find_by_booking_id()
             .with(mockall::predicate::eq("booking-123"))
             .times(1)
             .returning(move |_| Ok(Some(existing_review.clone())));
 
         // save should NOT be called because it is blocked by [INV-I04]
-        mock_repo.expect_save()
-            .times(0);
+        mock_repo.expect_save().times(0);
 
         let use_cases = ReviewUseCases::new(Arc::new(mock_repo));
-        let res = use_cases.submit_review(
-            "booking-123".to_string(),
-            "client-789".to_string(),
-            "companion-456".to_string(),
-            5,
-            "Outstanding service!".to_string(),
-        ).await;
+        let res = use_cases
+            .submit_review(
+                "booking-123".to_string(),
+                "client-789".to_string(),
+                "companion-456".to_string(),
+                5,
+                "Outstanding service!".to_string(),
+            )
+            .await;
 
         assert!(res.is_err());
         match res.unwrap_err() {
@@ -139,23 +148,25 @@ mod tests {
         let mut mock_repo = MockReviewRepository::new();
 
         // Mock find_by_booking_id to return None
-        mock_repo.expect_find_by_booking_id()
+        mock_repo
+            .expect_find_by_booking_id()
             .with(mockall::predicate::eq("booking-123"))
             .times(1)
             .returning(|_| Ok(None));
 
         // save should NOT be called because rating validation fails
-        mock_repo.expect_save()
-            .times(0);
+        mock_repo.expect_save().times(0);
 
         let use_cases = ReviewUseCases::new(Arc::new(mock_repo));
-        let res = use_cases.submit_review(
-            "booking-123".to_string(),
-            "client-789".to_string(),
-            "companion-456".to_string(),
-            6, // Invalid rating (max is 5)
-            "Too good!".to_string(),
-        ).await;
+        let res = use_cases
+            .submit_review(
+                "booking-123".to_string(),
+                "client-789".to_string(),
+                "companion-456".to_string(),
+                6, // Invalid rating (max is 5)
+                "Too good!".to_string(),
+            )
+            .await;
 
         assert!(res.is_err());
         match res.unwrap_err() {
@@ -164,4 +175,3 @@ mod tests {
         }
     }
 }
-

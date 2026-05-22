@@ -1,11 +1,11 @@
+use rdkafka::config::ClientConfig;
+use rdkafka::producer::{FutureProducer, FutureRecord};
+use serde_json::Value;
+use sqlx::{PgPool, Row};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
-use sqlx::{PgPool, Row};
-use rdkafka::producer::{FutureProducer, FutureRecord};
-use rdkafka::config::ClientConfig;
-use serde_json::Value;
-use tracing::{info, error, warn};
+use tracing::{error, info, warn};
 
 pub struct OutboxWorker {
     pool: PgPool,
@@ -87,8 +87,7 @@ impl OutboxWorker {
             let created_at: chrono::DateTime<chrono::Utc> = row.get("created_at");
 
             // Parse event data from outbox payload
-            let data: Value = serde_json::from_str(&payload)
-                .unwrap_or(Value::Null);
+            let data: Value = serde_json::from_str(&payload).unwrap_or(Value::Null);
 
             // Construct standard GFM CloudEvents JSON envelope
             let cloudevent = serde_json::json!({
@@ -121,10 +120,16 @@ impl OutboxWorker {
                     .bind(id)
                     .execute(&self.pool)
                     .await?;
-                    info!("Successfully published and marked processed event: {}", event_id);
+                    info!(
+                        "Successfully published and marked processed event: {}",
+                        event_id
+                    );
                 }
                 Err((e, _)) => {
-                    warn!("Failed to publish event {} to Kafka: {}. Retrying later.", event_id, e);
+                    warn!(
+                        "Failed to publish event {} to Kafka: {}. Retrying later.",
+                        event_id, e
+                    );
                     // Do not mark processed; exit batch loop and let the next polling cycle retry
                     break;
                 }

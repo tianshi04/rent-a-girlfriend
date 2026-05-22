@@ -1,4 +1,4 @@
-.PHONY: run test build clean
+.PHONY: run test build clean lint
 
 # Run Axum REST and Tonic gRPC server locally
 run:
@@ -15,3 +15,10 @@ build:
 # Clean up target build files
 clean:
 	cargo clean
+
+# Run formatting and linting checks
+lint:
+	cargo fmt -- --check
+	cargo clippy -- -D warnings
+
+

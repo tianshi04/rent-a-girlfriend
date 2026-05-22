@@ -1,14 +1,16 @@
-use std::str::FromStr;
-use async_trait::async_trait;
-use sqlx::{PgPool, Postgres, Transaction, Row};
-use uuid::Uuid;
-use chrono::Utc;
+use crate::application::ports::{ChatRoomRepository, ReviewRepository};
+use crate::domain::chat_room::{ChatMessage, ChatRoom, ChatRoomStatus};
 use crate::domain::errors::DomainError;
-use crate::domain::chat_room::{ChatRoom, ChatMessage, ChatRoomStatus};
+use crate::domain::events::{
+    ChatRoomCreatedEvent, ChatRoomLockedEvent, ReviewHiddenEvent, ReviewSubmittedEvent,
+};
 use crate::domain::review::Review;
 use crate::domain::value_objects::Rating;
-use crate::domain::events::{ChatRoomCreatedEvent, ChatRoomLockedEvent, ReviewSubmittedEvent, ReviewHiddenEvent};
-use crate::application::ports::{ChatRoomRepository, ReviewRepository};
+use async_trait::async_trait;
+use chrono::Utc;
+use sqlx::{PgPool, Postgres, Row, Transaction};
+use std::str::FromStr;
+use uuid::Uuid;
 
 pub struct SqlxChatRoomRepository {
     pool: PgPool,
@@ -23,7 +25,10 @@ impl SqlxChatRoomRepository {
 #[async_trait]
 impl ChatRoomRepository for SqlxChatRoomRepository {
     async fn save(&self, chat_room: &ChatRoom) -> Result<(), DomainError> {
-        let mut tx: Transaction<'_, Postgres> = self.pool.begin().await
+        let mut tx: Transaction<'_, Postgres> = self
+            .pool
+            .begin()
+            .await
             .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?; // generic DB error mapping
 
         // 1. Save/Update ChatRoom
@@ -96,7 +101,9 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         .await
         .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
 
-        tx.commit().await.map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+        tx.commit()
+            .await
+            .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
         Ok(())
     }
 
@@ -114,8 +121,8 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
 
         if let Some(r) = row {
             let status_str: String = r.get("status");
-            let status = ChatRoomStatus::from_str(&status_str)
-                .map_err(DomainError::ChatRoomNotFound)?;
+            let status =
+                ChatRoomStatus::from_str(&status_str).map_err(DomainError::ChatRoomNotFound)?;
             Ok(Some(ChatRoom::new(
                 r.get("room_id"),
                 r.get("booking_id"),
@@ -144,8 +151,8 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
 
         if let Some(r) = row {
             let status_str: String = r.get("status");
-            let status = ChatRoomStatus::from_str(&status_str)
-                .map_err(DomainError::ChatRoomNotFound)?;
+            let status =
+                ChatRoomStatus::from_str(&status_str).map_err(DomainError::ChatRoomNotFound)?;
             Ok(Some(ChatRoom::new(
                 r.get("room_id"),
                 r.get("booking_id"),
@@ -178,7 +185,12 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         Ok(())
     }
 
-    async fn get_messages(&self, room_id: &str, limit: i64, offset: i64) -> Result<Vec<ChatMessage>, DomainError> {
+    async fn get_messages(
+        &self,
+        room_id: &str,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<ChatMessage>, DomainError> {
         let rows = sqlx::query(
             r#"
             SELECT message_id, room_id, sender_id, content, created_at
@@ -194,13 +206,16 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         .await
         .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
 
-        let messages = rows.into_iter().map(|r| ChatMessage {
-            message_id: r.get("message_id"),
-            room_id: r.get("room_id"),
-            sender_id: r.get("sender_id"),
-            content: r.get("content"),
-            created_at: r.get("created_at"),
-        }).collect();
+        let messages = rows
+            .into_iter()
+            .map(|r| ChatMessage {
+                message_id: r.get("message_id"),
+                room_id: r.get("room_id"),
+                sender_id: r.get("sender_id"),
+                content: r.get("content"),
+                created_at: r.get("created_at"),
+            })
+            .collect();
 
         Ok(messages)
     }
@@ -219,7 +234,10 @@ impl SqlxReviewRepository {
 #[async_trait]
 impl ReviewRepository for SqlxReviewRepository {
     async fn save(&self, review: &Review) -> Result<(), DomainError> {
-        let mut tx = self.pool.begin().await
+        let mut tx = self
+            .pool
+            .begin()
+            .await
             .map_err(|e| DomainError::ReviewNotFound(e.to_string()))?;
 
         // 1. Save/Update Review
@@ -293,7 +311,9 @@ impl ReviewRepository for SqlxReviewRepository {
         .await
         .map_err(|e| DomainError::ReviewNotFound(e.to_string()))?;
 
-        tx.commit().await.map_err(|e| DomainError::ReviewNotFound(e.to_string()))?;
+        tx.commit()
+            .await
+            .map_err(|e| DomainError::ReviewNotFound(e.to_string()))?;
         Ok(())
     }
 

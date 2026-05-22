@@ -1,8 +1,8 @@
-use std::sync::Arc;
-use crate::domain::errors::DomainError;
-use crate::domain::chat_room::{ChatRoom, ChatMessage};
-use crate::domain::value_objects::ChatContent;
 use crate::application::ports::ChatRoomRepository;
+use crate::domain::chat_room::{ChatMessage, ChatRoom};
+use crate::domain::errors::DomainError;
+use crate::domain::value_objects::ChatContent;
+use std::sync::Arc;
 
 pub struct ChatUseCases {
     repo: Arc<dyn ChatRoomRepository>,
@@ -90,24 +90,25 @@ mod tests {
     #[tokio::test]
     async fn test_create_chat_room_success() {
         let mut mock_repo = MockChatRoomRepository::new();
-        
+
         // Mock find_by_booking_id to return None (room doesn't exist yet)
-        mock_repo.expect_find_by_booking_id()
+        mock_repo
+            .expect_find_by_booking_id()
             .with(mockall::predicate::eq("booking-123"))
             .times(1)
             .returning(|_| Ok(None));
 
         // Mock save to return Ok(())
-        mock_repo.expect_save()
-            .times(1)
-            .returning(|_| Ok(()));
+        mock_repo.expect_save().times(1).returning(|_| Ok(()));
 
         let use_cases = ChatUseCases::new(Arc::new(mock_repo));
-        let res = use_cases.create_chat_room(
-            "booking-123".to_string(),
-            "client-789".to_string(),
-            "companion-456".to_string(),
-        ).await;
+        let res = use_cases
+            .create_chat_room(
+                "booking-123".to_string(),
+                "client-789".to_string(),
+                "companion-456".to_string(),
+            )
+            .await;
 
         assert!(res.is_ok());
         let room = res.unwrap();
@@ -127,21 +128,23 @@ mod tests {
         let expected_room = existing_room.clone();
 
         // Mock find_by_booking_id to return the existing room (idempotency case)
-        mock_repo.expect_find_by_booking_id()
+        mock_repo
+            .expect_find_by_booking_id()
             .with(mockall::predicate::eq("booking-123"))
             .times(1)
             .returning(move |_| Ok(Some(existing_room.clone())));
 
         // Save should NOT be called since the room already exists
-        mock_repo.expect_save()
-            .times(0);
+        mock_repo.expect_save().times(0);
 
         let use_cases = ChatUseCases::new(Arc::new(mock_repo));
-        let res = use_cases.create_chat_room(
-            "booking-123".to_string(),
-            "client-789".to_string(),
-            "companion-456".to_string(),
-        ).await;
+        let res = use_cases
+            .create_chat_room(
+                "booking-123".to_string(),
+                "client-789".to_string(),
+                "companion-456".to_string(),
+            )
+            .await;
 
         assert!(res.is_ok());
         assert_eq!(res.unwrap().room_id, expected_room.room_id);
@@ -157,18 +160,22 @@ mod tests {
         );
 
         // Mock find_by_id to return the room
-        mock_repo.expect_find_by_id()
+        mock_repo
+            .expect_find_by_id()
             .with(mockall::predicate::eq("room-abc"))
             .times(1)
             .returning(move |_| Ok(Some(room.clone())));
 
         // Mock save_message to return Ok(())
-        mock_repo.expect_save_message()
+        mock_repo
+            .expect_save_message()
             .times(1)
             .returning(|_| Ok(()));
 
         let use_cases = ChatUseCases::new(Arc::new(mock_repo));
-        let res = use_cases.send_message("room-abc", "client-789", "Hello there!".to_string()).await;
+        let res = use_cases
+            .send_message("room-abc", "client-789", "Hello there!".to_string())
+            .await;
 
         assert!(res.is_ok());
         let msg = res.unwrap();
@@ -186,17 +193,19 @@ mod tests {
         );
 
         // Mock find_by_id to return the room
-        mock_repo.expect_find_by_id()
+        mock_repo
+            .expect_find_by_id()
             .with(mockall::predicate::eq("room-abc"))
             .times(1)
             .returning(move |_| Ok(Some(room.clone())));
 
         // save_message should NOT be called because sender validation fails
-        mock_repo.expect_save_message()
-            .times(0);
+        mock_repo.expect_save_message().times(0);
 
         let use_cases = ChatUseCases::new(Arc::new(mock_repo));
-        let res = use_cases.send_message("room-abc", "unauthorized-stranger", "Hello!".to_string()).await;
+        let res = use_cases
+            .send_message("room-abc", "unauthorized-stranger", "Hello!".to_string())
+            .await;
 
         assert!(res.is_err());
         match res.unwrap_err() {
@@ -205,4 +214,3 @@ mod tests {
         }
     }
 }
-

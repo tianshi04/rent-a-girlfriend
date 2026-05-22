@@ -1,11 +1,11 @@
-use std::sync::Arc;
-use tokio::time::sleep;
-use rdkafka::consumer::{StreamConsumer, Consumer};
+use chrono::{DateTime, Duration, Utc};
 use rdkafka::config::ClientConfig;
+use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::Message as KafkaMessage;
 use serde::Deserialize;
-use chrono::{DateTime, Utc, Duration};
-use tracing::{info, error, warn, debug};
+use std::sync::Arc;
+use tokio::time::sleep;
+use tracing::{debug, error, info, warn};
 
 use crate::application::chat_use_cases::ChatUseCases;
 
@@ -64,7 +64,10 @@ impl BookingEventListener {
         };
 
         if let Err(e) = consumer.subscribe(&[&self.topic]) {
-            error!("Failed to subscribe to topic {}: {}. Consumer loop disabled.", self.topic, e);
+            error!(
+                "Failed to subscribe to topic {}: {}. Consumer loop disabled.",
+                self.topic, e
+            );
             return;
         }
 
@@ -92,32 +95,47 @@ impl BookingEventListener {
         }
     }
 
-    async fn handle_message(&self, payload: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn handle_message(
+        &self,
+        payload: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let cloudevent: BookingCloudEvent = match serde_json::from_str(payload) {
             Ok(ce) => ce,
             Err(e) => {
-                warn!("Ignoring non-compliant booking event. Failed to parse: {:?}", e);
+                warn!(
+                    "Ignoring non-compliant booking event. Failed to parse: {:?}",
+                    e
+                );
                 return Ok(());
             }
         };
 
-        info!("Received booking event: {} for Booking ID: {}", cloudevent.event_type, cloudevent.data.booking_id);
+        info!(
+            "Received booking event: {} for Booking ID: {}",
+            cloudevent.event_type, cloudevent.data.booking_id
+        );
 
         let booking_id = cloudevent.data.booking_id.clone();
         let chat_cases = self.chat_cases.clone();
 
         match cloudevent.event_type.as_str() {
-            "com.rentagf.booking.BookingCancelled.v1" 
-            | "com.rentagf.booking.BookingCancelledEarly.v1" 
+            "com.rentagf.booking.BookingCancelled.v1"
+            | "com.rentagf.booking.BookingCancelledEarly.v1"
             | "com.rentagf.booking.BookingCancelledLate.v1" => {
-                info!("Booking {} cancelled. Locking chat room immediately.", booking_id);
+                info!(
+                    "Booking {} cancelled. Locking chat room immediately.",
+                    booking_id
+                );
                 if let Err(e) = chat_cases.lock_chat_room(&booking_id).await {
-                    error!("Failed to lock chat room for booking {}: {:?}", booking_id, e);
+                    error!(
+                        "Failed to lock chat room for booking {}: {:?}",
+                        booking_id, e
+                    );
                 }
             }
             "com.rentagf.booking.BookingCompleted.v1" => {
                 let mut delay_seconds = 24 * 3600; // default 24 hours in seconds
-                
+
                 if let Some(end_time_str) = cloudevent.data.end_time {
                     if let Ok(end_time) = DateTime::parse_from_rfc3339(&end_time_str) {
                         let end_time_utc = end_time.with_timezone(&Utc);
@@ -132,7 +150,10 @@ impl BookingEventListener {
                     }
                 }
 
-                info!("Booking {} completed. Scheduling chat room lock in {} seconds (24h post-end).", booking_id, delay_seconds);
+                info!(
+                    "Booking {} completed. Scheduling chat room lock in {} seconds (24h post-end).",
+                    booking_id, delay_seconds
+                );
 
                 tokio::spawn(async move {
                     if delay_seconds > 0 {
@@ -140,9 +161,15 @@ impl BookingEventListener {
                     }
                     info!("Executing scheduled lock for booking {}...", booking_id);
                     if let Err(e) = chat_cases.lock_chat_room(&booking_id).await {
-                        error!("Failed to lock chat room on completion schedule for booking {}: {:?}", booking_id, e);
+                        error!(
+                            "Failed to lock chat room on completion schedule for booking {}: {:?}",
+                            booking_id, e
+                        );
                     } else {
-                        info!("Successfully locked chat room on completion schedule for booking {}.", booking_id);
+                        info!(
+                            "Successfully locked chat room on completion schedule for booking {}.",
+                            booking_id
+                        );
                     }
                 });
             }

@@ -1,7 +1,7 @@
-use chrono::{DateTime, Utc};
-use uuid::Uuid;
 use crate::domain::errors::DomainError;
 use crate::domain::value_objects::ChatContent;
+use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChatRoomStatus {
@@ -113,7 +113,11 @@ impl ChatRoom {
         Ok(())
     }
 
-    pub fn send_message(&self, sender_id: &str, content: ChatContent) -> Result<ChatMessage, DomainError> {
+    pub fn send_message(
+        &self,
+        sender_id: &str,
+        content: ChatContent,
+    ) -> Result<ChatMessage, DomainError> {
         self.validate_sender(sender_id)?;
         self.validate_active()?;
 
@@ -213,4 +217,3 @@ mod tests {
         }
     }
 }
-
