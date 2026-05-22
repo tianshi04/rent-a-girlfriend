@@ -1,5 +1,5 @@
 # ---- Stage 1: Build ----
-FROM eclipse-temurin:17-jdk-alpine AS builder
+FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ COPY resources ./resources
 RUN ./gradlew bootJar --no-daemon -x test
 
 # ---- Stage 2: Runtime ----
-FROM eclipse-temurin:17-jre-alpine AS runtime
+FROM eclipse-temurin:21-jre-alpine AS runtime
 
 # Install system dependencies (certificates, timezone data)
 RUN apk --no-cache add ca-certificates tzdata

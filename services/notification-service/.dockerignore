@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Gradle
+.gradle/
+build/
+out/
+target/
+
+# IDEs
+.idea/
+*.iml
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+
+# Local Env / Logs
+.env
+*.log
+
+# Project Docs / Testing (not needed in Docker context)
+docs/
+tests/
+README.md
+Makefile
