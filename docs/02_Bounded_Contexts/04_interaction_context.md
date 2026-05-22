@@ -17,7 +17,7 @@ Quản lý đánh giá độc lập, duy trì tính duy nhất và tính hiển 
 
 ## 3. VALUE OBJECTS
 *   `Rating`: Chứa giá trị Integer từ 1 đến 5. Ném lỗi nếu giá trị nằm ngoài khoảng này.
-*   `ChatContent`: Đóng gói text tin nhắn, có thể chứa logic filter từ ngữ nhạy cảm (profanity filter).
+*   `ChatContent`: Đóng gói text tin nhắn.
 
 ## 4. INVARIANTS (QUY TẮC BẤT BIẾN)
 *   `[INV-I01]` Chỉ những User có trong `ParticipantIds` mới được gửi/đọc tin nhắn.
@@ -32,7 +32,7 @@ Quản lý đánh giá độc lập, duy trì tính duy nhất và tính hiển 
 *   **Sự kiện sinh ra:** `ChatRoomCreated`, `ChatRoomLocked`, `ReviewSubmitted`, `ReviewHidden`.
 
 ## 6. DOMAIN SERVICES
-*   `ProfanityFilterService`: Chứa logic kiểm tra và làm mờ các từ ngữ vi phạm tiêu chuẩn cộng đồng hoặc chia sẻ thông tin liên lạc bên ngoài (Zalo, SĐT) trong tin nhắn chat.
+*(Không có dịch vụ miền bổ sung)*
 
 ## 7. REPOSITORIES
 *   `IChatRoomRepository`
