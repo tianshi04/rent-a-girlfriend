@@ -11,17 +11,17 @@ import (
 type ListBookingsQuery struct {
 	ClientID    *string
 	CompanionID *string
-	Status      *string
-	Page        int
-	PageSize    int
+	Statuses    []string
+	Page        int64
+	PageSize    int64
 }
 
 // ListBookingsResult contains the paginated result.
 type ListBookingsResult struct {
 	Bookings []*aggregate.Booking
 	Total    int64
-	Page     int
-	PageSize int
+	Page     int64
+	PageSize int64
 }
 
 // ListBookingsHandler handles the ListBookings query.
@@ -44,7 +44,7 @@ func (h *ListBookingsHandler) Handle(ctx context.Context, q ListBookingsQuery) (
 	filters := repository.BookingFilters{
 		ClientID:    q.ClientID,
 		CompanionID: q.CompanionID,
-		Status:      q.Status,
+		Statuses:    q.Statuses,
 		Page:        q.Page,
 		PageSize:    q.PageSize,
 	}

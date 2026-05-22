@@ -53,26 +53,45 @@ func (h *RequestBookingHandler) Handle(ctx context.Context, cmd RequestBookingCm
 		return nil, err
 	}
 
-	// 1. Fetch scenario snapshot from Profile Service (sync call)
+	// 1. Check Pending Cap [INV-B04]
+	pendingCount, err := h.repo.CountPendingByCompanion(ctx, companionID)
+	if err != nil {
+		return nil, err
+	}
+	if pendingCount >= MaxPendingPerCompanion {
+		return nil, domainerr.ErrPendingCapExceeded
+	}
+
+	// 2. Fetch scenario snapshot from Profile Service (sync call)
 	snapshot, err := h.profileService.GetScenarioSnapshot(ctx, cmd.ScenarioID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 2. Build TimeRange (INV-B02: EndTime = StartTime + Duration)
+	// 3. Build TimeRange (INV-B02: EndTime = StartTime + Duration)
 	endTime := cmd.StartTime.Add(time.Duration(snapshot.DurationMinutes()) * time.Minute)
 	timeRange, err := vo.NewTimeRange(cmd.StartTime, endTime)
 	if err != nil {
 		return nil, err
 	}
 
-	// 3. Check Pending Cap [INV-B04]
-	pendingCount, err := h.repo.CountPendingByClientAndCompanion(ctx, clientID, companionID)
+	// 3.5. Check for overlapping bookings
+	// Client cannot have any booking in PENDING or ACCEPTED status that overlaps in this time range
+	clientOverlap, err := h.repo.HasOverlappingBooking(ctx, clientID.String(), false, []vo.BookingStatus{vo.StatusPending, vo.StatusAccepted}, timeRange.StartTime(), timeRange.EndTime())
 	if err != nil {
 		return nil, err
 	}
-	if pendingCount >= MaxPendingPerCompanion {
-		return nil, domainerr.ErrPendingCapExceeded
+	if clientOverlap {
+		return nil, domainerr.ErrClientBookingOverlap
+	}
+
+	// Companion cannot have any booking in ACCEPTED status that overlaps in this time range
+	companionOverlap, err := h.repo.HasOverlappingBooking(ctx, companionID.String(), true, []vo.BookingStatus{vo.StatusAccepted}, timeRange.StartTime(), timeRange.EndTime())
+	if err != nil {
+		return nil, err
+	}
+	if companionOverlap {
+		return nil, domainerr.ErrCompanionBookingOverlap
 	}
 
 	// 4. Freeze coin in Finance Service (sync call)

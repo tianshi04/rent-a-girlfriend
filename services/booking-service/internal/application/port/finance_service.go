@@ -7,7 +7,6 @@ import (
 )
 
 // FinanceService is the port for synchronous calls to Finance Context.
-// Phase 1: Stubbed. Will be replaced by real gRPC client in integration phase.
 type FinanceService interface {
 	// FreezeCoin freezes Kano-Coin in the client's wallet when a booking is requested.
 	FreezeCoin(ctx context.Context, clientID vo.ClientID, amount vo.Money) error

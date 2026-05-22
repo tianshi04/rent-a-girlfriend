@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/aggregate"
+	domainerr "github.com/rent-a-girlfriend/booking-service/internal/domain/errors"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/repository"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
 )
@@ -13,7 +14,7 @@ import (
 type CancelBookingCmd struct {
 	BookingID string
 	ActorID   string
-	ActorRole string // "CLIENT" or "COMPANION"
+	ActorRole string // "CLIENT" or "COMPANION" sử dụng enum 
 }
 
 // CancelBookingHandler handles the CancelBooking command.
@@ -40,12 +41,30 @@ func (h *CancelBookingHandler) Handle(ctx context.Context, cmd CancelBookingCmd)
 		return nil, err
 	}
 
+	// [INV-CANCEL-AUTH] Verify if the actor belongs to the booking they are trying to cancel
+	if actorRole == vo.RoleClient {
+		clientID, err := vo.NewClientID(cmd.ActorID)
+		if err != nil {
+			return nil, err
+		}
+		if !booking.ClientID().Equals(clientID) {
+			return nil, domainerr.ErrUnauthorized
+		}
+	} else if actorRole == vo.RoleCompanion {
+		companionID, err := vo.NewCompanionID(cmd.ActorID)
+		if err != nil {
+			return nil, err
+		}
+		if !booking.CompanionID().Equals(companionID) {
+			return nil, domainerr.ErrUnauthorized
+		}
+	} else {
+		return nil, domainerr.ErrUnauthorized
+	}
+
 	if err := booking.Cancel(actorRole, time.Now()); err != nil {
 		return nil, err
 	}
-
-	// Note: Refund/penalty logic is handled by Finance Service via events (Phase 2).
-	// The domain event (BookingCancelledEarly/Late) carries isLate info for Finance to decide.
 
 	if err := h.repo.Update(ctx, booking); err != nil {
 		return nil, err
