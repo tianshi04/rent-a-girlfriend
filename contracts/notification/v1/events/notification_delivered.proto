@@ -20,7 +20,7 @@ message NotificationDelivered {
   // ID người nhận.
   string user_id = 2;
 
-  // ID event gốc đã trigger thông báo này.
+  // ID của Sự kiện kích hoạt thông báo này.
   string original_event_id = 3;
 
   // Kênh đã gửi thành công.

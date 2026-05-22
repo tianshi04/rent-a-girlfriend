@@ -19,12 +19,15 @@ message NotificationFailed {
   // ID người nhận.
   string user_id = 2;
 
-  // ID event gốc đã trigger thông báo này.
+  // ID của Sự kiện kích hoạt thông báo này.
   string original_event_id = 3;
 
-  // Lý do thất bại.
-  string failure_reason = 4;
+  // Mã lỗi kỹ thuật cụ thể (Ví dụ: "FCM_TOKEN_INVALID").
+  string error_code = 4;
+
+  // Lý do lỗi chi tiết.
+  string error_message = 5;
 
   // Thời điểm chốt thất bại.
-  google.protobuf.Timestamp failed_at = 5;
+  google.protobuf.Timestamp failed_at = 6;
 }

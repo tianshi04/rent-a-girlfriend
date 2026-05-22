@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/notification;notificationv1";
+
+// Trạng thái của một nỗ lực gửi thông báo (Delivery Attempt).
+enum AttemptStatus {
+  ATTEMPT_STATUS_UNSPECIFIED = 0;
+  ATTEMPT_STATUS_PENDING = 1;
+  ATTEMPT_STATUS_SUCCESS = 2;
+  ATTEMPT_STATUS_FAILED_RECOVERABLE = 3;
+  ATTEMPT_STATUS_FAILED_UNRECOVERABLE = 4;
+}
