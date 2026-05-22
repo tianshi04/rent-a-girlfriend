@@ -1,8 +1,3 @@
-pub mod application;
-pub mod domain;
-pub mod infrastructure;
-pub mod interfaces;
-
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -12,14 +7,14 @@ use tonic::transport::Server;
 use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
-use crate::application::chat_use_cases::ChatUseCases;
-use crate::application::review_use_cases::ReviewUseCases;
-use crate::infrastructure::broker::OutboxWorker;
-use crate::infrastructure::persistence::{SqlxChatRoomRepository, SqlxReviewRepository};
-use crate::interfaces::grpc::servicer::proto::interaction_service_server::InteractionServiceServer;
-use crate::interfaces::grpc::servicer::InteractionServicer;
-use crate::interfaces::http::{create_router, AppState};
-use crate::interfaces::listeners::BookingEventListener;
+use interaction_service::application::chat_use_cases::ChatUseCases;
+use interaction_service::application::review_use_cases::ReviewUseCases;
+use interaction_service::infrastructure::broker::OutboxWorker;
+use interaction_service::infrastructure::persistence::{SqlxChatRoomRepository, SqlxReviewRepository};
+use interaction_service::interfaces::grpc::servicer::proto::interaction_service_server::InteractionServiceServer;
+use interaction_service::interfaces::grpc::servicer::InteractionServicer;
+use interaction_service::interfaces::http::{create_router, AppState};
+use interaction_service::interfaces::listeners::BookingEventListener;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
