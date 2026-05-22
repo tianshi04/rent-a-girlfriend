@@ -132,6 +132,10 @@ func TestActorRole_Validation(t *testing.T) {
 	if err != nil {
 		t.Error("COMPANION should be valid")
 	}
+	_, err = vo.NewActorRole("SYSTEM")
+	if err != nil {
+		t.Error("SYSTEM should be valid")
+	}
 	_, err = vo.NewActorRole("ADMIN")
 	if err == nil {
 		t.Error("ADMIN should be invalid actor role")

@@ -176,6 +176,7 @@ func TestCancel_LateCancellation(t *testing.T) {
 	timeRange, _ := vo.NewTimeRange(start, end)
 
 	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	_ = booking.Accept(companionID, now)
 	_ = booking.Events()
 
 	_ = booking.Cancel(vo.RoleClient, now)
@@ -214,5 +215,217 @@ func TestCancel_EarlyCancellation(t *testing.T) {
 	events := booking.Events()
 	if events[0].EventType() != "com.rentagf.booking.BookingCancelledEarly.v1" {
 		t.Errorf("expected BookingCancelledEarly, got %s", events[0].EventType())
+	}
+}
+
+func TestCancel_ClientEarly(t *testing.T) {
+	now := time.Now()
+	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
+	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
+	price := vo.MustMoney(500)
+	scenario, _ := vo.NewScenarioSnapshot(price, 120)
+	// Start in 48h (>24h → early)
+	start := now.Add(48 * time.Hour)
+	end := start.Add(120 * time.Minute)
+	timeRange, _ := vo.NewTimeRange(start, end)
+
+	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	_ = booking.Accept(companionID, now)
+	_ = booking.Events()
+	_ = booking.Cancel(vo.RoleClient, now)
+
+	if booking.IsLateCancel() {
+		t.Error("expected late cancellation to be false")
+	}
+
+	events := booking.Events()
+	if len(events) != 1 || events[0].EventType() != "com.rentagf.booking.BookingCancelledEarly.v1" {
+		t.Errorf("expected BookingCancelledEarly event, got %v", events)
+	}
+}
+
+func TestCancel_ClientLate(t *testing.T) {
+	now := time.Now()
+	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
+	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
+	price := vo.MustMoney(500)
+	scenario, _ := vo.NewScenarioSnapshot(price, 120)
+	// Start in 3h (<24h → late)
+	start := now.Add(3 * time.Hour)
+	end := start.Add(120 * time.Minute)
+	timeRange, _ := vo.NewTimeRange(start, end)
+
+	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	_ = booking.Accept(companionID, now)
+	_ = booking.Events()
+	_ = booking.Cancel(vo.RoleClient, now)
+
+	if !booking.IsLateCancel() {
+		t.Error("expected late cancellation to be true")
+	}
+
+	events := booking.Events()
+	if len(events) != 1 || events[0].EventType() != "com.rentagf.booking.BookingCancelledLate.v1" {
+		t.Errorf("expected BookingCancelledLate event, got %v", events)
+	}
+}
+
+func TestCancel_CompanionEarly(t *testing.T) {
+	now := time.Now()
+	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
+	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
+	price := vo.MustMoney(500)
+	scenario, _ := vo.NewScenarioSnapshot(price, 120)
+	// Start in 48h
+	start := now.Add(48 * time.Hour)
+	end := start.Add(120 * time.Minute)
+	timeRange, _ := vo.NewTimeRange(start, end)
+
+	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	_ = booking.Accept(companionID, now)
+	_ = booking.Events()
+	_ = booking.Cancel(vo.RoleCompanion, now)
+
+	if booking.IsLateCancel() {
+		t.Error("expected late cancellation to be false")
+	}
+
+	events := booking.Events()
+	if len(events) != 1 || events[0].EventType() != "com.rentagf.booking.BookingCancelledEarly.v1" {
+		t.Errorf("expected BookingCancelledEarly event, got %v", events)
+	}
+}
+
+func TestCancel_CompanionLate(t *testing.T) {
+	now := time.Now()
+	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
+	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
+	price := vo.MustMoney(500)
+	scenario, _ := vo.NewScenarioSnapshot(price, 120)
+	// Start in 3h
+	start := now.Add(3 * time.Hour)
+	end := start.Add(120 * time.Minute)
+	timeRange, _ := vo.NewTimeRange(start, end)
+
+	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	_ = booking.Accept(companionID, now)
+	_ = booking.Events()
+	_ = booking.Cancel(vo.RoleCompanion, now)
+
+	if !booking.IsLateCancel() {
+		t.Error("expected late cancellation to be true")
+	}
+
+	events := booking.Events()
+	if len(events) != 1 || events[0].EventType() != "com.rentagf.booking.BookingCancelledLate.v1" {
+		t.Errorf("expected BookingCancelledLate event, got %v", events)
+	}
+}
+
+func TestCancel_CancelPendingBooking(t *testing.T) {
+	now := time.Now()
+	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
+	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
+	price := vo.MustMoney(500)
+	scenario, _ := vo.NewScenarioSnapshot(price, 120)
+	// Start in 3h (PENDING cancellation is always early cancel)
+	start := now.Add(3 * time.Hour)
+	end := start.Add(120 * time.Minute)
+	timeRange, _ := vo.NewTimeRange(start, end)
+
+	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	_ = booking.Events()
+	_ = booking.Cancel(vo.RoleClient, now)
+
+	if booking.IsLateCancel() {
+		t.Error("expected PENDING booking cancellation to never be marked as late cancel")
+	}
+
+	events := booking.Events()
+	if len(events) != 1 || events[0].EventType() != "com.rentagf.booking.BookingCancelledEarly.v1" {
+		t.Errorf("expected BookingCancelledEarly event, got %v", events)
+	}
+}
+
+func TestCancel_FailTechnical(t *testing.T) {
+	now := time.Now()
+	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
+	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
+	price := vo.MustMoney(500)
+	scenario, _ := vo.NewScenarioSnapshot(price, 120)
+	start := now.Add(3 * time.Hour)
+	end := start.Add(120 * time.Minute)
+	timeRange, _ := vo.NewTimeRange(start, end)
+
+	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking.FailTechnical(now)
+
+	if booking.Status() != vo.StatusCancelled {
+		t.Errorf("expected CANCELLED status, got %s", booking.Status())
+	}
+	if booking.IsLateCancel() {
+		t.Error("expected late cancellation to be false for technical failures")
+	}
+}
+
+func TestSystemComplete_Success(t *testing.T) {
+	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
+	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	_ = booking.Accept(companionID, now)
+	_ = booking.Events() // clear
+
+	err := booking.SystemComplete(now)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if booking.Status() != vo.StatusCompleted {
+		t.Errorf("expected status COMPLETED, got %s", booking.Status())
+	}
+
+	events := booking.Events()
+	if len(events) != 1 || events[0].EventType() != "com.rentagf.booking.BookingCompleted.v1" {
+		t.Errorf("expected BookingCompleted event, got %v", events)
+	}
+}
+
+func TestSystemComplete_InvalidStatus(t *testing.T) {
+	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
+	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now) // PENDING state
+
+	err := booking.SystemComplete(now)
+	if err == nil {
+		t.Fatal("expected error for completing pending booking")
+	}
+}
+
+func TestDispute_Success(t *testing.T) {
+	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
+	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	_ = booking.Accept(companionID, now)
+	_ = booking.Events() // clear
+
+	err := booking.Dispute(now)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if booking.Status() != vo.StatusDisputed {
+		t.Errorf("expected status DISPUTED, got %s", booking.Status())
+	}
+
+	events := booking.Events()
+	if len(events) != 0 {
+		t.Errorf("expected no events, got %v", events)
+	}
+}
+
+func TestDispute_InvalidStatus(t *testing.T) {
+	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
+	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now) // PENDING state
+
+	err := booking.Dispute(now)
+	if err == nil {
+		t.Fatal("expected error for disputing pending booking")
 	}
 }

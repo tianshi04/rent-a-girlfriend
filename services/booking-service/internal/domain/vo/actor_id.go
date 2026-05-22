@@ -50,11 +50,12 @@ type ActorRole string
 const (
 	RoleClient    ActorRole = "CLIENT"
 	RoleCompanion ActorRole = "COMPANION"
+	RoleSystem    ActorRole = "SYSTEM"
 )
 
 func NewActorRole(s string) (ActorRole, error) {
 	switch ActorRole(s) {
-	case RoleClient, RoleCompanion:
+	case RoleClient, RoleCompanion, RoleSystem:
 		return ActorRole(s), nil
 	default:
 		return "", fmt.Errorf("invalid actor role: %s", s)

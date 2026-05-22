@@ -13,7 +13,7 @@ type BookingRequested struct {
 	BookingID   string    `json:"bookingId"`
 	ClientID    string    `json:"clientId"`
 	CompanionID string    `json:"companionId"`
-	Price       int       `json:"price"`
+	Price       int64     `json:"price"`
 	StartTime   time.Time `json:"startTime"`
 	Timestamp   time.Time `json:"timestamp"`
 }
@@ -25,7 +25,7 @@ func (e BookingRequested) OccurredAt() time.Time { return e.Timestamp }
 type BookingAccepted struct {
 	BookingID   string    `json:"bookingId"`
 	CompanionID string    `json:"companionId"`
-	Price       int       `json:"price"`
+	Price       int64     `json:"price"`
 	Timestamp   time.Time `json:"timestamp"`
 }
 
@@ -63,3 +63,25 @@ type BookingCancelledLate struct {
 
 func (e BookingCancelledLate) EventType() string    { return "com.rentagf.booking.BookingCancelledLate.v1" }
 func (e BookingCancelledLate) OccurredAt() time.Time { return e.Timestamp }
+
+// BookingTimedOut is raised when a PENDING booking exceeds 12h.
+type BookingTimedOut struct {
+	BookingID string    `json:"bookingId"`
+	ClientID  string    `json:"clientId"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+func (e BookingTimedOut) EventType() string    { return "com.rentagf.booking.BookingTimedOut.v1" }
+func (e BookingTimedOut) OccurredAt() time.Time { return e.Timestamp }
+
+// BookingCompleted is raised when an ACCEPTED booking completes without dispute.
+type BookingCompleted struct {
+	BookingID   string    `json:"bookingId"`
+	CompanionID string    `json:"companionId"`
+	ClientID    string    `json:"clientId"`
+	Price       int64     `json:"price"`
+	Timestamp   time.Time `json:"timestamp"`
+}
+
+func (e BookingCompleted) EventType() string    { return "com.rentagf.booking.BookingCompleted.v1" }
+func (e BookingCompleted) OccurredAt() time.Time { return e.Timestamp }

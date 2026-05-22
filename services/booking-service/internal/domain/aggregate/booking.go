@@ -19,7 +19,7 @@ type Booking struct {
 	status          vo.BookingStatus
 	cancelledByRole vo.ActorRole
 	isLateCancel    bool
-	version         int
+	version         int64
 	createdAt       time.Time
 	updatedAt       time.Time
 
@@ -80,7 +80,7 @@ func Reconstitute(
 	status vo.BookingStatus,
 	cancelledByRole vo.ActorRole,
 	isLateCancel bool,
-	version int,
+	version int64,
 	createdAt, updatedAt time.Time,
 ) *Booking {
 	return &Booking{
@@ -146,9 +146,16 @@ func (b *Booking) Cancel(actorRole vo.ActorRole, now time.Time) error {
 		return domainerr.ErrInvalidStatus
 	}
 
+	originalStatus := b.status
 	b.status = vo.StatusCancelled
 	b.cancelledByRole = actorRole
-	b.isLateCancel = b.timeRange.IsLateCancel(now)
+	
+	if originalStatus == vo.StatusPending {
+		b.isLateCancel = false
+	} else {
+		b.isLateCancel = b.timeRange.IsLateCancel(now)
+	}
+	
 	b.updatedAt = now
 
 	if b.isLateCancel {
@@ -169,6 +176,68 @@ func (b *Booking) Cancel(actorRole vo.ActorRole, now time.Time) error {
 	return nil
 }
 
+// Complete transitions the booking to COMPLETED.
+func (b *Booking) Complete(clientID vo.ClientID, now time.Time) error {
+	if !b.clientID.Equals(clientID) {
+		return domainerr.ErrUnauthorized
+	}
+	if !b.status.CanComplete() {
+		return domainerr.ErrInvalidStatus
+	}
+
+	b.status = vo.StatusCompleted
+	b.updatedAt = now
+
+	b.addEvent(event.BookingCompleted{
+		BookingID:   b.id.String(),
+		CompanionID: b.companionID.String(),
+		ClientID:    b.clientID.String(),
+		Price:       b.scenario.Price().Amount(),
+		Timestamp:   now,
+	})
+	return nil
+}
+
+// SystemComplete transitions the booking to COMPLETED automatically (e.g. past end_time + buffer).
+func (b *Booking) SystemComplete(now time.Time) error {
+	if !b.status.CanComplete() {
+		return domainerr.ErrInvalidStatus
+	}
+
+	b.status = vo.StatusCompleted
+	b.updatedAt = now
+
+	b.addEvent(event.BookingCompleted{
+		BookingID:   b.id.String(),
+		CompanionID: b.companionID.String(),
+		ClientID:    b.clientID.String(),
+		Price:       b.scenario.Price().Amount(),
+		Timestamp:   now,
+	})
+	return nil
+}
+
+// Dispute transitions the booking to DISPUTED state (locks it from auto-completion).
+func (b *Booking) Dispute(now time.Time) error {
+	if !b.status.CanDispute() {
+		return domainerr.ErrInvalidStatus
+	}
+
+	b.status = vo.StatusDisputed
+	b.updatedAt = now
+
+	return nil
+}
+
+// FailTechnical transitions the booking to CANCELLED state due to tech failure (e.g. escrow failure)
+func (b *Booking) FailTechnical(now time.Time) {
+	b.status = vo.StatusCancelled
+	b.cancelledByRole = vo.ActorRole("SYSTEM")
+	b.isLateCancel = false
+	b.updatedAt = now
+}
+
+
 // --- Getters ---
 
 func (b *Booking) ID() vo.BookingID              { return b.id }
@@ -179,7 +248,7 @@ func (b *Booking) TimeRange() vo.TimeRange        { return b.timeRange }
 func (b *Booking) Status() vo.BookingStatus        { return b.status }
 func (b *Booking) CancelledByRole() vo.ActorRole   { return b.cancelledByRole }
 func (b *Booking) IsLateCancel() bool              { return b.isLateCancel }
-func (b *Booking) Version() int                    { return b.version }
+func (b *Booking) Version() int64                  { return b.version }
 func (b *Booking) CreatedAt() time.Time            { return b.createdAt }
 func (b *Booking) UpdatedAt() time.Time            { return b.updatedAt }
 
@@ -199,6 +268,9 @@ func (b *Booking) addEvent(e event.DomainEvent) {
 func (b *Booking) resolveActorID(role vo.ActorRole) string {
 	if role == vo.RoleClient {
 		return b.clientID.String()
+	}
+	if string(role) == "SYSTEM" {
+		return "SYSTEM"
 	}
 	return b.companionID.String()
 }

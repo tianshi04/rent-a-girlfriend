@@ -13,4 +13,6 @@ var (
 	ErrInsufficientFunds   = errors.New("insufficient funds to freeze")
 	ErrScenarioNotFound    = errors.New("scenario not found")
 	ErrBookingAlreadyExist = errors.New("booking already exists")
+	ErrClientBookingOverlap = errors.New("client already has an active or pending booking in this time range")
+	ErrCompanionBookingOverlap = errors.New("companion already has an accepted booking in this time range")
 )

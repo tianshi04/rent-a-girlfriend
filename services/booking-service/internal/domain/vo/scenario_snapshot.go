@@ -6,11 +6,11 @@ import "fmt"
 // This ensures immutability even if the Companion changes pricing later.
 type ScenarioSnapshot struct {
 	price    Money
-	duration int // in minutes
+	duration int64 // in minutes
 }
 
 // NewScenarioSnapshot creates a validated ScenarioSnapshot.
-func NewScenarioSnapshot(price Money, durationMinutes int) (ScenarioSnapshot, error) {
+func NewScenarioSnapshot(price Money, durationMinutes int64) (ScenarioSnapshot, error) {
 	if price.IsZero() {
 		return ScenarioSnapshot{}, fmt.Errorf("scenario price must be greater than zero")
 	}
@@ -24,4 +24,4 @@ func NewScenarioSnapshot(price Money, durationMinutes int) (ScenarioSnapshot, er
 func (s ScenarioSnapshot) Price() Money { return s.price }
 
 // DurationMinutes returns the duration in minutes.
-func (s ScenarioSnapshot) DurationMinutes() int { return s.duration }
+func (s ScenarioSnapshot) DurationMinutes() int64 { return s.duration }

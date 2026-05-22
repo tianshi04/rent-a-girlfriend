@@ -37,7 +37,7 @@ func (t TimeRange) ValidateAdvanceBooking(now time.Time) error {
 }
 
 // ValidateDuration checks INV-B02: duration matches scenario duration.
-func (t TimeRange) ValidateDuration(scenarioDurationMinutes int) error {
+func (t TimeRange) ValidateDuration(scenarioDurationMinutes int64) error {
 	expected := time.Duration(scenarioDurationMinutes) * time.Minute
 	actual := t.endTime.Sub(t.startTime)
 	if actual != expected {
