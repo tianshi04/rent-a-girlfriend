@@ -121,8 +121,9 @@ Hệ thống tập trung vào các cơ chế bảo vệ cơ bản cho giao dịc
 ### 6.5. Ảnh Profile
 - **BR-12:** Companion được upload 1 ảnh đại diện + tối đa 4 ảnh album (tổng cộng 5 ảnh). Định dạng JPG/PNG, tối đa 2MB/ảnh.
 
-### 6.6. Quản lý Lịch hẹn
+### 6.6. Quản lý Lịch hẹn và Thời gian đặt trước
 - **BR-13:** Hệ thống không sử dụng cửa sổ thời gian (Availability Window) với logic validation phức tạp. Companion hoàn toàn tự chủ quyết định Accept/Reject một booking mới dựa trên lịch cá nhân thực tế của họ.
+- **BR-13a (Thời gian đặt trước tối thiểu):** Thời điểm bắt đầu cuộc hẹn (`start_time`) phải cách thời điểm gửi yêu cầu đặt lịch hẹn ít nhất **2 giờ** (`MinAdvanceBookingHours = 2`). Quy tắc này đảm bảo Companion có đủ thời gian chuẩn bị và giảm thiểu các yêu cầu đặt gấp ngoài mong muốn `[INV-B01]`.
 
 ### 6.7. Booking Chat
 - **BR-14:** Phòng chat chỉ được tạo sau khi Companion Accept booking.
