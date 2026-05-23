@@ -1,4 +1,4 @@
-use crate::application::ports::ChatRoomRepository;
+use crate::application::ports::{ChatRoomRepository, ProcessedEventRepository};
 use crate::domain::chat_room::{ChatMessage, ChatRoom};
 use crate::domain::errors::DomainError;
 use crate::domain::value_objects::ChatContent;
@@ -6,11 +6,18 @@ use std::sync::Arc;
 
 pub struct ChatUseCases {
     repo: Arc<dyn ChatRoomRepository>,
+    processed_event_repo: Arc<dyn ProcessedEventRepository>,
 }
 
 impl ChatUseCases {
-    pub fn new(repo: Arc<dyn ChatRoomRepository>) -> Self {
-        Self { repo }
+    pub fn new(
+        repo: Arc<dyn ChatRoomRepository>,
+        processed_event_repo: Arc<dyn ProcessedEventRepository>,
+    ) -> Self {
+        Self {
+            repo,
+            processed_event_repo,
+        }
     }
 
     pub async fn create_chat_room(
@@ -18,9 +25,27 @@ impl ChatUseCases {
         booking_id: String,
         client_id: String,
         companion_id: String,
+        event_id: Option<String>,
     ) -> Result<ChatRoom, DomainError> {
-        // If chat room already exists for this booking, return it (idempotency)
+        if let Some(ref ev_id) = event_id {
+            let already_processed = self
+                .processed_event_repo
+                .check_and_record(ev_id, "com.rentagf.interaction.CreateChatRoom.v1")
+                .await?;
+            if already_processed {
+                if let Some(existing) = self.repo.find_by_booking_id(&booking_id).await? {
+                    return Ok(existing);
+                }
+                return Err(DomainError::ChatRoomNotFound(format!("Booking ID: {}", booking_id)));
+            }
+        }
+
+        // If chat room already exists for this booking, return it (idempotency self-healing)
         if let Some(existing) = self.repo.find_by_booking_id(&booking_id).await? {
+            // Save the existing room again to write a new ChatRoomCreated event into the outbox
+            // (with a new event UUID). This allows the outbox worker to republish the success event
+            // so the SAGA coordinator can receive it on retries and doesn't get stuck in WAITING_FOR_CHAT.
+            self.repo.save(&existing).await?;
             return Ok(existing);
         }
 
@@ -29,7 +54,21 @@ impl ChatUseCases {
         Ok(chat_room)
     }
 
-    pub async fn lock_chat_room(&self, booking_id: &str) -> Result<(), DomainError> {
+    pub async fn lock_chat_room(
+        &self,
+        booking_id: &str,
+        event_id: Option<String>,
+    ) -> Result<(), DomainError> {
+        if let Some(ref ev_id) = event_id {
+            let already_processed = self
+                .processed_event_repo
+                .check_and_record(ev_id, "com.rentagf.booking.BookingCancelled.v1")
+                .await?;
+            if already_processed {
+                return Ok(());
+            }
+        }
+
         let mut chat_room = self
             .repo
             .find_by_booking_id(booking_id)
@@ -84,12 +123,13 @@ impl ChatUseCases {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::application::ports::MockChatRoomRepository;
+    use crate::application::ports::{MockChatRoomRepository, MockProcessedEventRepository};
     use crate::domain::chat_room::ChatRoom;
 
     #[tokio::test]
     async fn test_create_chat_room_success() {
         let mut mock_repo = MockChatRoomRepository::new();
+        let mock_processed_repo = MockProcessedEventRepository::new();
 
         // Mock find_by_booking_id to return None (room doesn't exist yet)
         mock_repo
@@ -101,12 +141,13 @@ mod tests {
         // Mock save to return Ok(())
         mock_repo.expect_save().times(1).returning(|_| Ok(()));
 
-        let use_cases = ChatUseCases::new(Arc::new(mock_repo));
+        let use_cases = ChatUseCases::new(Arc::new(mock_repo), Arc::new(mock_processed_repo));
         let res = use_cases
             .create_chat_room(
                 "booking-123".to_string(),
                 "client-789".to_string(),
                 "companion-456".to_string(),
+                None,
             )
             .await;
 
@@ -120,6 +161,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_chat_room_already_exists() {
         let mut mock_repo = MockChatRoomRepository::new();
+        let mock_processed_repo = MockProcessedEventRepository::new();
         let existing_room = ChatRoom::create(
             "booking-123".to_string(),
             "client-789".to_string(),
@@ -134,15 +176,64 @@ mod tests {
             .times(1)
             .returning(move |_| Ok(Some(existing_room.clone())));
 
-        // Save should NOT be called since the room already exists
-        mock_repo.expect_save().times(0);
+        // Save SHOULD be called 1 time to trigger outbox event (idempotency self-healing)
+        mock_repo
+            .expect_save()
+            .times(1)
+            .returning(|_| Ok(()));
 
-        let use_cases = ChatUseCases::new(Arc::new(mock_repo));
+        let use_cases = ChatUseCases::new(Arc::new(mock_repo), Arc::new(mock_processed_repo));
         let res = use_cases
             .create_chat_room(
                 "booking-123".to_string(),
                 "client-789".to_string(),
                 "companion-456".to_string(),
+                None,
+            )
+            .await;
+
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap().room_id, expected_room.room_id);
+    }
+
+    #[tokio::test]
+    async fn test_create_chat_room_duplicate_event_id() {
+        let mut mock_repo = MockChatRoomRepository::new();
+        let mut mock_processed_repo = MockProcessedEventRepository::new();
+        let existing_room = ChatRoom::create(
+            "booking-123".to_string(),
+            "client-789".to_string(),
+            "companion-456".to_string(),
+        );
+        let expected_room = existing_room.clone();
+
+        // Mock processed repo to return true (duplicate event)
+        mock_processed_repo
+            .expect_check_and_record()
+            .with(
+                mockall::predicate::eq("event-xyz"),
+                mockall::predicate::eq("com.rentagf.interaction.CreateChatRoom.v1"),
+            )
+            .times(1)
+            .returning(|_, _| Ok(true));
+
+        // Mock find_by_booking_id to return the existing room
+        mock_repo
+            .expect_find_by_booking_id()
+            .with(mockall::predicate::eq("booking-123"))
+            .times(1)
+            .returning(move |_| Ok(Some(existing_room.clone())));
+
+        // Save should NOT be called because event was already processed
+        mock_repo.expect_save().times(0);
+
+        let use_cases = ChatUseCases::new(Arc::new(mock_repo), Arc::new(mock_processed_repo));
+        let res = use_cases
+            .create_chat_room(
+                "booking-123".to_string(),
+                "client-789".to_string(),
+                "companion-456".to_string(),
+                Some("event-xyz".to_string()),
             )
             .await;
 
@@ -153,6 +244,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_message_success() {
         let mut mock_repo = MockChatRoomRepository::new();
+        let mock_processed_repo = MockProcessedEventRepository::new();
         let room = ChatRoom::create(
             "booking-123".to_string(),
             "client-789".to_string(),
@@ -172,7 +264,7 @@ mod tests {
             .times(1)
             .returning(|_| Ok(()));
 
-        let use_cases = ChatUseCases::new(Arc::new(mock_repo));
+        let use_cases = ChatUseCases::new(Arc::new(mock_repo), Arc::new(mock_processed_repo));
         let res = use_cases
             .send_message("room-abc", "client-789", "Hello there!".to_string())
             .await;
@@ -186,6 +278,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_message_unauthorized() {
         let mut mock_repo = MockChatRoomRepository::new();
+        let mock_processed_repo = MockProcessedEventRepository::new();
         let room = ChatRoom::create(
             "booking-123".to_string(),
             "client-789".to_string(),
@@ -202,7 +295,7 @@ mod tests {
         // save_message should NOT be called because sender validation fails
         mock_repo.expect_save_message().times(0);
 
-        let use_cases = ChatUseCases::new(Arc::new(mock_repo));
+        let use_cases = ChatUseCases::new(Arc::new(mock_repo), Arc::new(mock_processed_repo));
         let res = use_cases
             .send_message("room-abc", "unauthorized-stranger", "Hello!".to_string())
             .await;

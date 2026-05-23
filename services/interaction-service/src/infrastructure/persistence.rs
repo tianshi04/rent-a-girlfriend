@@ -1,3 +1,3 @@
 pub mod repositories;
 
-pub use repositories::{SqlxChatRoomRepository, SqlxReviewRepository};
+pub use repositories::{SqlxChatRoomRepository, SqlxProcessedEventRepository, SqlxReviewRepository};

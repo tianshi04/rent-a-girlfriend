@@ -36,3 +36,10 @@ pub trait EventPublisher: Send + Sync {
         payload: serde_json::Value,
     ) -> Result<(), DomainError>;
 }
+
+#[cfg_attr(test, mockall::automock)]
+#[async_trait]
+pub trait ProcessedEventRepository: Send + Sync {
+    /// Returns true if the event has already been processed, otherwise records it and returns false.
+    async fn check_and_record(&self, event_id: &str, event_type: &str) -> Result<bool, DomainError>;
+}

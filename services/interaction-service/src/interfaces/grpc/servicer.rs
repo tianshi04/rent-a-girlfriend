@@ -62,7 +62,7 @@ impl InteractionService for InteractionServicer {
         let req = request.into_inner();
         let chat_room = self
             .chat_cases
-            .create_chat_room(req.booking_id, req.client_id, req.companion_id)
+            .create_chat_room(req.booking_id, req.client_id, req.companion_id, None)
             .await
             .map_err(map_domain_error)?;
 
@@ -79,7 +79,7 @@ impl InteractionService for InteractionServicer {
     ) -> Result<Response<ChatCommandResponse>, Status> {
         let req = request.into_inner();
         self.chat_cases
-            .lock_chat_room(&req.booking_id)
+            .lock_chat_room(&req.booking_id, None)
             .await
             .map_err(map_domain_error)?;
 

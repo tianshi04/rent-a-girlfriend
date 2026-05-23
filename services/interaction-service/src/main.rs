@@ -11,7 +11,7 @@ use interaction_service::application::chat_use_cases::ChatUseCases;
 use interaction_service::application::review_use_cases::ReviewUseCases;
 use interaction_service::infrastructure::broker::OutboxWorker;
 use interaction_service::infrastructure::persistence::{
-    SqlxChatRoomRepository, SqlxReviewRepository,
+    SqlxChatRoomRepository, SqlxProcessedEventRepository, SqlxReviewRepository,
 };
 use interaction_service::interfaces::grpc::servicer::proto::interaction_service_server::InteractionServiceServer;
 use interaction_service::interfaces::grpc::servicer::InteractionServicer;
@@ -92,8 +92,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 4. Domain / Application / Persistence Assembly
     let chat_repo = Arc::new(SqlxChatRoomRepository::new(pool.clone()));
     let review_repo = Arc::new(SqlxReviewRepository::new(pool.clone()));
+    let processed_event_repo = Arc::new(SqlxProcessedEventRepository::new(pool.clone()));
 
-    let chat_cases = Arc::new(ChatUseCases::new(chat_repo));
+    let chat_cases = Arc::new(ChatUseCases::new(chat_repo, processed_event_repo));
     let review_cases = Arc::new(ReviewUseCases::new(review_repo));
 
     // 5. Start Background Workers

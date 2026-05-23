@@ -11,6 +11,7 @@ use crate::application::chat_use_cases::ChatUseCases;
 
 #[derive(Deserialize, Debug)]
 struct BookingCloudEvent {
+    id: String,
     #[serde(rename = "type")]
     event_type: String,
     data: BookingEventData,
@@ -18,7 +19,13 @@ struct BookingCloudEvent {
 
 #[derive(Deserialize, Debug)]
 struct BookingEventData {
+    #[serde(alias = "bookingId")]
     booking_id: String,
+    #[serde(alias = "clientId")]
+    client_id: Option<String>,
+    #[serde(alias = "companionId")]
+    companion_id: Option<String>,
+    #[serde(alias = "endTime")]
     end_time: Option<String>,
 }
 
@@ -111,14 +118,41 @@ impl BookingEventListener {
         };
 
         info!(
-            "Received booking event: {} for Booking ID: {}",
-            cloudevent.event_type, cloudevent.data.booking_id
+            "Received booking event: {} with ID: {} for Booking ID: {}",
+            cloudevent.event_type, cloudevent.id, cloudevent.data.booking_id
         );
 
         let booking_id = cloudevent.data.booking_id.clone();
         let chat_cases = self.chat_cases.clone();
 
         match cloudevent.event_type.as_str() {
+            "com.rentagf.interaction.CreateChatRoom.v1" => {
+                info!(
+                    "CreateChatRoom command received for Booking ID: {}",
+                    booking_id
+                );
+                if let (Some(client_id), Some(companion_id)) = (
+                    cloudevent.data.client_id.clone(),
+                    cloudevent.data.companion_id.clone(),
+                ) {
+                    match chat_cases
+                        .create_chat_room(booking_id.clone(), client_id, companion_id, Some(cloudevent.id.clone()))
+                        .await
+                    {
+                        Ok(_) => {
+                            info!("Successfully created chat room via event for booking {}", booking_id);
+                        }
+                        Err(e) => {
+                            error!("Failed to create chat room via event for booking {}: {:?}", booking_id, e);
+                        }
+                    }
+                } else {
+                    error!(
+                        "Missing client_id or companion_id in CreateChatRoom command for booking {}",
+                        booking_id
+                    );
+                }
+            }
             "com.rentagf.booking.BookingCancelled.v1"
             | "com.rentagf.booking.BookingCancelledEarly.v1"
             | "com.rentagf.booking.BookingCancelledLate.v1" => {
@@ -126,7 +160,7 @@ impl BookingEventListener {
                     "Booking {} cancelled. Locking chat room immediately.",
                     booking_id
                 );
-                if let Err(e) = chat_cases.lock_chat_room(&booking_id).await {
+                if let Err(e) = chat_cases.lock_chat_room(&booking_id, Some(cloudevent.id.clone())).await {
                     error!(
                         "Failed to lock chat room for booking {}: {:?}",
                         booking_id, e
@@ -155,12 +189,13 @@ impl BookingEventListener {
                     booking_id, delay_seconds
                 );
 
+                let event_id_for_task = cloudevent.id.clone();
                 tokio::spawn(async move {
                     if delay_seconds > 0 {
                         sleep(tokio::time::Duration::from_secs(delay_seconds)).await;
                     }
                     info!("Executing scheduled lock for booking {}...", booking_id);
-                    if let Err(e) = chat_cases.lock_chat_room(&booking_id).await {
+                    if let Err(e) = chat_cases.lock_chat_room(&booking_id, Some(event_id_for_task)).await {
                         error!(
                             "Failed to lock chat room on completion schedule for booking {}: {:?}",
                             booking_id, e

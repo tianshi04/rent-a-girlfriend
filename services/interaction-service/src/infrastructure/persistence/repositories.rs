@@ -1,4 +1,4 @@
-use crate::application::ports::{ChatRoomRepository, ReviewRepository};
+use crate::application::ports::{ChatRoomRepository, ProcessedEventRepository, ReviewRepository};
 use crate::domain::chat_room::{ChatMessage, ChatRoom, ChatRoomStatus};
 use crate::domain::errors::DomainError;
 use crate::domain::events::{
@@ -409,5 +409,37 @@ impl ReviewRepository for SqlxReviewRepository {
             ));
         }
         Ok(reviews)
+    }
+}
+
+pub struct SqlxProcessedEventRepository {
+    pool: PgPool,
+}
+
+impl SqlxProcessedEventRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait]
+impl ProcessedEventRepository for SqlxProcessedEventRepository {
+    async fn check_and_record(&self, event_id: &str, event_type: &str) -> Result<bool, DomainError> {
+        let now = Utc::now();
+        let result = sqlx::query(
+            r#"
+            INSERT INTO processed_events (event_id, event_type, processed_at)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (event_id) DO NOTHING
+            "#,
+        )
+        .bind(event_id)
+        .bind(event_type)
+        .bind(now)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+
+        Ok(result.rows_affected() == 0)
     }
 }
