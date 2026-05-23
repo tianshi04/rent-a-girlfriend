@@ -12,7 +12,6 @@ build:
 test:
 	go test ./internal/... -v -count=1
 
-test-unit: test
 
 
 test-integration:

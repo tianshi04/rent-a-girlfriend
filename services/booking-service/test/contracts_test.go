@@ -17,7 +17,6 @@ func TestProtobufSerialization_Contracts(t *testing.T) {
 	}
 	// 1. Verify RequestBookingRequest serialization
 	req := &bookingv1.RequestBookingRequest{
-		ClientId:    "client-123",
 		CompanionId: "companion-123",
 		ScenarioId:  "scenario-123",
 		StartTime:   timestamppb.New(parsedTime),
@@ -36,7 +35,7 @@ func TestProtobufSerialization_Contracts(t *testing.T) {
 		t.Fatalf("failed to unmarshal RequestBookingRequest from protobuf binary: %v", err)
 	}
 
-	if unmarshaledReq.ClientId != req.ClientId || unmarshaledReq.CompanionId != req.CompanionId || unmarshaledReq.ScenarioId != req.ScenarioId {
+	if unmarshaledReq.CompanionId != req.CompanionId || unmarshaledReq.ScenarioId != req.ScenarioId {
 		t.Errorf("mismatched unmarshaled fields: got %+v, expected %+v", unmarshaledReq, req)
 	}
 
@@ -52,8 +51,8 @@ func TestProtobufSerialization_Contracts(t *testing.T) {
 		t.Fatalf("failed to unmarshal RequestBookingRequest from JSON: %v", err)
 	}
 
-	if jsonReq.ClientId != req.ClientId {
-		t.Errorf("mismatched JSON deserialization fields: got %s, expected %s", jsonReq.ClientId, req.ClientId)
+	if jsonReq.CompanionId != req.CompanionId {
+		t.Errorf("mismatched JSON deserialization fields: got %s, expected %s", jsonReq.CompanionId, req.CompanionId)
 	}
 }
 
