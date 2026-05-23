@@ -59,6 +59,13 @@ class SagaStateMapper:
     @staticmethod
     def to_model(domain: Union[DisputeRefundSaga, DisputePayoutSaga]) -> SagaStateModel:
         saga_type = "REFUND" if isinstance(domain, DisputeRefundSaga) else "PAYOUT"
+        
+        companion_wallet_id = None
+        commission_rate = None
+        if saga_type == "PAYOUT":
+            companion_wallet_id = getattr(domain, "companion_wallet_id", None)
+            commission_rate = getattr(domain, "commission_rate", None)
+            
         return SagaStateModel(
             saga_id=domain.saga_id,
             dispute_id=domain.dispute_id,
@@ -68,6 +75,8 @@ class SagaStateMapper:
             retry_count=domain.retry_count,
             last_error=domain.last_error,
             version=domain.version,
+            companion_wallet_id=companion_wallet_id,
+            commission_rate=commission_rate,
         )
 
     @staticmethod
@@ -91,6 +100,8 @@ class SagaStateMapper:
                 retry_count=model.retry_count,
                 last_error=model.last_error,
                 version=model.version,
+                companion_wallet_id=model.companion_wallet_id,
+                commission_rate=model.commission_rate,
             )
         else:
             raise ValueError(f"Unknown saga type: {model.saga_type}")
