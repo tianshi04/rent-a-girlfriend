@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package booking.v1.events;
+
+option go_package = "github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1";
+
+import "google/protobuf/timestamp.proto";
+
+message BookingCancelledLate {
+  string booking_id = 1;
+  string actor_id = 2;
+  string actor_role = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+}

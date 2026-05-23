@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package booking.v1.events;
+
+option go_package = "github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1";
+
+import "google/protobuf/timestamp.proto";
+
+message BookingTimedOut {
+  string booking_id = 1;
+  string client_id = 2;
+  google.protobuf.Timestamp occurred_at = 3;
+}
