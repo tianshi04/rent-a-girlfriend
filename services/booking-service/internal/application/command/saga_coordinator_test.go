@@ -37,7 +37,7 @@ func TestSagaCoordinator_HandleEscrowSuccess(t *testing.T) {
 	saga.UpdateState(vo.SagaStateWaitingForEscrow, now)
 	_ = sagaRepo.Save(context.Background(), saga)
 
-	err := coordinator.HandleEscrowSuccess(context.Background(), bid.String())
+	err := coordinator.HandleEscrowSuccess(context.Background(), bid.String(), uuid.New().String())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -73,7 +73,7 @@ func TestSagaCoordinator_HandleEscrowFailed(t *testing.T) {
 	saga.UpdateState(vo.SagaStateWaitingForEscrow, now)
 	_ = sagaRepo.Save(context.Background(), saga)
 
-	err := coordinator.HandleEscrowFailed(context.Background(), bid.String())
+	err := coordinator.HandleEscrowFailed(context.Background(), bid.String(), uuid.New().String())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -115,7 +115,7 @@ func TestSagaCoordinator_HandleChatRoomCreated_Success(t *testing.T) {
 	saga.UpdateState(vo.SagaStateWaitingForChat, now)
 	_ = sagaRepo.Save(context.Background(), saga)
 
-	err := coordinator.HandleChatRoomCreated(context.Background(), bid.String())
+	err := coordinator.HandleChatRoomCreated(context.Background(), bid.String(), uuid.New().String())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -164,7 +164,7 @@ func TestSagaCoordinator_HandleChatRoomCreated_OverlapCompensation(t *testing.T)
 	_ = sagaRepo.Save(context.Background(), saga)
 
 	// When ChatRoomCreated is handled, it should detect the overlap and trigger compensation!
-	err := coordinator.HandleChatRoomCreated(context.Background(), bid2.String())
+	err := coordinator.HandleChatRoomCreated(context.Background(), bid2.String(), uuid.New().String())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -206,7 +206,7 @@ func TestSagaCoordinator_HandleChatRoomFailed(t *testing.T) {
 	saga.UpdateState(vo.SagaStateWaitingForChat, now)
 	_ = sagaRepo.Save(context.Background(), saga)
 
-	err := coordinator.HandleChatRoomFailed(context.Background(), bid.String())
+	err := coordinator.HandleChatRoomFailed(context.Background(), bid.String(), uuid.New().String())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -242,7 +242,7 @@ func TestSagaCoordinator_HandleRefundSuccess(t *testing.T) {
 	saga.UpdateState(vo.SagaStateRevertingEscrow, now)
 	_ = sagaRepo.Save(context.Background(), saga)
 
-	err := coordinator.HandleRefundSuccess(context.Background(), bid.String())
+	err := coordinator.HandleRefundSuccess(context.Background(), bid.String(), uuid.New().String())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -284,7 +284,7 @@ func TestSagaCoordinator_HandleRefundFailed(t *testing.T) {
 	saga.UpdateState(vo.SagaStateRevertingEscrow, now)
 	_ = sagaRepo.Save(context.Background(), saga)
 
-	err := coordinator.HandleRefundFailed(context.Background(), bid.String())
+	err := coordinator.HandleRefundFailed(context.Background(), bid.String(), uuid.New().String())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
