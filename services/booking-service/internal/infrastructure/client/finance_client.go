@@ -32,7 +32,7 @@ func (c *FinanceClient) FreezeCoin(ctx context.Context, clientID vo.ClientID, am
 		Type:   bookingv1.TransactionType_TRANSACTION_TYPE_BOOKING_RESERVATION,
 	}
 
-	resp, err := c.grpcClient.FreezeCoin(ctx, req)
+	resp, err := c.grpcClient.FreezeCoin(propagateMetadata(ctx), req)
 	if err != nil {
 		return fmt.Errorf("failed to call FreezeCoin gRPC: %w", err)
 	}
@@ -53,7 +53,7 @@ func (c *FinanceClient) UnfreezeCoin(ctx context.Context, clientID vo.ClientID, 
 		Type:   bookingv1.TransactionType_TRANSACTION_TYPE_REFUND,
 	}
 
-	resp, err := c.grpcClient.FreezeCoin(ctx, req)
+	resp, err := c.grpcClient.FreezeCoin(propagateMetadata(ctx), req)
 	if err != nil {
 		return fmt.Errorf("failed to call FreezeCoin (unfreeze) gRPC: %w", err)
 	}

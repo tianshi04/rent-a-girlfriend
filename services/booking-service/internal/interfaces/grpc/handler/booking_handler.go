@@ -53,11 +53,7 @@ func NewBookingGRPCHandler(
 
 // RequestBooking handles client booking creation request.
 func (h *BookingGRPCHandler) RequestBooking(ctx context.Context, req *bookingv1.RequestBookingRequest) (*bookingv1.RequestBookingResponse, error) {
-	clientID := req.ClientId
-	if clientID == "" {
-		clientID = util.GetUserID(ctx)
-	}
-
+	clientID := util.GetUserID(ctx)
 	if clientID == "" {
 		return nil, status.Error(codes.Unauthenticated, "client identity is missing")
 	}
@@ -82,11 +78,7 @@ func (h *BookingGRPCHandler) RequestBooking(ctx context.Context, req *bookingv1.
 
 // AcceptBooking handles companion booking acceptance request.
 func (h *BookingGRPCHandler) AcceptBooking(ctx context.Context, req *bookingv1.AcceptBookingRequest) (*bookingv1.AcceptBookingResponse, error) {
-	companionID := req.CompanionId
-	if companionID == "" {
-		companionID = util.GetUserID(ctx)
-	}
-
+	companionID := util.GetUserID(ctx)
 	if companionID == "" {
 		return nil, status.Error(codes.Unauthenticated, "companion identity is missing")
 	}
@@ -108,11 +100,7 @@ func (h *BookingGRPCHandler) AcceptBooking(ctx context.Context, req *bookingv1.A
 
 // RejectBooking handles companion booking rejection request.
 func (h *BookingGRPCHandler) RejectBooking(ctx context.Context, req *bookingv1.RejectBookingRequest) (*bookingv1.RejectBookingResponse, error) {
-	companionID := req.CompanionId
-	if companionID == "" {
-		companionID = util.GetUserID(ctx)
-	}
-
+	companionID := util.GetUserID(ctx)
 	if companionID == "" {
 		return nil, status.Error(codes.Unauthenticated, "companion identity is missing")
 	}
@@ -134,28 +122,14 @@ func (h *BookingGRPCHandler) RejectBooking(ctx context.Context, req *bookingv1.R
 
 // CancelBooking handles client/companion booking cancellation request.
 func (h *BookingGRPCHandler) CancelBooking(ctx context.Context, req *bookingv1.CancelBookingRequest) (*bookingv1.CancelBookingResponse, error) {
-	actorID := req.ActorId
-	if actorID == "" {
-		actorID = util.GetUserID(ctx)
-	}
-
+	actorID := util.GetUserID(ctx)
 	if actorID == "" {
 		return nil, status.Error(codes.Unauthenticated, "actor identity is missing")
 	}
 
 	actorRole := util.GetUserRole(ctx)
 	if actorRole == "" {
-		// Determine role from cancellation reason enum if context is empty
-		switch req.Reason {
-		case bookingv1.CancellationReason_CANCELLATION_REASON_CLIENT_EARLY,
-			bookingv1.CancellationReason_CANCELLATION_REASON_CLIENT_LATE:
-			actorRole = "CLIENT"
-		case bookingv1.CancellationReason_CANCELLATION_REASON_COMPANION_EARLY,
-			bookingv1.CancellationReason_CANCELLATION_REASON_COMPANION_LATE:
-			actorRole = "COMPANION"
-		default:
-			actorRole = "CLIENT" // Fallback default
-		}
+		return nil, status.Error(codes.PermissionDenied, "missing user role header")
 	}
 
 	booking, err := h.cancelBooking.Handle(ctx, command.CancelBookingCmd{
@@ -208,8 +182,8 @@ func (h *BookingGRPCHandler) GetBooking(ctx context.Context, req *bookingv1.GetB
 	// Verify authorization: caller must be client, companion, or admin
 	callerID := util.GetUserID(ctx)
 	callerRole := util.GetUserRole(ctx)
-	if callerRole != "ADMIN" && callerID != "" {
-		if booking.ClientID().String() != callerID && booking.CompanionID().String() != callerID {
+	if callerRole != "ADMIN" {
+		if callerID == "" || (booking.ClientID().String() != callerID && booking.CompanionID().String() != callerID) {
 			return nil, status.Error(codes.PermissionDenied, "unauthorized to access this booking")
 		}
 	}
@@ -219,14 +193,18 @@ func (h *BookingGRPCHandler) GetBooking(ctx context.Context, req *bookingv1.GetB
 
 // ListBookings handles listing and filtering bookings.
 func (h *BookingGRPCHandler) ListBookings(ctx context.Context, req *bookingv1.ListBookingsRequest) (*bookingv1.ListBookingsResponse, error) {
-	callerID := req.ActorId
-	if callerID == "" {
-		callerID = util.GetUserID(ctx)
-	}
+	// Strictly extract authenticated user ID and role from context (injected by Istio Waypoint)
+	authID := util.GetUserID(ctx)
+	authRole := util.GetUserRole(ctx)
 
-	callerRole := req.ActorRole
+	// Fallback to request payload ONLY if context metadata is missing (e.g. in local development / unit tests)
+	callerID := authID
+	if callerID == "" {
+		callerID = req.ActorId
+	}
+	callerRole := authRole
 	if callerRole == "" {
-		callerRole = util.GetUserRole(ctx)
+		callerRole = req.ActorRole
 	}
 
 	page := int64(1)
@@ -243,11 +221,21 @@ func (h *BookingGRPCHandler) ListBookings(ctx context.Context, req *bookingv1.Li
 
 	var clientIDPtr, companionIDPtr *string
 	if callerRole == "CLIENT" {
-		clientIDPtr = &callerID
+		// Non-admin CLIENT is strictly restricted to their own authenticated ID
+		actualID := authID
+		if actualID == "" {
+			actualID = callerID // fallback for local/unit testing
+		}
+		clientIDPtr = &actualID
 	} else if callerRole == "COMPANION" {
-		companionIDPtr = &callerID
-	} else {
-		// If Admin/unspecified, check request filters
+		// Non-admin COMPANION is strictly restricted to their own authenticated ID
+		actualID := authID
+		if actualID == "" {
+			actualID = callerID // fallback for local/unit testing
+		}
+		companionIDPtr = &actualID
+	} else if callerRole == "ADMIN" {
+		// Admin can filter by any actor using request parameters
 		if req.ActorId != "" {
 			if req.ActorRole == "CLIENT" {
 				clientIDPtr = &req.ActorId
@@ -255,6 +243,9 @@ func (h *BookingGRPCHandler) ListBookings(ctx context.Context, req *bookingv1.Li
 				companionIDPtr = &req.ActorId
 			}
 		}
+	} else {
+		// Missing or unrecognized role must be rejected to prevent BOLA data leakage
+		return nil, status.Error(codes.PermissionDenied, "unauthorized or missing user role header")
 	}
 
 	var statusesFilter []string
