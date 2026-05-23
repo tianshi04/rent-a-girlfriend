@@ -25,14 +25,26 @@ func NewBookingRepository(db *gorm.DB) *BookingRepositoryImpl {
 	return &BookingRepositoryImpl{db: db}
 }
 
-func (r *BookingRepositoryImpl) Save(ctx context.Context, booking *aggregate.Booking) error {
-	model := ToModel(booking)
-	db := r.db
+func (r *BookingRepositoryImpl) getDB(ctx context.Context) *gorm.DB {
 	if tx, ok := ctx.Value("tx").(*gorm.DB); ok {
-		db = tx
+		return tx.WithContext(ctx)
 	}
-	db = db.WithContext(ctx)
+	return r.db.WithContext(ctx)
+}
 
+func (r *BookingRepositoryImpl) Save(ctx context.Context, booking *aggregate.Booking) error {
+	tx, ok := ctx.Value("tx").(*gorm.DB)
+	if ok {
+		return r.save(tx.WithContext(ctx), booking)
+	}
+
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return r.save(tx, booking)
+	})
+}
+
+func (r *BookingRepositoryImpl) save(db *gorm.DB, booking *aggregate.Booking) error {
+	model := ToModel(booking)
 	if err := db.Create(model).Error; err != nil {
 		return err
 	}
@@ -60,15 +72,20 @@ func (r *BookingRepositoryImpl) Save(ctx context.Context, booking *aggregate.Boo
 }
 
 func (r *BookingRepositoryImpl) Update(ctx context.Context, booking *aggregate.Booking) error {
+	tx, ok := ctx.Value("tx").(*gorm.DB)
+	if ok {
+		return r.update(tx.WithContext(ctx), booking)
+	}
+
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return r.update(tx, booking)
+	})
+}
+
+func (r *BookingRepositoryImpl) update(db *gorm.DB, booking *aggregate.Booking) error {
 	model := ToModel(booking)
 	oldVersion := model.Version
 	model.Version = oldVersion + 1
-
-	db := r.db
-	if tx, ok := ctx.Value("tx").(*gorm.DB); ok {
-		db = tx
-	}
-	db = db.WithContext(ctx)
 
 	// Optimistic locking: only update if version matches
 	result := db.
@@ -161,7 +178,7 @@ func extractBookingID(evt event.DomainEvent) string {
 
 func (r *BookingRepositoryImpl) FindByID(ctx context.Context, id vo.BookingID) (*aggregate.Booking, error) {
 	var model BookingModel
-	result := r.db.WithContext(ctx).Where("id = ?", id.String()).First(&model)
+	result := r.getDB(ctx).Where("id = ?", id.String()).First(&model)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			return nil, domainerr.ErrBookingNotFound
@@ -176,7 +193,7 @@ func (r *BookingRepositoryImpl) CountPendingByCompanion(
 	companionID vo.CompanionID,
 ) (int64, error) {
 	var count int64
-	result := r.db.WithContext(ctx).
+	result := r.getDB(ctx).
 		Model(&BookingModel{}).
 		Where("companion_id = ? AND status = ?",
 			companionID.String(), string(vo.StatusPending)).
@@ -195,7 +212,7 @@ func (r *BookingRepositoryImpl) HasOverlappingBooking(
 	startTime, endTime time.Time,
 ) (bool, error) {
 	var count int64
-	query := r.db.WithContext(ctx).Model(&BookingModel{})
+	query := r.getDB(ctx).Model(&BookingModel{})
 
 	if isCompanion {
 		query = query.Where("companion_id = ?", actorID)
@@ -222,7 +239,7 @@ func (r *BookingRepositoryImpl) FindByFilters(
 	ctx context.Context,
 	filters repository.BookingFilters,
 ) ([]*aggregate.Booking, int64, error) {
-	query := r.db.WithContext(ctx).Model(&BookingModel{})
+	query := r.getDB(ctx).Model(&BookingModel{})
 
 	if filters.ClientID != nil {
 		query = query.Where("client_id = ?", *filters.ClientID)
@@ -265,7 +282,7 @@ func (r *BookingRepositoryImpl) FindAcceptedBookingsPastEndTimeBuffer(
 ) ([]*aggregate.Booking, error) {
 	threshold := now.Add(-buffer)
 	var models []BookingModel
-	err := r.db.WithContext(ctx).
+	err := r.getDB(ctx).
 		Where("status = ? AND end_time <= ?", string(vo.StatusAccepted), threshold).
 		Find(&models).Error
 	if err != nil {
@@ -283,3 +300,34 @@ func (r *BookingRepositoryImpl) FindAcceptedBookingsPastEndTimeBuffer(
 
 	return bookings, nil
 }
+
+// FindPendingBookingsEligibleForTimeout finds all PENDING bookings that have timed out.
+// Timed out means either created > 12 hours ago OR start_time <= now + 1 hour (equivalent to start_time - 1h <= now).
+func (r *BookingRepositoryImpl) FindPendingBookingsEligibleForTimeout(
+	ctx context.Context,
+	now time.Time,
+) ([]*aggregate.Booking, error) {
+	createdAtThreshold := now.Add(-12 * time.Hour)
+	startTimeThreshold := now.Add(1 * time.Hour)
+
+	var models []BookingModel
+	err := r.getDB(ctx).
+		Where("status = ? AND (created_at <= ? OR start_time <= ?)",
+			string(vo.StatusPending), createdAtThreshold, startTimeThreshold).
+		Find(&models).Error
+	if err != nil {
+		return nil, err
+	}
+
+	bookings := make([]*aggregate.Booking, 0, len(models))
+	for i := range models {
+		b, err := models[i].ToDomain()
+		if err != nil {
+			return nil, err
+		}
+		bookings = append(bookings, b)
+	}
+
+	return bookings, nil
+}
+

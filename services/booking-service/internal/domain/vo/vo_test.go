@@ -118,8 +118,17 @@ func TestBookingStatus_Transitions(t *testing.T) {
 	if vo.StatusCancelled.CanCancel() {
 		t.Error("CANCELLED should not allow cancel")
 	}
+	if vo.StatusRejected.CanCancel() {
+		t.Error("REJECTED should not allow cancel")
+	}
+	if vo.StatusDisputed.CanCancel() {
+		t.Error("DISPUTED should not allow cancel")
+	}
 	if !vo.StatusAccepted.CanCancel() {
 		t.Error("ACCEPTED should allow cancel")
+	}
+	if !vo.StatusPending.CanCancel() {
+		t.Error("PENDING should allow cancel")
 	}
 }
 

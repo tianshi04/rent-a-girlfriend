@@ -35,7 +35,7 @@ func (r *BookingSagaRepoImpl) Update(ctx context.Context, saga *aggregate.Bookin
 
 func (r *BookingSagaRepoImpl) FindByID(ctx context.Context, id string) (*aggregate.BookingAcceptSaga, error) {
 	var model BookingAcceptSagaModel
-	err := r.db.WithContext(ctx).Where("id = ?", id).First(&model).Error
+	err := r.txDB(ctx).Where("id = ?", id).First(&model).Error
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (r *BookingSagaRepoImpl) FindByID(ctx context.Context, id string) (*aggrega
 
 func (r *BookingSagaRepoImpl) FindByBookingID(ctx context.Context, bookingID string) (*aggregate.BookingAcceptSaga, error) {
 	var model BookingAcceptSagaModel
-	err := r.db.WithContext(ctx).Where("booking_id = ?", bookingID).Order("created_at desc").First(&model).Error
+	err := r.txDB(ctx).Where("booking_id = ?", bookingID).Order("created_at desc").First(&model).Error
 	if err != nil {
 		return nil, err
 	}

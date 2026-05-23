@@ -217,6 +217,24 @@ func (b *Booking) SystemComplete(now time.Time) error {
 	return nil
 }
 
+// SystemTimeout transitions the booking to REJECTED due to timeout.
+func (b *Booking) SystemTimeout(now time.Time) error {
+	if !b.status.CanReject() {
+		return domainerr.ErrInvalidStatus
+	}
+
+	b.status = vo.StatusRejected
+	b.updatedAt = now
+
+	b.addEvent(event.BookingTimedOut{
+		BookingID: b.id.String(),
+		ClientID:  b.clientID.String(),
+		Timestamp: now,
+	})
+	return nil
+}
+
+
 // Dispute transitions the booking to DISPUTED state (locks it from auto-completion).
 func (b *Booking) Dispute(now time.Time) error {
 	if !b.status.CanDispute() {

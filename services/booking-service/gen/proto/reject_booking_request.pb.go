@@ -24,8 +24,7 @@ const (
 type RejectBookingRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BookingId     string                 `protobuf:"bytes,1,opt,name=booking_id,json=bookingId,proto3" json:"booking_id,omitempty"`
-	CompanionId   string                 `protobuf:"bytes,2,opt,name=companion_id,json=companionId,proto3" json:"companion_id,omitempty"`
-	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -67,13 +66,6 @@ func (x *RejectBookingRequest) GetBookingId() string {
 	return ""
 }
 
-func (x *RejectBookingRequest) GetCompanionId() string {
-	if x != nil {
-		return x.CompanionId
-	}
-	return ""
-}
-
 func (x *RejectBookingRequest) GetReason() string {
 	if x != nil {
 		return x.Reason
@@ -86,12 +78,11 @@ var File_booking_v1_messages_reject_booking_request_proto protoreflect.FileDescr
 const file_booking_v1_messages_reject_booking_request_proto_rawDesc = "" +
 	"\n" +
 	"0booking/v1/messages/reject_booking_request.proto\x12\n" +
-	"booking.v1\"p\n" +
+	"booking.v1\"M\n" +
 	"\x14RejectBookingRequest\x12\x1d\n" +
 	"\n" +
-	"booking_id\x18\x01 \x01(\tR\tbookingId\x12!\n" +
-	"\fcompanion_id\x18\x02 \x01(\tR\vcompanionId\x12\x16\n" +
-	"\x06reason\x18\x03 \x01(\tR\x06reasonBBZ@github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1b\x06proto3"
+	"booking_id\x18\x01 \x01(\tR\tbookingId\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reasonBBZ@github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1b\x06proto3"
 
 var (
 	file_booking_v1_messages_reject_booking_request_proto_rawDescOnce sync.Once

@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 
 	profilev1 "github.com/rent-a-girlfriend/booking-service/gen/proto/profilev1"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
@@ -29,7 +30,7 @@ func (c *ProfileClient) GetScenarioSnapshot(ctx context.Context, scenarioID stri
 		ScenarioId: scenarioID,
 	}
 
-	resp, err := c.grpcClient.GetScenarioSnapshot(ctx, req)
+	resp, err := c.grpcClient.GetScenarioSnapshot(propagateMetadata(ctx), req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call GetScenarioSnapshot gRPC: %w", err)
 	}
@@ -45,4 +46,17 @@ func (c *ProfileClient) GetScenarioSnapshot(ctx context.Context, scenarioID stri
 	}
 
 	return &snapshot, nil
+}
+
+func propagateMetadata(ctx context.Context) context.Context {
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		outgoingMd := metadata.New(map[string]string{})
+		for _, key := range []string{"user-id", "user-role", "user-status", "user-email"} {
+			if values := md.Get(key); len(values) > 0 {
+				outgoingMd.Set(key, values[0])
+			}
+		}
+		return metadata.NewOutgoingContext(ctx, outgoingMd)
+	}
+	return ctx
 }

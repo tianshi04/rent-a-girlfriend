@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -25,14 +26,15 @@ import (
 
 // Server holds all wired dependencies.
 type Server struct {
-	Router             http.Handler
-	GRPCServer         *grpc.Server
-	OutboxWorker       *messaging.OutboxWorker
-	AutoCompleteWorker *worker.AutoCompleteWorker
-	KafkaConsumer      *messaging.KafkaConsumer
-	KafkaPublisher     *messaging.KafkaPublisher
-	ProfileConn        *grpc.ClientConn
-	FinanceConn        *grpc.ClientConn
+	Router               http.Handler
+	GRPCServer           *grpc.Server
+	OutboxWorker         *messaging.OutboxWorker
+	AutoCompleteWorker   *worker.AutoCompleteWorker
+	PendingTimeoutWorker *worker.PendingTimeoutWorker
+	KafkaConsumer        *messaging.KafkaConsumer
+	KafkaPublisher       *messaging.KafkaPublisher
+	ProfileConn          *grpc.ClientConn
+	FinanceConn          *grpc.ClientConn
 }
 
 // NewServer wires all dependencies and returns a configured server.
@@ -91,6 +93,14 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 		cfg.Worker.AutoCompleteBuffer,
 	)
 
+	// --- Pending Timeout Worker ---
+	systemRejectBookingHandler := command.NewSystemRejectBookingHandler(bookingRepo, financeService)
+	pendingTimeoutWorker := worker.NewPendingTimeoutWorker(
+		bookingRepo,
+		systemRejectBookingHandler,
+		cfg.Worker.AutoCompleteInterval,
+	)
+
 	// --- SAGA Coordinator ---
 	sagaCoordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outboxPublisher)
 
@@ -133,20 +143,21 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 	bookingv1.RegisterBookingServiceServer(gServer, grpcHandler)
 
 	return &Server{
-		Router:             r,
-		GRPCServer:         gServer,
-		OutboxWorker:       outboxWorker,
-		AutoCompleteWorker: autoCompleteWorker,
-		KafkaConsumer:      kafkaConsumer,
-		KafkaPublisher:     kafkaPublisher,
-		ProfileConn:        profileConn,
-		FinanceConn:        financeConn,
+		Router:               r,
+		GRPCServer:           gServer,
+		OutboxWorker:         outboxWorker,
+		AutoCompleteWorker:   autoCompleteWorker,
+		PendingTimeoutWorker: pendingTimeoutWorker,
+		KafkaConsumer:        kafkaConsumer,
+		KafkaPublisher:       kafkaPublisher,
+		ProfileConn:          profileConn,
+		FinanceConn:          financeConn,
 	}
 }
 
 // Run starts HTTP, gRPC servers, the Outbox Worker, and Kafka Consumer concurrently.
 func (s *Server) Run(ctx context.Context, httpAddr, grpcAddr string) error {
-	errChan := make(chan error, 2)
+	errChan := make(chan error, 3)
 
 	// Start Outbox Worker (background)
 	go func() {
@@ -166,6 +177,12 @@ func (s *Server) Run(ctx context.Context, httpAddr, grpcAddr string) error {
 		s.KafkaConsumer.Start(ctx)
 	}()
 
+	// Start Pending-Timeout Worker (background)
+	go func() {
+		log.Println("[PENDING-TIMEOUT-WORKER] Starting pending timeout worker...")
+		s.PendingTimeoutWorker.Start(ctx)
+	}()
+
 	// Start gRPC server
 	go func() {
 		log.Printf("[GRPC] Booking Service starting on %s", grpcAddr)
@@ -174,21 +191,41 @@ func (s *Server) Run(ctx context.Context, httpAddr, grpcAddr string) error {
 			errChan <- fmt.Errorf("failed to listen for gRPC: %w", err)
 			return
 		}
-		if err := s.GRPCServer.Serve(lis); err != nil {
+		if err := s.GRPCServer.Serve(lis); err != nil && err != grpc.ErrServerStopped {
 			errChan <- fmt.Errorf("failed to serve gRPC: %w", err)
 		}
 	}()
 
 	// Start HTTP server
+	httpServer := &http.Server{
+		Addr:    httpAddr,
+		Handler: s.Router,
+	}
 	go func() {
 		log.Printf("[HTTP] Booking Service starting on %s", httpAddr)
-		httpServer := &http.Server{
-			Addr:    httpAddr,
-			Handler: s.Router,
-		}
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errChan <- fmt.Errorf("failed to start HTTP server: %w", err)
 		}
+	}()
+
+	// Graceful shutdown listener
+	go func() {
+		<-ctx.Done()
+		log.Println("[SERVER] Shutting down servers gracefully...")
+
+		// Stop HTTP server
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+		_ = httpServer.Shutdown(shutdownCtx)
+
+		// Stop gRPC server
+		s.GRPCServer.GracefulStop()
+
+		// Close client connections
+		_ = s.ProfileConn.Close()
+		_ = s.FinanceConn.Close()
+
+		errChan <- nil // unblock Run
 	}()
 
 	return <-errChan

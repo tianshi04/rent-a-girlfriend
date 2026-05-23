@@ -24,7 +24,6 @@ const (
 type AcceptBookingRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BookingId     string                 `protobuf:"bytes,1,opt,name=booking_id,json=bookingId,proto3" json:"booking_id,omitempty"`
-	CompanionId   string                 `protobuf:"bytes,2,opt,name=companion_id,json=companionId,proto3" json:"companion_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -66,23 +65,15 @@ func (x *AcceptBookingRequest) GetBookingId() string {
 	return ""
 }
 
-func (x *AcceptBookingRequest) GetCompanionId() string {
-	if x != nil {
-		return x.CompanionId
-	}
-	return ""
-}
-
 var File_booking_v1_messages_accept_booking_request_proto protoreflect.FileDescriptor
 
 const file_booking_v1_messages_accept_booking_request_proto_rawDesc = "" +
 	"\n" +
 	"0booking/v1/messages/accept_booking_request.proto\x12\n" +
-	"booking.v1\"X\n" +
+	"booking.v1\"5\n" +
 	"\x14AcceptBookingRequest\x12\x1d\n" +
 	"\n" +
-	"booking_id\x18\x01 \x01(\tR\tbookingId\x12!\n" +
-	"\fcompanion_id\x18\x02 \x01(\tR\vcompanionIdBBZ@github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1b\x06proto3"
+	"booking_id\x18\x01 \x01(\tR\tbookingIdBBZ@github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1b\x06proto3"
 
 var (
 	file_booking_v1_messages_accept_booking_request_proto_rawDescOnce sync.Once

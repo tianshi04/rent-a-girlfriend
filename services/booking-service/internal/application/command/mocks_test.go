@@ -158,6 +158,20 @@ func (m *MockBookingRepository) FindAcceptedBookingsPastEndTimeBuffer(ctx contex
 	return result, nil
 }
 
+func (m *MockBookingRepository) FindPendingBookingsEligibleForTimeout(ctx context.Context, now time.Time) ([]*aggregate.Booking, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var result []*aggregate.Booking
+	for _, b := range m.bookings {
+		if b.Status() == vo.StatusPending {
+			if b.CreatedAt().Add(12*time.Hour).Before(now) || b.TimeRange().StartTime().Add(-1*time.Hour).Before(now) {
+				result = append(result, b)
+			}
+		}
+	}
+	return result, nil
+}
+
 // MockBookingSagaRepository implements repository.BookingSagaRepository.
 type MockBookingSagaRepository struct {
 	mu        sync.RWMutex

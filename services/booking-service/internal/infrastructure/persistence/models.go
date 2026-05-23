@@ -39,6 +39,7 @@ type OutboxModel struct {
 	CreatedAt     time.Time `gorm:"column:created_at;type:timestamptz;not null;autoCreateTime"`
 	Published     bool      `gorm:"column:published;default:false;index:idx_outbox_unpublished"`
 	PublishedAt   *time.Time `gorm:"column:published_at;type:timestamptz"`
+	LockedUntil   *time.Time `gorm:"column:locked_until;type:timestamptz"`
 }
 
 // TableName specifies the table name for GORM.

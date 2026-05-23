@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 	"gorm.io/gorm"
@@ -82,17 +83,52 @@ func (c *KafkaConsumer) Start(ctx context.Context) {
 func (c *KafkaConsumer) consume(ctx context.Context, r *kafka.Reader) {
 	log.Printf("[KAFKA-CONSUMER] Started consuming topic=%s group=%s", r.Config().Topic, r.Config().GroupID)
 	for {
-		msg, err := r.ReadMessage(ctx)
+		// Fetch message without committing offset immediately
+		msg, err := r.FetchMessage(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
 				return // context cancelled
 			}
-			log.Printf("[KAFKA-CONSUMER] Error reading from topic=%s: %v", r.Config().Topic, err)
+			log.Printf("[KAFKA-CONSUMER] Error fetching from topic=%s: %v", r.Config().Topic, err)
 			continue
 		}
 
-		if err := c.dispatch(ctx, msg); err != nil {
-			log.Printf("[KAFKA-CONSUMER] Failed to dispatch event from topic=%s offset=%d: %v",
+		// Dispatch and process event with a retry loop for transient database/locking errors
+		maxRetries := 3
+		backoff := 1 * time.Second
+		var dispatchErr error
+
+		for attempt := 1; attempt <= maxRetries; attempt++ {
+			dispatchErr = c.dispatch(ctx, msg)
+			if dispatchErr == nil {
+				break
+			}
+
+			log.Printf("[KAFKA-CONSUMER] Dispatch failed (attempt %d/%d) on topic=%s offset=%d: %v",
+				attempt, maxRetries, r.Config().Topic, msg.Offset, dispatchErr)
+
+			if attempt < maxRetries {
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(backoff):
+					backoff *= 2 // Exponential backoff: 1s, 2s, 4s
+				}
+			}
+		}
+
+		if dispatchErr != nil {
+			// CRITICAL: We failed to process the message even after retries.
+			// To enforce at-least-once processing, we DO NOT commit the offset!
+			// This will halt consumer offset progress or allow reprocessing upon consumer restart.
+			log.Printf("[KAFKA-CONSUMER] CRITICAL: Dispatch failed after all retries on topic=%s offset=%d: %v. Hiding offset commit to force reprocessing later.",
+				r.Config().Topic, msg.Offset, dispatchErr)
+			continue
+		}
+
+		// Commit offset only after successful processing
+		if err := r.CommitMessages(ctx, msg); err != nil {
+			log.Printf("[KAFKA-CONSUMER] Failed to commit message offset on topic=%s offset=%d: %v",
 				r.Config().Topic, msg.Offset, err)
 		}
 	}
@@ -103,16 +139,6 @@ func (c *KafkaConsumer) dispatch(ctx context.Context, msg kafka.Message) error {
 	if err := json.Unmarshal(msg.Value, &ce); err != nil {
 		log.Printf("[KAFKA-CONSUMER] Failed to parse CloudEvent: %v", err)
 		return nil // skip malformed messages
-	}
-
-	// Idempotency check: skip if already processed
-	alreadyProcessed, err := persistence.CheckAndRecordEvent(ctx, c.db, ce.ID, ce.Type)
-	if err != nil {
-		return err
-	}
-	if alreadyProcessed {
-		log.Printf("[KAFKA-CONSUMER] Skipping duplicate event id=%s type=%s", ce.ID, ce.Type)
-		return nil
 	}
 
 	var payload bookingIDPayload
@@ -127,21 +153,33 @@ func (c *KafkaConsumer) dispatch(ctx context.Context, msg kafka.Message) error {
 	switch ce.Type {
 	// Finance events
 	case "com.rentagf.finance.CoinEscrowed.v1":
-		return c.coordinators.HandleEscrowSuccess(ctx, bookingID)
+		return c.coordinators.HandleEscrowSuccess(ctx, bookingID, ce.ID)
 	case "com.rentagf.finance.EscrowFailed.v1":
-		return c.coordinators.HandleEscrowFailed(ctx, bookingID)
+		return c.coordinators.HandleEscrowFailed(ctx, bookingID, ce.ID)
 	case "com.rentagf.finance.RefundSuccess.v1":
-		return c.coordinators.HandleRefundSuccess(ctx, bookingID)
+		return c.coordinators.HandleRefundSuccess(ctx, bookingID, ce.ID)
 	case "com.rentagf.finance.RefundFailed.v1":
-		return c.coordinators.HandleRefundFailed(ctx, bookingID)
+		return c.coordinators.HandleRefundFailed(ctx, bookingID, ce.ID)
 	// Interaction events
 	case "com.rentagf.interaction.ChatRoomCreated.v1":
-		return c.coordinators.HandleChatRoomCreated(ctx, bookingID)
+		return c.coordinators.HandleChatRoomCreated(ctx, bookingID, ce.ID)
 	case "com.rentagf.interaction.ChatRoomCreationFailed.v1":
-		return c.coordinators.HandleChatRoomFailed(ctx, bookingID)
+		return c.coordinators.HandleChatRoomFailed(ctx, bookingID, ce.ID)
 	// Dispute events
 	case "com.rentagf.dispute.DisputeCreated.v1":
-		_, err := c.disputeHandler.Handle(ctx, command.DisputeBookingCmd{BookingID: bookingID})
+		err := c.db.Transaction(func(tx *gorm.DB) error {
+			txCtx := context.WithValue(ctx, "tx", tx)
+			alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, tx, ce.ID, ce.Type)
+			if err != nil {
+				return err
+			}
+			if alreadyProcessed {
+				log.Printf("[KAFKA-CONSUMER] Skipping duplicate event id=%s type=%s", ce.ID, ce.Type)
+				return nil
+			}
+			_, err = c.disputeHandler.Handle(txCtx, command.DisputeBookingCmd{BookingID: bookingID})
+			return err
+		})
 		return err
 	default:
 		log.Printf("[KAFKA-CONSUMER] Unrecognised event type=%s, ignoring", ce.Type)

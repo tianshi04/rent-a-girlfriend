@@ -28,7 +28,7 @@ func TestRequestBooking_Success(t *testing.T) {
 		ClientID:    "550e8400-e29b-41d4-a716-446655440001",
 		CompanionID: "550e8400-e29b-41d4-a716-446655440002",
 		ScenarioID:  "scenario-123",
-		StartTime:   now.Add(3 * time.Hour), // INV-B01: >2h advance
+		StartTime:   now.Add(4 * time.Hour), // INV-B01: >3h advance (using 4h to avoid time-race)
 	}
 
 	booking, err := handler.Handle(context.Background(), cmd)
@@ -85,7 +85,7 @@ func TestRequestBooking_INV_B04_CompanionCapExceeded(t *testing.T) {
 		ClientID:    clientID.String(),
 		CompanionID: companionID.String(),
 		ScenarioID:  "scenario-123",
-		StartTime:   now.Add(3 * time.Hour),
+		StartTime:   now.Add(4 * time.Hour),
 	}
 
 	_, err := handler.Handle(context.Background(), cmd)
@@ -146,7 +146,7 @@ func TestRequestBooking_FinanceFreezeFailure_Rollback(t *testing.T) {
 		ClientID:    "550e8400-e29b-41d4-a716-446655440001",
 		CompanionID: "550e8400-e29b-41d4-a716-446655440002",
 		ScenarioID:  "scenario-123",
-		StartTime:   now.Add(3 * time.Hour),
+		StartTime:   now.Add(4 * time.Hour),
 	}
 
 	_, err := handler.Handle(context.Background(), cmd)

@@ -69,6 +69,10 @@ func (m *e2eMockBookingRepository) FindAcceptedBookingsPastEndTimeBuffer(ctx con
 	return nil, nil
 }
 
+func (m *e2eMockBookingRepository) FindPendingBookingsEligibleForTimeout(ctx context.Context, now time.Time) ([]*aggregate.Booking, error) {
+	return nil, nil
+}
+
 // In-memory mock Profile Service for E2E
 type e2eMockProfileService struct {
 	snapshot *vo.ScenarioSnapshot

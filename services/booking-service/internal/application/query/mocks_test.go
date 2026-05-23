@@ -106,3 +106,7 @@ func (m *MockBookingRepository) FindByFilters(ctx context.Context, filters repos
 func (m *MockBookingRepository) FindAcceptedBookingsPastEndTimeBuffer(ctx context.Context, now time.Time, buffer time.Duration) ([]*aggregate.Booking, error) {
 	return nil, nil
 }
+
+func (m *MockBookingRepository) FindPendingBookingsEligibleForTimeout(ctx context.Context, now time.Time) ([]*aggregate.Booking, error) {
+	return nil, nil
+}

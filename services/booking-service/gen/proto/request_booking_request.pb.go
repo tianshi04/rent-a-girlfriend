@@ -24,12 +24,11 @@ const (
 
 type RequestBookingRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	ClientId        string                 `protobuf:"bytes,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	CompanionId     string                 `protobuf:"bytes,2,opt,name=companion_id,json=companionId,proto3" json:"companion_id,omitempty"`
-	ScenarioId      string                 `protobuf:"bytes,3,opt,name=scenario_id,json=scenarioId,proto3" json:"scenario_id,omitempty"`
-	StartTime       *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	Price           int64                  `protobuf:"varint,5,opt,name=price,proto3" json:"price,omitempty"`
-	DurationMinutes int64                  `protobuf:"varint,6,opt,name=duration_minutes,json=durationMinutes,proto3" json:"duration_minutes,omitempty"`
+	CompanionId     string                 `protobuf:"bytes,1,opt,name=companion_id,json=companionId,proto3" json:"companion_id,omitempty"`
+	ScenarioId      string                 `protobuf:"bytes,2,opt,name=scenario_id,json=scenarioId,proto3" json:"scenario_id,omitempty"`
+	StartTime       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	Price           int64                  `protobuf:"varint,4,opt,name=price,proto3" json:"price,omitempty"`
+	DurationMinutes int64                  `protobuf:"varint,5,opt,name=duration_minutes,json=durationMinutes,proto3" json:"duration_minutes,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -62,13 +61,6 @@ func (x *RequestBookingRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RequestBookingRequest.ProtoReflect.Descriptor instead.
 func (*RequestBookingRequest) Descriptor() ([]byte, []int) {
 	return file_booking_v1_messages_request_booking_request_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *RequestBookingRequest) GetClientId() string {
-	if x != nil {
-		return x.ClientId
-	}
-	return ""
 }
 
 func (x *RequestBookingRequest) GetCompanionId() string {
@@ -111,16 +103,15 @@ var File_booking_v1_messages_request_booking_request_proto protoreflect.FileDesc
 const file_booking_v1_messages_request_booking_request_proto_rawDesc = "" +
 	"\n" +
 	"1booking/v1/messages/request_booking_request.proto\x12\n" +
-	"booking.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf4\x01\n" +
-	"\x15RequestBookingRequest\x12\x1b\n" +
-	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12!\n" +
-	"\fcompanion_id\x18\x02 \x01(\tR\vcompanionId\x12\x1f\n" +
-	"\vscenario_id\x18\x03 \x01(\tR\n" +
+	"booking.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd7\x01\n" +
+	"\x15RequestBookingRequest\x12!\n" +
+	"\fcompanion_id\x18\x01 \x01(\tR\vcompanionId\x12\x1f\n" +
+	"\vscenario_id\x18\x02 \x01(\tR\n" +
 	"scenarioId\x129\n" +
 	"\n" +
-	"start_time\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tstartTime\x12\x14\n" +
-	"\x05price\x18\x05 \x01(\x03R\x05price\x12)\n" +
-	"\x10duration_minutes\x18\x06 \x01(\x03R\x0fdurationMinutesBBZ@github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1b\x06proto3"
+	"start_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tstartTime\x12\x14\n" +
+	"\x05price\x18\x04 \x01(\x03R\x05price\x12)\n" +
+	"\x10duration_minutes\x18\x05 \x01(\x03R\x0fdurationMinutesBBZ@github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1b\x06proto3"
 
 var (
 	file_booking_v1_messages_request_booking_request_proto_rawDescOnce sync.Once

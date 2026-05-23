@@ -8,6 +8,5 @@ import "common/v1/enums.proto";
 
 message CancelBookingRequest {
   string booking_id = 1;
-  string actor_id = 2;
-  common.v1.CancellationReason reason = 3;
+  common.v1.CancellationReason reason = 2;
 }

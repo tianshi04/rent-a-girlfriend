@@ -32,6 +32,9 @@ type BookingRepository interface {
 
 	// FindAcceptedBookingsPastEndTimeBuffer retrieves ACCEPTED bookings past end_time + buffer.
 	FindAcceptedBookingsPastEndTimeBuffer(ctx context.Context, now time.Time, buffer time.Duration) ([]*aggregate.Booking, error)
+
+	// FindPendingBookingsEligibleForTimeout retrieves PENDING bookings that have timed out (created > 12h ago or past start_time - 1h).
+	FindPendingBookingsEligibleForTimeout(ctx context.Context, now time.Time) ([]*aggregate.Booking, error)
 }
 
 // BookingFilters contains optional filter criteria for listing bookings.

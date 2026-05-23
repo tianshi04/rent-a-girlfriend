@@ -25,7 +25,7 @@ func (s BookingStatus) CanReject() bool {
 
 // CanCancel checks if the booking can transition to CANCELLED. [INV-B05]
 func (s BookingStatus) CanCancel() bool {
-	return s != StatusCompleted && s != StatusCancelled && s != StatusResolved
+	return s == StatusPending || s == StatusAccepted
 }
 
 // CanComplete checks if the booking can transition to COMPLETED.

@@ -6,5 +6,4 @@ option go_package = "github.com/rent-a-girlfriend/booking-service/gen/proto;book
 
 message AcceptBookingRequest {
   string booking_id = 1;
-  string companion_id = 2;
 }
