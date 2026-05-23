@@ -15,8 +15,10 @@ class DisputeRepository(IDisputeRepository):
 
     async def save(self, dispute: Dispute) -> None:
         model = DisputeMapper.to_model(dispute)
-        await self.session.merge(model)
+        merged_model = await self.session.merge(model)
         await self.session.flush()
+        # Sync auto-incremented OCC version back to the domain aggregate
+        dispute.version = merged_model.version
 
     async def find_by_id(self, dispute_id: str) -> Optional[Dispute]:
         stmt = (
@@ -83,8 +85,10 @@ class SagaStateRepository(ISagaStateRepository):
 
     async def save(self, saga: Union[DisputeRefundSaga, DisputePayoutSaga]) -> None:
         model = SagaStateMapper.to_model(saga)
-        await self.session.merge(model)
+        merged_model = await self.session.merge(model)
         await self.session.flush()
+        # Sync auto-incremented OCC version back to the saga state
+        saga.version = merged_model.version
 
     async def find_by_id(
         self, saga_id: str

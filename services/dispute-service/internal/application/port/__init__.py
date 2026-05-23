@@ -41,6 +41,11 @@ class IFinancePort(ABC):
         """gRPC client call to Finance Service to payout from escrow."""
         pass
 
+    @abstractmethod
+    async def get_payout_snapshot(self, booking_id: str) -> tuple[str, float]:
+        """Fetch snapshot details (companion_wallet_id, commission_rate) from Finance Service."""
+        pass
+
 
 class IInteractionPort(ABC):
     @abstractmethod

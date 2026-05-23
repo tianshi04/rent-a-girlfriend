@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Integer, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, String, Integer, Float, Text, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -29,6 +29,10 @@ class DisputeModel(Base):
     version = Column(Integer, default=1, nullable=False)
     created_at = Column(DateTime, default=utcnow_naive)
     updated_at = Column(DateTime, default=utcnow_naive, onupdate=utcnow_naive)
+
+    __mapper_args__ = {
+        "version_id_col": version
+    }
 
     evidences = relationship(
         "DisputeEvidenceModel", back_populates="dispute", cascade="all, delete-orphan"
@@ -62,9 +66,15 @@ class SagaStateModel(Base):
     current_state = Column(String(50), nullable=False, index=True)
     retry_count = Column(Integer, default=0, nullable=False)
     last_error = Column(Text, nullable=True)
+    companion_wallet_id = Column(String(36), nullable=True)
+    commission_rate = Column(Float, nullable=True)
     version = Column(Integer, default=1, nullable=False)
     created_at = Column(DateTime, default=utcnow_naive)
     updated_at = Column(DateTime, default=utcnow_naive, onupdate=utcnow_naive)
+
+    __mapper_args__ = {
+        "version_id_col": version
+    }
 
 
 class OutboxModel(Base):

@@ -165,6 +165,8 @@ class DisputePayoutSaga:
         saga_id: str,
         dispute_id: str,
         booking_id: str,
+        companion_wallet_id: Optional[str] = None,
+        commission_rate: Optional[float] = None,
         current_state: str = "PAYING_OUT",
         retry_count: int = 0,
         last_error: Optional[str] = None,
@@ -176,6 +178,8 @@ class DisputePayoutSaga:
         self.current_state = current_state
         self.retry_count = retry_count
         self.last_error = last_error
+        self.companion_wallet_id = companion_wallet_id
+        self.commission_rate = commission_rate
         self.version = version
         self.events: List[DomainEvent] = []
 
@@ -188,11 +192,13 @@ class DisputePayoutSaga:
         return events
 
     @classmethod
-    def create(cls, saga_id: str, dispute_id: str, booking_id: str) -> "DisputePayoutSaga":
+    def create(cls, saga_id: str, dispute_id: str, booking_id: str, companion_wallet_id: str, commission_rate: float) -> "DisputePayoutSaga":
         return cls(
             saga_id=saga_id,
             dispute_id=dispute_id,
             booking_id=booking_id,
+            companion_wallet_id=companion_wallet_id,
+            commission_rate=commission_rate,
             current_state="PAYING_OUT",
         )
 

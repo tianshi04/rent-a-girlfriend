@@ -21,7 +21,14 @@ class DisputePayoutSagaOrchestrator:
 
     async def start(self, saga_id: str, dispute_id: str, booking_id: str):
         logger.info(f"Starting DisputePayoutSaga {saga_id} for dispute {dispute_id}")
-        saga = DisputePayoutSaga.create(saga_id, dispute_id, booking_id)
+        wallet_id, commission_rate = await self.finance_port.get_payout_snapshot(booking_id)
+        saga = DisputePayoutSaga.create(
+            saga_id=saga_id,
+            dispute_id=dispute_id,
+            booking_id=booking_id,
+            companion_wallet_id=wallet_id,
+            commission_rate=commission_rate,
+        )
         await self.saga_repo.save(saga)
         await self.process_saga(saga)
 
@@ -30,11 +37,9 @@ class DisputePayoutSagaOrchestrator:
         
         if saga.current_state == "PAYING_OUT":
             try:
-                # We stub companion_wallet_id and commission_rate
-                companion_wallet_id = f"wallet-{saga.booking_id}"
-                commission_rate = 0.15
+                # Use snapshot from saga state instead of hardcoding
                 res = await self.finance_port.payout_from_escrow(
-                    saga.booking_id, companion_wallet_id, commission_rate
+                    saga.booking_id, saga.companion_wallet_id, saga.commission_rate
                 )
                 if res.success:
                     saga.on_payout_success()

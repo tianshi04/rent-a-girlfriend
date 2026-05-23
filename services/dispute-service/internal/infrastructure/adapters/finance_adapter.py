@@ -33,6 +33,10 @@ class MockFinanceAdapter(IFinancePort):
         # Mocking successful payout call
         return PayoutResult(success=True, transaction_id=str(uuid.uuid4()))
 
+    async def get_payout_snapshot(self, booking_id: str) -> tuple[str, float]:
+        # Mock snapshot fetch
+        return (f"wallet-{booking_id}", 0.15)
+
 
 class gRPCFinanceAdapter(IFinancePort):
     """
@@ -93,4 +97,11 @@ class gRPCFinanceAdapter(IFinancePort):
         except Exception as e:
             logger.error(f"gRPC call to Finance Service ProcessPayout failed: {e}")
             return PayoutResult(success=False, error=str(e))
+
+    async def get_payout_snapshot(self, booking_id: str) -> tuple[str, float]:
+        # Stub implementation for get_payout_snapshot via gRPC
+        # In a real scenario, this would call a Finance or Booking service method.
+        # For now, returning stub values as we lack the specific gRPC definition.
+        logger.info(f"Stubbing get_payout_snapshot for booking {booking_id}")
+        return (f"wallet-{booking_id}", 0.15)
 
