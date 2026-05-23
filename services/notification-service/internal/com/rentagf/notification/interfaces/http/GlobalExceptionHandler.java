@@ -11,7 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -51,18 +51,22 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of(
-                        "error_code", "INTERNAL_ERROR",
-                        "message", "An unexpected error occurred",
-                        "timestamp", Instant.now().toString()
+                        "error", Map.of(
+                                "code", "INTERNAL_ERROR",
+                                "message", "An unexpected error occurred",
+                                "details", List.of()
+                        )
                 ));
     }
 
     private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, NotificationDomainException ex) {
         return ResponseEntity.status(status)
                 .body(Map.of(
-                        "error_code", ex.getErrorCode(),
-                        "message", ex.getMessage(),
-                        "timestamp", Instant.now().toString()
+                        "error", Map.of(
+                                "code", ex.getErrorCode(),
+                                "message", ex.getMessage(),
+                                "details", List.of()
+                        )
                 ));
     }
 }
