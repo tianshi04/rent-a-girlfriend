@@ -55,17 +55,36 @@ class NotificationRepositoryTest {
     }
 
     @Test
-    void testUniqueEventIdUserConstraint() {
-        UUID userId1 = UUID.randomUUID();
-        UUID userId2 = UUID.randomUUID();
-        String eventId = "evt_duplicate_" + UUID.randomUUID();
+    void testUniqueEventIdUserConstraint_duplicateShouldFail() {
+        UUID userId = UUID.randomUUID();
+        String eventId = "evt_dup_" + UUID.randomUUID();
         Notification notification1 = Notification.create(
-                userId1, eventId, NotificationType.TRANSACTIONAL, NotificationPriority.HIGH,
+                userId, eventId, NotificationType.TRANSACTIONAL, NotificationPriority.HIGH,
                 Map.of("title", "Hello 1"), Map.of()
         );
         Notification notificationDuplicate = Notification.create(
-                userId1, eventId, NotificationType.TRANSACTIONAL, NotificationPriority.HIGH,
+                userId, eventId, NotificationType.TRANSACTIONAL, NotificationPriority.HIGH,
                 Map.of("title", "Hello Duplicate"), Map.of()
+        );
+
+        notificationRepository.save(notification1);
+        entityManager.flush();
+
+        // 1. Lưu trùng eventId + userId -> Phải ném Exception
+        assertThrows(Exception.class, () -> {
+            notificationRepository.save(notificationDuplicate);
+            entityManager.flush(); // Ép flush để trigger UNIQUE constraint check ở DB
+        });
+    }
+
+    @Test
+    void testUniqueEventIdUserConstraint_differentUserShouldSuccess() {
+        UUID userId1 = UUID.randomUUID();
+        UUID userId2 = UUID.randomUUID();
+        String eventId = "evt_diff_" + UUID.randomUUID();
+        Notification notification1 = Notification.create(
+                userId1, eventId, NotificationType.TRANSACTIONAL, NotificationPriority.HIGH,
+                Map.of("title", "Hello 1"), Map.of()
         );
         Notification notificationDifferentUser = Notification.create(
                 userId2, eventId, NotificationType.TRANSACTIONAL, NotificationPriority.HIGH,
@@ -73,15 +92,9 @@ class NotificationRepositoryTest {
         );
 
         notificationRepository.save(notification1);
-        entityManager.flush(); // Flush notification1 xuống trước
+        entityManager.flush();
 
-        // 1. Lưu trùng eventId + userId1 -> Phải ném Exception
-        assertThrows(Exception.class, () -> {
-            notificationRepository.save(notificationDuplicate);
-            entityManager.flush(); // Ép flush để trigger UNIQUE constraint check ở DB
-        });
-
-        // 2. Lưu trùng eventId nhưng khác userId (userId2) -> Phải thành công
+        // 2. Lưu trùng eventId nhưng khác userId -> Phải thành công
         assertDoesNotThrow(() -> {
             notificationRepository.save(notificationDifferentUser);
             entityManager.flush();
@@ -91,7 +104,8 @@ class NotificationRepositoryTest {
     @Test
     void testCursorBasedPagination() {
         UUID userId = UUID.randomUUID();
-        Instant now = Instant.now();
+        // Làm tròn thời gian về giây (SECONDS) để tránh mất độ phân giải nano-giây trong H2 Database
+        Instant now = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
         
         // Tạo 3 notifications với createdAt cách nhau rõ rệt để đảm bảo thứ tự sắp xếp deterministic (n1 cũ nhất, n3 mới nhất)
         Notification n1 = new Notification(

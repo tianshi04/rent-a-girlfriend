@@ -81,7 +81,7 @@ Với mỗi Smart Consumer event, define rõ:
 
 ---
 
-## Phase 1: Domain Layer + Database + Async Core - [PHASE HIỆN TẠI]
+## Phase 1: Domain Layer + Database + Async Core - [ĐÃ HOÀN THÀNH]
 
 **Mục tiêu**: Xây dựng Core Business Logic thuần túy (Domain Model), Database Schema PostgreSQL và cấu hình Hàng đợi bất đồng bộ (Async Core) để sẵn sàng cho xử lý phi luồng.
 
@@ -102,14 +102,14 @@ Với mỗi Smart Consumer event, define rõ:
   - Sửa đổi `GlobalExceptionHandler.java` trả về JSON lồng nhau đúng đặc tả `docs/api-contract.md §3` và thêm handler dự phòng cho Domain Exception.
 
 ### Tiêu chí Done
-- [ ] Build thành công và toàn bộ 2 bảng cùng 5 indexes được migrate thành công ở DB.
-- [ ] Unit Tests đạt 100% test coverage cho Domain logic (Invariants & State Machine).
-- [ ] Integration Tests kiểm thử thành công lưu cascade và cursor-based pagination.
-- [ ] Viết tài liệu `TESTS_README.md` lập mục lục kiểm thử chi tiết.
+- [x] Build thành công và toàn bộ 2 bảng cùng 5 indexes được migrate thành công ở DB.
+- [x] Unit Tests đạt 100% test coverage cho Domain logic (Invariants & State Machine).
+- [x] Integration Tests kiểm thử thành công lưu cascade và cursor-based pagination.
+- [x] Viết tài liệu `TESTS_README.md` lập mục lục kiểm thử chi tiết.
 
 ---
 
-## Phase 2: SSE Realtime Delivery
+## Phase 2: SSE Realtime Delivery - [ĐÃ HOÀN THÀNH]
 
 **Mục tiêu**: Xây dựng cổng giao tiếp Server-Sent Events thời gian thực, tích hợp Redis Pub/Sub phục vụ môi trường phân tán (Distributed SSE).
 
@@ -120,13 +120,13 @@ Với mỗi Smart Consumer event, define rõ:
 - Tích hợp Redis Pub/Sub Adapter (Spring Data Redis Listener) để định tuyến tin nhắn giữa các Pods.
 
 ### Tiêu chí Done
-- [ ] Client kết nối SSE thành công và nhận heartbeat định kỳ.
-- [ ] Pod A gọi Redis Publish -> Pod B (giữ connection của Client) nhận được và đẩy tin xuống Client qua SSE stream thành công.
-- [ ] Dọn dẹp connection thành công khi Client tắt app hoặc mất mạng.
+- [x] Client kết nối SSE thành công và nhận heartbeat định kỳ.
+- [x] Pod A gọi Redis Publish -> Pod B (giữ connection của Client) nhận được và đẩy tin xuống Client qua SSE stream thành công.
+- [x] Dọn dẹp connection thành công khi Client tắt app hoặc mất mạng.
 
 ---
 
-## Phase 3: Event Consumer + Routing Engine
+## Phase 3: Event Consumer + Routing Engine - [PHASE HIỆN TẠI]
 
 **Mục tiêu**: Lắng nghe events từ Broker → dịch → routing → deliver.
 

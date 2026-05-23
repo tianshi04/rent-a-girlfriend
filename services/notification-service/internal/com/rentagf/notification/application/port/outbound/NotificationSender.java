@@ -1,3 +1,4 @@
+
 package com.rentagf.notification.application.port.outbound;
 
 import com.rentagf.notification.domain.aggregate.Notification;

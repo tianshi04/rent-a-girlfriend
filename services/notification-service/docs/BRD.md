@@ -95,6 +95,11 @@ Lớp lõi nghiệp vụ (Domain Layer) của Notification Service có trách nh
 *   **`[INV-N03] - Tính Idempotency`**:
     *   Hệ thống cấm tạo ra hai thông báo khác nhau cho cùng một `userId` xuất phát từ cùng một `idempotencyKey` của hệ thống.
     *   Ràng buộc này được bảo vệ nghiêm ngặt ở tầng Persistence bằng một chỉ mục độc bản (Unique Constraint) ghép cặp `(user_id, idempotency_key)` trong cơ sở dữ liệu.
+*   **`[INV-N04] - Đảm bảo dọn dẹp kết nối chết (Dead Connection Cleanup)`**:
+    *   Hệ thống bắt buộc phải tự động phát hiện kết nối đứt ở tầng mạng TCP (Broken pipe, Client offline không ngắt kết nối sạch) và dọn dẹp đối tượng kết nối SSE (`SseEmitter`) khỏi `SseConnectionRegistry` trong vòng tối đa **5 giây** sau khi phát hiện lỗi I/O để tránh rò rỉ bộ nhớ (Memory Leak).
+*   **`[INV-N05] - Giới hạn tần suất Heartbeat (Heartbeat Frequency)`**:
+    *   Để ngăn chặn việc Load Balancer (AWS ALB, Nginx, Istio Waypoint Proxy) ngắt kết nối HTTP streaming do trạng thái rảnh rỗi (Idle Connection), hệ thống bắt buộc phải duy trì việc gửi gói tin Heartbeat (`: ping\n\n`) định kỳ với tần suất cố định là **15 giây một lần** cho mỗi kết nối active.
+
 
 ---
 

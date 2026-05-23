@@ -9,10 +9,10 @@
 
 Dự án tuân thủ **Hexagonal Architecture**, được chia làm 4 lớp chính:
 
-1. **Interfaces Layer**: `Event Subscriber` (lắng nghe Kafka/RabbitMQ), `REST Controllers` (nếu cần query nội bộ).
-2. **Application Layer**: `Routing Engine` (quyết định kênh gửi), `Notification Use Cases` (quản lý logic gửi tin).
+1. **Interfaces Layer**: `SseController` (Inbound Adapter nhận kết nối SSE), `Event Subscriber` (lắng nghe Kafka/RabbitMQ), `REST Controllers`.
+2. **Application Layer**: `NotificationSubscriptionUseCase` (Inbound Port), `NotificationSubscriptionService` (UseCase implementation đẩy tin chưa đọc), `Routing Engine` (quyết định kênh gửi), `Notification Use Cases` (quản lý logic gửi tin).
 3. **Domain Layer**: `Notification` (Aggregate Root) và `DeliveryAttempt` (Entity), chứa các luật kinh doanh (ví dụ: Retry tối đa 3 lần).
-4. **Infrastructure Layer**: `FCM Adapter` (Firebase), `SSE Manager` (Socket), `SMTP Adapter` (Email), `PostgreSQL Repository` (DB).
+4. **Infrastructure Layer**: `SseConnectionRegistry` (Quản lý session Emitter cục bộ), `RedisPubSubAdapter` (Hạ tầng truyền tin distributed), `FCM Adapter` (Firebase), `SMTP Adapter` (Email), `PostgreSQL Repository` (DB).
 
 ---
 
@@ -37,6 +37,8 @@ Dự án tuân thủ **Hexagonal Architecture**, được chia làm 4 lớp chí
 - **[ADR-0005: Hybrid Triggering](./docs/adr/0005-hybrid-notification-triggering-strategy.md)**: Chiến lược kết hợp giữa Smart Consumer (nghe Domain Events) và Passive Subscriber.
 - **[ADR-0006: Payload Design Strategy](./docs/adr/0006-payload-design-operational-flexibility-vs-type-safety.md)**: Quyết định lựa chọn Map (Operational Flexibility) thay vì Class Hierarchy (Type Safety) để tối ưu hóa sự tiến hóa liên tục của payload.
 - **[ADR-0007: Outbound Delivery & Error Handling](./docs/adr/0007-outbound-delivery-and-error-handling-strategy.md)**: Quy định về SendResult, Retry Policy riêng cho từng kênh gửi và cơ chế Async Queue / Worker Pool bất đồng bộ.
+- **[ADR-0010: Refactoring SSE Connection Management](./docs/adr/phase-2/0010-sse-clean-architecture-refactoring.md)**: Quyết định kiến trúc cô lập `SseEmitter` ra khỏi Core và thiết lập UseCase độc lập.
+- **[13. Ports & Adapters Architecture Levels (SSE)](./docs/todo/phase-2/ports-and-adapters-sse.md)**: Tài liệu đặc tả 3 cấp độ (Level) kiến trúc Ports & Adapters sạch cho case SSE.
 
 ---
 

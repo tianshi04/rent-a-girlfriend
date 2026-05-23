@@ -57,6 +57,16 @@ Hệ thống áp dụng phương pháp **Test-Driven Development (TDD)** kết h
   - `testAsyncDeliveryUnrecoverableFailureDirectlyFails`: Gửi tin lỗi Unrecoverable trong luồng nền. Xác nhận DB chuyển trạng thái sang `FAILED` và cập nhật chính xác mã lỗi kỹ thuật từ Strategy Outbound Port.
   - `testDuplicateEventExceptionThrown`: Kiểm chứng tính Idempotency của API trigger. Khi gửi thông báo trùng lặp (trùng `idempotencyKey` và `userId`), hệ thống ném ra `DuplicateEventException`.
 
+### 5. [ArchitectureConsistencyTest.java](file:///e:/LEARN/rent-a-girlfriend/services/notification-service/tests/com/rentagf/notification/ArchitectureConsistencyTest.java)
+* **Loại test**: Architecture Unit Test (sử dụng thư viện **ArchUnit**).
+* **Mục tiêu**: Đảm bảo tính bất biến của kiến trúc Ports & Adapters, tự động kiểm soát import và ranh giới hệ thống để ngăn chặn 100% các lỗi rò rỉ framework (Spring Web, SseEmitter, JPA) vào Core Application.
+* **Các kịch bản kiểm chứng (Quy tắc kiến trúc)**:
+  - `coreShouldBeFreeOfSpringWebFramework`: Quét Core (Application + Domain) để chặn đứng mọi import của Spring Web (`org.springframework.web..` và `SseEmitter`).
+  - `coreShouldBeFreeOfJpaDetail`: Chặn đứng mọi rò rỉ của công nghệ DB (`jakarta.persistence..`) vào lõi nghiệp vụ.
+  - `domainShouldBeCompletelyIndependent`: Đảm bảo lớp Domain hoàn toàn độc lập, không được phép import bất cứ class nào từ các package bên ngoài.
+  - `applicationShouldNotDependOnInfrastructureOrInterfaces`: Cấm tuyệt đối việc Application Layer phụ thuộc vào Infrastructure hay Interfaces.
+  - `portsMustBeInterfaces`: Ràng buộc tất cả các cổng Port khai báo ở package `application.port` phải là **Interface** theo đúng nguyên lý Dependency Inversion.
+
 ---
 
 ## 🚀 Hướng dẫn Chạy Kiểm thử
