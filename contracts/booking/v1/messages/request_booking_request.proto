@@ -2,15 +2,14 @@ syntax = "proto3";
 
 package booking.v1;
 
-option go_package = "github.com/rent-a-girlfriend/contracts/proto/booking;bookingv1";
+option go_package = "github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1";
 
 import "google/protobuf/timestamp.proto";
 
 message RequestBookingRequest {
-  string client_id = 1;
-  string companion_id = 2;
-  string scenario_id = 3;
-  google.protobuf.Timestamp start_time = 4;
-  int64 price = 5; 
-  int32 duration_minutes = 6; 
+  string companion_id = 1;
+  string scenario_id = 2;
+  google.protobuf.Timestamp start_time = 3;
+  int64 price = 4; 
+  int64 duration_minutes = 5; 
 }

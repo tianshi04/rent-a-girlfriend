@@ -1,0 +1,32 @@
+services:
+  booking-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    environment:
+      SERVER_PORT: "${SERVER_PORT:-8080}"
+      GRPC_PORT: "${GRPC_PORT:-50051}"
+      GIN_MODE: "${GIN_MODE:-debug}"
+      DB_HOST: "${DB_HOST}"
+      DB_PORT: "${DB_PORT:-5432}"
+      DB_USER: "${DB_USER}"
+      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_NAME: "${DB_NAME}"
+      DB_SSLMODE: "${DB_SSLMODE:-disable}"
+      DATABASE_URL: "${DATABASE_URL}"
+      KAFKA_BROKERS: "${KAFKA_BROKERS:-kafka-1:9092,kafka-2:9092,kafka-3:9092}"
+      PROFILE_SERVICE_ADDR: "${PROFILE_SERVICE_ADDR:-host.docker.internal:50052}"
+      FINANCE_SERVICE_ADDR: "${FINANCE_SERVICE_ADDR:-host.docker.internal:50053}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - rent-a-gf-network
+
+networks:
+  rent-a-gf-network:
+    external: true
+    name: rent-a-gf-network
