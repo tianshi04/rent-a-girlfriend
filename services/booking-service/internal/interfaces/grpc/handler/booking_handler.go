@@ -304,6 +304,8 @@ func mapBookingStatus(status vo.BookingStatus) bookingv1.BookingStatus {
 		return bookingv1.BookingStatus_BOOKING_STATUS_CANCELLED
 	case vo.StatusDisputed:
 		return bookingv1.BookingStatus_BOOKING_STATUS_DISPUTED
+	case vo.StatusResolved:
+		return bookingv1.BookingStatus_BOOKING_STATUS_RESOLVED
 	default:
 		return bookingv1.BookingStatus_BOOKING_STATUS_UNSPECIFIED
 	}

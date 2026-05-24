@@ -429,3 +429,30 @@ func TestDispute_InvalidStatus(t *testing.T) {
 		t.Fatal("expected error for disputing pending booking")
 	}
 }
+
+func TestResolve_Success(t *testing.T) {
+	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
+	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	_ = booking.Accept(companionID, now)
+	_ = booking.Dispute(now)
+	_ = booking.Events() // clear
+
+	err := booking.Resolve(now)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if booking.Status() != vo.StatusResolved {
+		t.Errorf("expected status RESOLVED, got %s", booking.Status())
+	}
+}
+
+func TestResolve_InvalidStatus(t *testing.T) {
+	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
+	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now) // PENDING state
+
+	err := booking.Resolve(now)
+	if err == nil {
+		t.Fatal("expected error for resolving pending booking")
+	}
+}

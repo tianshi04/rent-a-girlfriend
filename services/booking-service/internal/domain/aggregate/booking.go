@@ -248,6 +248,18 @@ func (b *Booking) Dispute(now time.Time) error {
 	return nil
 }
 
+// Resolve transitions the booking from DISPUTED to RESOLVED status.
+func (b *Booking) Resolve(now time.Time) error {
+	if b.status != vo.StatusDisputed {
+		return domainerr.ErrInvalidStatus
+	}
+
+	b.status = vo.StatusResolved
+	b.updatedAt = now
+
+	return nil
+}
+
 // FailTechnical transitions the booking to CANCELLED state due to tech failure (e.g. escrow failure)
 func (b *Booking) FailTechnical(now time.Time) {
 	b.status = vo.StatusCancelled

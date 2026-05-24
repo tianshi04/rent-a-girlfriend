@@ -90,6 +90,8 @@ Nằm tại: [internal/domain/aggregate/booking_test.go](file:///e:/LEAN/SOA/ren
 | `TestSystemComplete_InvalidStatus` | Ngăn chặn hệ thống tự động hoàn thành nếu chưa được `CONFIRMED`. |
 | `TestDispute_Success` | Khách hàng mở khiếu nại (Dispute), chuyển trạng thái sang `DISPUTED` để đóng băng Escrow. |
 | `TestDispute_InvalidStatus` | Chỉ cho phép mở khiếu nại đối với cuộc hẹn đã được chấp nhận. |
+| `TestResolve_Success` | Chuyển trạng thái từ `DISPUTED` sang `RESOLVED` thành công sau khi được Admin phân xử. |
+| `TestResolve_InvalidStatus` | Ngăn chặn chuyển trạng thái `RESOLVED` nếu cuộc hẹn chưa ở trạng thái `DISPUTED`. |
 
 ### 3.3. Application Queries Tests
 Nằm tại:
@@ -119,6 +121,8 @@ Kiểm tra sự điều phối nghiệp vụ phân tán thông qua SAGA Coordina
 | `TestSagaCoordinator_HandleChatRoomFailed` | Khởi tạo phòng chat thất bại, thực hiện bồi hoàn giải phóng quỹ Escrow. |
 | `TestSagaCoordinator_HandleRefundSuccess` | Luồng bồi hoàn thành công giải phóng Escrow và hoàn coin về cho Client. |
 | `TestSagaCoordinator_HandleRefundFailed` | Kịch bản bồi hoàn lỗi, ghi nhận cảnh báo nguy hiểm cấp độ hệ thống để can thiệp thủ công. |
+| `TestResolveBooking_Success` | Xử lý ResolveBooking command chuyển đổi trạng thái của Booking từ DISPUTED sang RESOLVED. |
+| `TestResolveBooking_InvalidState` | Đảm bảo từ chối xử lý lệnh ResolveBooking nếu cuộc hẹn không ở trạng thái DISPUTED. |
 
 ### 3.5. Contracts & Serialization Tests
 Nằm tại: [tests/contracts_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/tests/contracts_test.go)

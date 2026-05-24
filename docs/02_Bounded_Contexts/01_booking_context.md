@@ -8,7 +8,7 @@ Quản lý vòng đời (State Machine), trạng thái của cuộc hẹn và đ
 ## 2. AGGREGATES & ENTITIES
 ### Aggregate Root: `Booking`
 Đại diện cho một yêu cầu/cuộc hẹn. Mọi thao tác thay đổi trạng thái phải đi qua Aggregate này.
-*   **State (Trạng thái lưu trữ):** `BookingId`, `ClientId`, `CompanionId`, `ScenarioSnapshot` (Giá, Thời lượng), `StartTime`, `EndTime`, `Status` (PENDING, ACCEPTED, REJECTED, COMPLETED, CANCELLED).
+*   **State (Trạng thái lưu trữ):** `BookingId`, `ClientId`, `CompanionId`, `ScenarioSnapshot` (Giá, Thời lượng), `StartTime`, `EndTime`, `Status` (PENDING, ACCEPTED, REJECTED, COMPLETED, CANCELLED, DISPUTED, RESOLVED).
 
 ## 3. VALUE OBJECTS
 *   `BookingId`: Định danh duy nhất (UUID).
