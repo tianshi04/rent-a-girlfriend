@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package interaction.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/interaction;interactionv1";
+
+message SubmitReviewRequest {
+  string booking_id = 1;
+  string client_id = 2;
+  string companion_id = 3;
+  int32 rating = 4;
+  string comment = 5;
+}

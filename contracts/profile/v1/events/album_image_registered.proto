@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package profile.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/profile;profilev1";
+
+message AlbumImageRegistered {
+  string asset_id = 1;
+  string companion_id = 2;
+  string file_url = 3;
+  int64 size_bytes = 4;
+}

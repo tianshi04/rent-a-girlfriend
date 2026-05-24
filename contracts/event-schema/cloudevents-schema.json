@@ -45,10 +45,16 @@
       "oneOf": [
         { "$ref": "#/definitions/BookingRequestedPayload" },
         { "$ref": "#/definitions/BookingAcceptedPayload" },
-        { "$ref": "#/definitions/BookingCancelledPayload" },
+        { "$ref": "#/definitions/BookingRejectedPayload" },
+        { "$ref": "#/definitions/BookingCancelledEarlyPayload" },
+        { "$ref": "#/definitions/BookingCancelledLatePayload" },
+        { "$ref": "#/definitions/BookingTimedOutPayload" },
+        { "$ref": "#/definitions/BookingCompletedPayload" },
         { "$ref": "#/definitions/CoinFrozenPayload" },
         { "$ref": "#/definitions/CoinEscrowedPayload" },
+        { "$ref": "#/definitions/EscrowFailedPayload" },
         { "$ref": "#/definitions/PayoutProcessedPayload" },
+        { "$ref": "#/definitions/DisputeResolvedPayload" },
         { "$ref": "#/definitions/ChatRoomCreatedPayload" },
         { "$ref": "#/definitions/ReviewSubmittedPayload" },
         { "$ref": "#/definitions/ReportCreatedPayload" },
@@ -92,24 +98,63 @@
     },
     "BookingAcceptedPayload": {
       "type": "object",
-      "required": ["bookingId", "companionId", "price", "sagaId"],
+      "required": ["bookingId", "clientId", "companionId", "price"],
+      "properties": {
+        "bookingId": { "type": "string", "format": "uuid" },
+        "clientId": { "type": "string", "format": "uuid" },
+        "companionId": { "type": "string", "format": "uuid" },
+        "price": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "BookingRejectedPayload": {
+      "type": "object",
+      "required": ["bookingId", "companionId", "clientId"],
+      "description": "Emitted by Booking Service. Finance Service listens to unfreeze Client coins.",
       "properties": {
         "bookingId": { "type": "string", "format": "uuid" },
         "companionId": { "type": "string", "format": "uuid" },
-        "price": { "type": "integer", "minimum": 1 },
-        "sagaId": { "type": "string", "format": "uuid" }
+        "clientId": { "type": "string", "format": "uuid" },
+        "reason": { "type": "string", "description": "Optional reason from companion." }
       }
     },
-    "BookingCancelledPayload": {
+    "BookingCancelledEarlyPayload": {
       "type": "object",
-      "required": ["bookingId", "actorRole", "isLate"],
+      "required": ["bookingId", "actorId", "actorRole"],
+      "description": "Emitted when booking is cancelled >24h before startTime (BR-05, BR-07). Finance unfreeze/refund full.",
       "properties": {
         "bookingId": { "type": "string", "format": "uuid" },
-        "actorRole": { "type": "string", "enum": ["CLIENT", "COMPANION"] },
-        "isLate": { 
-          "type": "boolean",
-          "description": "True if cancelled under 24 hours prior to startTime (BR-06, BR-07a)."
-        }
+        "actorId": { "type": "string", "format": "uuid" },
+        "actorRole": { "type": "string", "enum": ["CLIENT", "COMPANION"] }
+      }
+    },
+    "BookingCancelledLatePayload": {
+      "type": "object",
+      "required": ["bookingId", "actorId", "actorRole"],
+      "description": "Emitted when booking is cancelled <24h before startTime (BR-06, BR-07a). Finance applies penalty logic.",
+      "properties": {
+        "bookingId": { "type": "string", "format": "uuid" },
+        "actorId": { "type": "string", "format": "uuid" },
+        "actorRole": { "type": "string", "enum": ["CLIENT", "COMPANION"] }
+      }
+    },
+    "BookingTimedOutPayload": {
+      "type": "object",
+      "required": ["bookingId", "clientId"],
+      "description": "Emitted by Booking Service scheduler when a PENDING booking exceeds 12h without companion response (BR-FR07). Finance Service listens to unfreeze coins.",
+      "properties": {
+        "bookingId": { "type": "string", "format": "uuid" },
+        "clientId": { "type": "string", "format": "uuid" }
+      }
+    },
+    "BookingCompletedPayload": {
+      "type": "object",
+      "required": ["bookingId", "companionId", "clientId", "price"],
+      "description": "Emitted by Booking Service scheduler at end_time+12h if no dispute exists (BR-16). Finance Service listens to execute Payout (BR-03).",
+      "properties": {
+        "bookingId": { "type": "string", "format": "uuid" },
+        "companionId": { "type": "string", "format": "uuid" },
+        "clientId": { "type": "string", "format": "uuid" },
+        "price": { "type": "integer", "minimum": 1 }
       }
     },
     "CoinFrozenPayload": {
@@ -129,6 +174,16 @@
         "amount": { "type": "integer" }
       }
     },
+    "EscrowFailedPayload": {
+      "type": "object",
+      "required": ["bookingId", "clientId", "reason"],
+      "description": "Emitted by Finance Service when Escrow fails (SAGA compensating event). Booking Service listens to rollback booking status.",
+      "properties": {
+        "bookingId": { "type": "string", "format": "uuid" },
+        "clientId": { "type": "string", "format": "uuid" },
+        "reason": { "type": "string", "description": "Technical failure reason." }
+      }
+    },
     "PayoutProcessedPayload": {
       "type": "object",
       "required": ["bookingId", "companionId", "payoutAmount", "commissionAmount"],
@@ -137,6 +192,21 @@
         "companionId": { "type": "string", "format": "uuid" },
         "payoutAmount": { "type": "integer", "description": "Net amount paid to companion (BR-03 commission deduction)." },
         "commissionAmount": { "type": "integer", "description": "Amount withheld by system." }
+      }
+    },
+    "DisputeResolvedPayload": {
+      "type": "object",
+      "required": ["disputeId", "bookingId", "resolution", "resolvedBy"],
+      "description": "Emitted by Dispute Service when Admin resolves a dispute. Booking Service listens to finalize booking state. Finance Service listens for Payout or Refund.",
+      "properties": {
+        "disputeId": { "type": "string", "format": "uuid" },
+        "bookingId": { "type": "string", "format": "uuid" },
+        "resolvedBy": { "type": "string", "format": "uuid", "description": "Admin user ID." },
+        "resolution": {
+          "type": "string",
+          "enum": ["PAYOUT_COMPANION", "REFUND_CLIENT"],
+          "description": "PAYOUT_COMPANION: booking → COMPLETED, review stays VISIBLE (BR-08b). REFUND_CLIENT: booking → CANCELLED, review → HIDDEN (BR-08a)."
+        }
       }
     },
     "ChatRoomCreatedPayload": {

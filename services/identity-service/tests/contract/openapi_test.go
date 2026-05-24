@@ -2,7 +2,7 @@ package contract
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -13,57 +13,68 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	service_http "github.com/rent-a-girlfriend/identity-service/internal/interfaces/http"
-	"github.com/rent-a-girlfriend/identity-service/internal/interfaces/http/handler"
+	"github.com/rent-a-girlfriend/identity-service/internal/application/port"
+	"github.com/rent-a-girlfriend/identity-service/internal/application/query"
+	gateway "github.com/rent-a-girlfriend/identity-service/internal/interfaces/http"
 )
+
+type mockKeyProvider struct{}
+
+func (m *mockKeyProvider) GetJWKS() (*port.JWKSResponse, error) {
+	return &port.JWKSResponse{}, nil
+}
 
 func TestContract_RouteConsistency(t *testing.T) {
 	// 1. Load OpenAPI Spec
 	loader := openapi3.NewLoader()
-	doc, err := loader.LoadFromFile("../../api/openapi/openapi.yaml")
+	doc, err := loader.LoadFromFile("../../../../contracts/openapi/identity-service.yaml")
 	require.NoError(t, err)
 	err = doc.Validate(loader.Context)
 	require.NoError(t, err)
 
-	// 2. Initialize Router with dummy handlers (we only care about the routes)
-	r := service_http.NewRouter(&handler.AuthHandler{}, &handler.AdminHandler{})
-	
-	// 3. Extract Gin Routes
-	ginRoutes := make(map[string]bool)
-	for _, route := range r.Routes() {
-		// Convert Gin style :param to OpenAPI style {param}
-		path := strings.ReplaceAll(route.Path, ":id", "{id}")
-		key := fmt.Sprintf("%s %s", route.Method, path)
-		ginRoutes[key] = true
-	}
+	// 2. Initialize Gateway with dummy handlers (we only care about the routing)
+	getJWKSHandler := query.NewGetJWKSHandler(&mockKeyProvider{})
+	gwHandler, err := gateway.NewGateway(context.Background(), "localhost:50051", getJWKSHandler)
+	require.NoError(t, err)
 
-	// 4. Verify all OpenAPI paths exist in Gin
+	// 3. Verify all OpenAPI paths exist in the Gateway
 	for path, pathItem := range doc.Paths.Map() {
 		for method := range pathItem.Operations() {
-			// Skip internal test routes if they are not in OpenAPI
-			// (openapi.yaml usually doesn't include /test/mock-login)
-			
-			// Note: openapi.yaml has /api/v1 as base server URL, but paths are relative to it or absolute
-			// In our spec, paths like /health are relative to /api/v1 if server is set, 
-			// but wait, look at openapi.yaml:
-			// servers: [url: /api/v1]
-			// paths: [/health, /auth/google/init, ...]
-			// So actual URL is /api/v1/health
-			
-			fullPath := "/api/v1" + path
-			if path == "/health" || path == "/.well-known/jwks.json" {
-				fullPath = path // These are root level in router.go
+			// Replace {param} with dummy "123" for path matching
+			testPath := path
+			for {
+				start := strings.Index(testPath, "{")
+				if start == -1 {
+					break
+				}
+				end := strings.Index(testPath, "}")
+				if end == -1 {
+					break
+				}
+				testPath = testPath[:start] + "123" + testPath[end+1:]
 			}
 
-			key := fmt.Sprintf("%s %s", method, fullPath)
-			assert.True(t, ginRoutes[key], "Route %s defined in OpenAPI but missing in Gin router", key)
+			testFullPath := "/api/v1" + testPath
+			if path == "/health" || path == "/.well-known/jwks.json" {
+				testFullPath = testPath
+			}
+
+			req := httptest.NewRequest(method, testFullPath, nil)
+			w := httptest.NewRecorder()
+			gwHandler.ServeHTTP(w, req)
+
+			// If the route exists, the gateway will match it and attempt to route it.
+			// It may fail (e.g. returning 503 Service Unavailable, 500, or other errors),
+			// but it must NOT return 404 Not Found.
+			assert.NotEqual(t, http.StatusNotFound, w.Code,
+				"Route %s %s defined in OpenAPI but missing or not routed in grpc-gateway", method, testFullPath)
 		}
 	}
 }
 
 func TestContract_ResponseSchemaValidation(t *testing.T) {
 	loader := openapi3.NewLoader()
-	doc, err := loader.LoadFromFile("../../api/openapi/openapi.yaml")
+	doc, err := loader.LoadFromFile("../../../../contracts/openapi/identity-service.yaml")
 	require.NoError(t, err)
 
 	// Create a router for validation
@@ -96,9 +107,9 @@ func TestContract_ResponseSchemaValidation(t *testing.T) {
 		{
 			name:           "Account Response Schema",
 			method:         "GET",
-			path:           "/api/v1/accounts/550e8400-e29b-41d4-a716-446655440000",
+			path:           "/api/v1/admin/accounts/550e8400-e29b-41d4-a716-446655440000",
 			expectedStatus: 200,
-			body:           `{"id":"550e8400-e29b-41d4-a716-446655440000","email":"test@example.com","role":"CLIENT","status":"ACTIVE","violationCount":0,"createdAt":"2026-05-10T11:00:00Z"}`,
+			body:           `{"id":"550e8400-e29b-41d4-a716-446655440000","email":"test@example.com","role":"ACCOUNT_ROLE_CLIENT","status":"ACCOUNT_STATUS_ACTIVE","violationCount":0,"createdAt":"2026-05-10T11:00:00Z"}`,
 		},
 	}
 

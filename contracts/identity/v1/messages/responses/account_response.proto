@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package identity.v1;
+
+option go_package = "github.com/rent-a-girlfriend/identity-service/gen/proto;identityv1";
+
+import "google/protobuf/timestamp.proto";
+import "identity/v1/messages/responses/account_role.proto";
+import "identity/v1/messages/responses/account_status.proto";
+
+// AccountResponse — thông tin account trả về cho Admin.
+message AccountResponse {
+  string                    id              = 1;
+  string                    email           = 2;
+  AccountRole               role            = 3;
+  AccountStatus             status          = 4;
+  int32                     violation_count = 5;
+  google.protobuf.Timestamp created_at      = 6;
+}

@@ -32,6 +32,7 @@ RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 # Copy virtualenv and code from builder
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/internal /app/internal
+COPY --from=builder /app/gen /app/gen
 COPY --from=builder /app/main.py /app/main.py
 
 # Ensure ownership of /app is set to the non-root user
@@ -39,6 +40,7 @@ RUN chown -R appuser:appgroup /app
 
 # Set environment path to use virtualenv dependencies
 ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH="/app/gen"
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8080

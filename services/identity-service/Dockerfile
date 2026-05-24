@@ -9,7 +9,8 @@ RUN go mod download
 
 # Build
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /identity-service ./cmd/server
+ARG BUILD_TAGS="production"
+RUN CGO_ENABLED=0 GOOS=linux go build -tags "${BUILD_TAGS}" -o /identity-service ./cmd/server
 
 # ---- Stage 2: Runtime ----
 FROM alpine:3.19

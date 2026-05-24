@@ -4,11 +4,15 @@ import (
 	"context"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
-	identityv1 "github.com/rent-a-girlfriend/identity-service/api/proto"
+	identityv1 "github.com/rent-a-girlfriend/identity-service/gen/proto"
 	"github.com/rent-a-girlfriend/identity-service/internal/application/command"
 	"github.com/rent-a-girlfriend/identity-service/internal/application/query"
 	"github.com/rent-a-girlfriend/identity-service/internal/interfaces/grpc/util"
+	domainerr "github.com/rent-a-girlfriend/identity-service/internal/domain/errors"
+	"github.com/rent-a-girlfriend/identity-service/internal/domain/vo"
 )
 
 type IdentityGRPCHandler struct {
@@ -58,14 +62,14 @@ func NewIdentityGRPCHandler(
 func (h *IdentityGRPCHandler) GetAccount(ctx context.Context, req *identityv1.GetAccountRequest) (*identityv1.AccountResponse, error) {
 	account, err := h.getAccount.Handle(ctx, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 
 	return &identityv1.AccountResponse{
 		Id:             account.ID().String(),
 		Email:          account.Email().String(),
-		Role:           string(account.Role()),
-		Status:         string(account.Status()),
+		Role:           mapRole(account.Role()),
+		Status:         mapAccountStatus(account.Status()),
 		ViolationCount: int32(account.ViolationCount()),
 		CreatedAt:      timestamppb.New(account.CreatedAt()),
 	}, nil
@@ -73,8 +77,17 @@ func (h *IdentityGRPCHandler) GetAccount(ctx context.Context, req *identityv1.Ge
 
 func (h *IdentityGRPCHandler) ListUpgradeRequests(ctx context.Context, req *identityv1.ListUpgradeRequestsRequest) (*identityv1.ListUpgradeRequestsResponse, error) {
 	var statusPtr *string
-	if req.Status != "" {
-		statusPtr = &req.Status
+	if req.Status != identityv1.UpgradeStatus_UPGRADE_STATUS_UNSPECIFIED {
+		var s string
+		switch req.Status {
+		case identityv1.UpgradeStatus_UPGRADE_STATUS_PENDING:
+			s = "PENDING"
+		case identityv1.UpgradeStatus_UPGRADE_STATUS_APPROVED:
+			s = "APPROVED"
+		case identityv1.UpgradeStatus_UPGRADE_STATUS_REJECTED:
+			s = "REJECTED"
+		}
+		statusPtr = &s
 	}
 
 	requests, total, err := h.listUpgradeReqs.Handle(ctx, query.ListUpgradeRequestsQuery{
@@ -83,7 +96,7 @@ func (h *IdentityGRPCHandler) ListUpgradeRequests(ctx context.Context, req *iden
 		PageSize: int(req.PageSize),
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 
 	items := make([]*identityv1.UpgradeRequestItem, 0, len(requests))
@@ -91,7 +104,7 @@ func (h *IdentityGRPCHandler) ListUpgradeRequests(ctx context.Context, req *iden
 		item := &identityv1.UpgradeRequestItem{
 			Id:           r.ID().String(),
 			UserId:       r.UserID().String(),
-			Status:       string(r.Status()),
+			Status:       mapUpgradeStatus(r.Status()),
 			Reason:       r.Reason(),
 			RejectReason: r.RejectReason(),
 			ReviewedBy:   r.ReviewedBy(),
@@ -119,7 +132,7 @@ func (h *IdentityGRPCHandler) RequestUpgrade(ctx context.Context, req *identityv
 		Reason: req.Reason,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 
 	return &identityv1.MessageResponse{Message: "upgrade request submitted"}, nil
@@ -132,7 +145,7 @@ func (h *IdentityGRPCHandler) ApproveUpgrade(ctx context.Context, req *identityv
 		AdminID:   adminID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 	return &identityv1.MessageResponse{Message: "upgrade approved"}, nil
 }
@@ -145,7 +158,7 @@ func (h *IdentityGRPCHandler) RejectUpgrade(ctx context.Context, req *identityv1
 		RejectReason: req.Reason,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 	return &identityv1.MessageResponse{Message: "upgrade rejected"}, nil
 }
@@ -158,7 +171,7 @@ func (h *IdentityGRPCHandler) LockAccount(ctx context.Context, req *identityv1.L
 		AdminID: adminID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 	return &identityv1.MessageResponse{Message: "account locked"}, nil
 }
@@ -170,7 +183,7 @@ func (h *IdentityGRPCHandler) UnlockAccount(ctx context.Context, req *identityv1
 		AdminID: adminID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 	return &identityv1.MessageResponse{Message: "account unlocked"}, nil
 }
@@ -180,7 +193,7 @@ func (h *IdentityGRPCHandler) UnlockAccount(ctx context.Context, req *identityv1
 func (h *IdentityGRPCHandler) InitGoogleAuth(ctx context.Context, _ *identityv1.InitGoogleAuthRequest) (*identityv1.InitGoogleAuthResponse, error) {
 	result, err := h.initGoogleAuth.Handle(ctx)
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 
 	return &identityv1.InitGoogleAuthResponse{
@@ -196,7 +209,7 @@ func (h *IdentityGRPCHandler) LoginGoogle(ctx context.Context, req *identityv1.L
 		State: req.State,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 
 	return &identityv1.TokenResponse{
@@ -211,7 +224,7 @@ func (h *IdentityGRPCHandler) RefreshToken(ctx context.Context, req *identityv1.
 		RefreshToken: req.RefreshToken,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 
 	return &identityv1.TokenResponse{
@@ -226,8 +239,70 @@ func (h *IdentityGRPCHandler) Logout(ctx context.Context, req *identityv1.Logout
 		RefreshToken: req.RefreshToken,
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapDomainError(err)
 	}
 
 	return &identityv1.MessageResponse{Message: "logged out"}, nil
+}
+
+func mapDomainError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	switch err {
+	case domainerr.ErrAccountNotFound:
+		return status.Error(codes.NotFound, err.Error())
+	case domainerr.ErrAccountLocked:
+		return status.Error(codes.PermissionDenied, err.Error())
+	case domainerr.ErrInvalidRefreshToken, domainerr.ErrRefreshTokenReuse, domainerr.ErrInvalidOAuthToken:
+		return status.Error(codes.Unauthenticated, err.Error())
+	case domainerr.ErrInvalidEmail, domainerr.ErrInvalidRole, domainerr.ErrPKCEStateNotFound:
+		return status.Error(codes.InvalidArgument, err.Error())
+	case domainerr.ErrEmailAlreadyExists, domainerr.ErrConcurrencyConflict, domainerr.ErrAlreadyCompanion, domainerr.ErrUpgradeRequestPending:
+		return status.Error(codes.AlreadyExists, err.Error())
+	case domainerr.ErrUpgradeRequestNotFound:
+		return status.Error(codes.NotFound, err.Error())
+	case domainerr.ErrInvalidUpgradeStatus, domainerr.ErrNotClient:
+		return status.Error(codes.FailedPrecondition, err.Error())
+	default:
+		return status.Error(codes.Internal, err.Error())
+	}
+}
+
+func mapRole(r vo.Role) identityv1.AccountRole {
+	switch r {
+	case vo.RoleClient:
+		return identityv1.AccountRole_ACCOUNT_ROLE_CLIENT
+	case vo.RoleCompanion:
+		return identityv1.AccountRole_ACCOUNT_ROLE_COMPANION
+	case vo.RoleAdmin:
+		return identityv1.AccountRole_ACCOUNT_ROLE_ADMIN
+	default:
+		return identityv1.AccountRole_ACCOUNT_ROLE_UNSPECIFIED
+	}
+}
+
+func mapAccountStatus(s vo.AccountStatus) identityv1.AccountStatus {
+	switch s {
+	case vo.StatusActive:
+		return identityv1.AccountStatus_ACCOUNT_STATUS_ACTIVE
+	case vo.StatusLocked:
+		return identityv1.AccountStatus_ACCOUNT_STATUS_LOCKED
+	default:
+		return identityv1.AccountStatus_ACCOUNT_STATUS_UNSPECIFIED
+	}
+}
+
+func mapUpgradeStatus(s vo.UpgradeStatus) identityv1.UpgradeStatus {
+	switch s {
+	case vo.UpgradeStatusPending:
+		return identityv1.UpgradeStatus_UPGRADE_STATUS_PENDING
+	case vo.UpgradeStatusApproved:
+		return identityv1.UpgradeStatus_UPGRADE_STATUS_APPROVED
+	case vo.UpgradeStatusRejected:
+		return identityv1.UpgradeStatus_UPGRADE_STATUS_REJECTED
+	default:
+		return identityv1.UpgradeStatus_UPGRADE_STATUS_UNSPECIFIED
+	}
 }

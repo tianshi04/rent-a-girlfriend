@@ -11,7 +11,7 @@ func GetUserID(ctx context.Context) string {
 	if !ok {
 		return ""
 	}
-	values := md.Get("x-user-id")
+	values := md.Get("user-id")
 	if len(values) > 0 {
 		return values[0]
 	}
@@ -23,9 +23,10 @@ func GetUserRole(ctx context.Context) string {
 	if !ok {
 		return ""
 	}
-	values := md.Get("x-user-role")
+	values := md.Get("user-role")
 	if len(values) > 0 {
 		return values[0]
 	}
 	return ""
 }
+

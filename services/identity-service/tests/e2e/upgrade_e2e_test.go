@@ -30,14 +30,16 @@ func TestCompanionUpgradeE2E(t *testing.T) {
 
 	req, _ := http.NewRequest(http.MethodPost, reqURL, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+clientAccessToken)
+	injectMeshHeaders(t, req, clientAccessToken)
 
-	clientHTTP := &http.Client{Timeout: 5 * time.Second}
+	clientHTTP := &http.Client{Timeout: 30 * time.Second}
 	resp, err := clientHTTP.Do(req)
 	assert.NoError(t, err)
-	defer resp.Body.Close()
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 
-	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	// 3. Create an Admin user and get token
 	adminEmail := fmt.Sprintf("admin_%d@example.com", time.Now().UnixNano())
@@ -45,13 +47,15 @@ func TestCompanionUpgradeE2E(t *testing.T) {
 	adminAccessToken, _, _ := mockLogin(t, adminEmail, adminGoogleID, "ADMIN")
 
 	// 4. Admin lists upgrade requests
-	listURL := fmt.Sprintf("%s/api/v1/admin/upgrade-requests?status=PENDING", getBaseURL())
+	listURL := fmt.Sprintf("%s/api/v1/admin/upgrade-requests?status=UPGRADE_STATUS_PENDING", getBaseURL())
 	listReq, _ := http.NewRequest(http.MethodGet, listURL, nil)
-	listReq.Header.Set("Authorization", "Bearer "+adminAccessToken)
+	injectMeshHeaders(t, listReq, adminAccessToken)
 
 	listResp, err := clientHTTP.Do(listReq)
 	assert.NoError(t, err)
-	defer listResp.Body.Close()
+	if listResp != nil {
+		defer listResp.Body.Close()
+	}
 
 	assert.Equal(t, http.StatusOK, listResp.StatusCode)
 
@@ -71,11 +75,13 @@ func TestCompanionUpgradeE2E(t *testing.T) {
 	// 5. Admin approves the request
 	approveURL := fmt.Sprintf("%s/api/v1/admin/upgrade-requests/%s/approve", getBaseURL(), requestID)
 	approveReq, _ := http.NewRequest(http.MethodPut, approveURL, nil)
-	approveReq.Header.Set("Authorization", "Bearer "+adminAccessToken)
+	injectMeshHeaders(t, approveReq, adminAccessToken)
 
 	approveResp, err := clientHTTP.Do(approveReq)
 	assert.NoError(t, err)
-	defer approveResp.Body.Close()
+	if approveResp != nil {
+		defer approveResp.Body.Close()
+	}
 
 	assert.Equal(t, http.StatusOK, approveResp.StatusCode)
 }

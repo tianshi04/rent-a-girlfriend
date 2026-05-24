@@ -1,13 +1,10 @@
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-import uuid
+from dataclasses import dataclass
 from typing import List
 
 
 @dataclass(frozen=True, kw_only=True)
 class DomainEvent:
-    event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    pass
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -65,7 +62,7 @@ class ScenarioDeleted(DomainEvent):
 
 
 @dataclass(frozen=True, kw_only=True)
-class VoiceIntroUploaded(DomainEvent):
+class VoiceIntroRegistered(DomainEvent):
     companion_id: str
     asset_id: str
     file_url: str
@@ -81,7 +78,7 @@ class VoiceIntroRejected(DomainEvent):
 
 
 @dataclass(frozen=True, kw_only=True)
-class AlbumImageUploaded(DomainEvent):
+class AlbumImageRegistered(DomainEvent):
     companion_id: str
     asset_id: str
     file_url: str

@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/notification;notificationv1";
+
+message SendNotificationRequest {
+  string user_id = 1;
+  string channel = 2; 
+  string title = 3;
+  string body = 4;
+}

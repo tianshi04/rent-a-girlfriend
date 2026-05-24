@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package profile.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/profile;profilev1";
+
+import "profile/v1/messages/create_profile_request.proto";
+import "profile/v1/messages/update_profile_request.proto";
+import "profile/v1/messages/approve_profile_request.proto";
+import "profile/v1/messages/reject_profile_request.proto";
+import "profile/v1/messages/profile_command_response.proto";
+
+import "profile/v1/messages/create_scenario_request.proto";
+import "profile/v1/messages/update_scenario_request.proto";
+import "profile/v1/messages/delete_scenario_request.proto";
+import "profile/v1/messages/scenario_command_response.proto";
+import "profile/v1/messages/get_scenario_snapshot_request.proto";
+import "profile/v1/messages/scenario_snapshot_response.proto";
+
+import "profile/v1/messages/register_voice_intro_request.proto";
+import "profile/v1/messages/register_album_image_request.proto";
+import "profile/v1/messages/media_command_response.proto";
+
+service ProfileService {
+  // Commands (REST for Query, gRPC for Commands)
+  rpc CreateProfile(CreateProfileRequest) returns (ProfileCommandResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (ProfileCommandResponse);
+  rpc ApproveProfile(ApproveProfileRequest) returns (ProfileCommandResponse);
+  rpc RejectProfile(RejectProfileRequest) returns (ProfileCommandResponse);
+
+  // Scenario Commands
+  // [INV-P01] Price must be > 0.
+  // [INV-P02] Duration must be standard (60, 120, 180 min).
+  // [INV-P03] A companion can have at most N active scenarios (e.g. 5).
+  rpc CreateScenario(CreateScenarioRequest) returns (ScenarioCommandResponse);
+  rpc UpdateScenario(UpdateScenarioRequest) returns (ScenarioCommandResponse);
+  rpc DeleteScenario(DeleteScenarioRequest) returns (ScenarioCommandResponse);
+
+  // Voice Intro / Media Commands
+  // [INV-P04] Voice duration <= 30 seconds.
+  // [INV-P05] Voice size <= 5MB.
+  rpc RegisterVoiceIntro(RegisterVoiceIntroRequest) returns (MediaCommandResponse);
+  rpc RegisterAlbumImage(RegisterAlbumImageRequest) returns (MediaCommandResponse);
+
+  // Internal Queries
+  rpc GetScenarioSnapshot(GetScenarioSnapshotRequest) returns (ScenarioSnapshotResponse);
+}

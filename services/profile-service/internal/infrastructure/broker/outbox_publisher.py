@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-from dataclasses import asdict
 from datetime import datetime
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -24,13 +23,23 @@ class DatabaseEventPublisher(IEventPublisher):
         self.session = session
 
     def publish(self, event: DomainEvent) -> None:
-        payload_dict = asdict(event)
-        # Format occurred_at as ISO string
-        payload_dict["occurred_at"] = event.occurred_at.isoformat()
+        import uuid
+        from google.protobuf.json_format import MessageToDict
+        from internal.infrastructure.mappers.event_mapper import EventMapper
+
+        # Convert pure domain event to generated Protobuf message
+        proto_msg = EventMapper.to_protobuf(event)
+
+        # Strictly generate JSON payload based on proto contract
+        payload_dict = MessageToDict(
+            proto_msg, preserving_proto_field_name=True, use_integers_for_enums=True
+        )
+
+        event_id = str(uuid.uuid4())
 
         outbox = OutboxModel(
-            event_id=event.event_id,
-            event_type=f"com.rentagf.profile.{event.__class__.__name__}.v1",
+            event_id=event_id,
+            event_type=f"com.rentagf.profile.{proto_msg.DESCRIPTOR.name}.v1",
             payload=json.dumps(payload_dict),
         )
         self.session.add(outbox)

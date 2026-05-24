@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package dispute.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/dispute/events;disputev1events";
+
+import "google/protobuf/timestamp.proto";
+
+message DisputeCreated {
+  string dispute_id = 1;
+  string booking_id = 2;
+  string reporter_id = 3;
+  string reason = 4;
+  google.protobuf.Timestamp occurred_at = 5;
+}

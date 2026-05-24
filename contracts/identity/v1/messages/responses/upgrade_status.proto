@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package identity.v1;
+
+option go_package = "github.com/rent-a-girlfriend/identity-service/gen/proto;identityv1";
+
+// UpgradeStatus — trạng thái của yêu cầu nâng cấp Companion.
+enum UpgradeStatus {
+  UPGRADE_STATUS_UNSPECIFIED = 0;
+  UPGRADE_STATUS_PENDING     = 1;
+  UPGRADE_STATUS_APPROVED    = 2;
+  UPGRADE_STATUS_REJECTED    = 3;
+}

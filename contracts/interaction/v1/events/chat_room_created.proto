@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package interaction.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/interaction/events;interactionv1events";
+
+import "google/protobuf/timestamp.proto";
+
+message ChatRoomCreated {
+  string room_id = 1;
+  string booking_id = 2;
+  google.protobuf.Timestamp occurred_at = 3;
+}

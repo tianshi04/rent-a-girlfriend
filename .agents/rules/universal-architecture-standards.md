@@ -8,6 +8,7 @@ globs: services/**/*
     - Application (Use Cases/Handlers).
     - Infrastructure (DB/Broker Adapters).
     - Interfaces (HTTP/gRPC/PubSub).
+- **Contracts as SSOT**: Tất cả giao tiếp (gRPC, Async Events) phải được định nghĩa tại thư mục `/contracts` ở root. Đây là Single Source of Truth duy nhất. Không được phép định nghĩa lại message/event trong từng service. Các service phải generate code từ các file proto này.
 - **Directory Structure**:
     - `cmd/server/`: Điểm khởi chạy (Entry point).
     - `internal/domain/`: Aggregate, VO, Repository port, Events.
@@ -15,7 +16,7 @@ globs: services/**/*
     - `internal/infrastructure/`: DB/Broker/Client adapters.
     - `internal/interfaces/`: HTTP/gRPC/PubSub handlers.
     - `deployments/`: K8s manifests và Istio policies riêng của service.
-    - `api/`: Contracts (Protobuf, OpenAPI, Event schemas).
+    - `gen/`: Code được generated từ Protobuf/AsyncAPI.
     - `docs/`: Tài liệu kỹ thuật riêng của service.
     - `tests/`: Integration & E2E tests.
 - **Principles**:

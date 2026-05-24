@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package profile.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/profile;profilev1";
+
+message ProfileUpdated {
+  string companion_id = 1;
+  string display_name = 2;
+  string intro_text = 3;
+  repeated string available_cities = 4;
+  string avatar_url = 5;
+}

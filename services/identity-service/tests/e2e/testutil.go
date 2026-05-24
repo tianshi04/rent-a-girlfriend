@@ -139,3 +139,35 @@ func extractSubFromJWT(t *testing.T, token string) string {
 	}
 	return sub
 }
+
+// injectMeshHeaders extracts claims from the JWT and injects them as lowercase mesh headers.
+func injectMeshHeaders(t *testing.T, req *http.Request, token string) {
+	t.Helper()
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		t.Fatalf("invalid JWT format: expected 3 parts, got %d", len(parts))
+	}
+
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		t.Fatalf("failed to decode JWT payload: %v", err)
+	}
+
+	var claims map[string]interface{}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		t.Fatalf("failed to unmarshal JWT claims: %v", err)
+	}
+
+	if sub, ok := claims["sub"].(string); ok {
+		req.Header.Set("user-id", sub)
+	}
+	if role, ok := claims["role"].(string); ok {
+		req.Header.Set("user-role", role)
+	}
+	if status, ok := claims["status"].(string); ok {
+		req.Header.Set("user-status", status)
+	}
+	if email, ok := claims["email"].(string); ok {
+		req.Header.Set("user-email", email)
+	}
+}

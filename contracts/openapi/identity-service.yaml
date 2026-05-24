@@ -47,8 +47,8 @@ components:
       properties:
         id: { type: string, format: uuid }
         email: { type: string, format: email }
-        role: { type: string, enum: [CLIENT, COMPANION, ADMIN] }
-        status: { type: string, enum: [ACTIVE, LOCKED] }
+        role: { type: string, enum: [ACCOUNT_ROLE_UNSPECIFIED, ACCOUNT_ROLE_CLIENT, ACCOUNT_ROLE_COMPANION, ACCOUNT_ROLE_ADMIN] }
+        status: { type: string, enum: [ACCOUNT_STATUS_UNSPECIFIED, ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_LOCKED] }
         violationCount: { type: integer }
         createdAt: { type: string, format: date-time }
 
@@ -57,7 +57,7 @@ components:
       properties:
         id: { type: string, format: uuid }
         userId: { type: string, format: uuid }
-        status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+        status: { type: string, enum: [UPGRADE_STATUS_UNSPECIFIED, UPGRADE_STATUS_PENDING, UPGRADE_STATUS_APPROVED, UPGRADE_STATUS_REJECTED] }
         reason: { type: string }
         rejectReason: { type: string }
         reviewedBy: { type: string }
@@ -194,9 +194,9 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/MessageResponse' }
 
-  /accounts/{id}:
+  /admin/accounts/{id}:
     get:
-      tags: [Account]
+      tags: [Admin]
       summary: Get account details
       security: [{ bearerAuth: [] }]
       parameters:
@@ -219,7 +219,7 @@ paths:
       parameters:
         - name: status
           in: query
-          schema: { type: string }
+          schema: { type: string, enum: [UPGRADE_STATUS_UNSPECIFIED, UPGRADE_STATUS_PENDING, UPGRADE_STATUS_APPROVED, UPGRADE_STATUS_REJECTED] }
         - name: page
           in: query
           schema: { type: integer, default: 1 }

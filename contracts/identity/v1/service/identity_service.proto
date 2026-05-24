@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+package identity.v1;
+
+option go_package = "github.com/rent-a-girlfriend/identity-service/gen/proto;identityv1";
+
+import "google/api/annotations.proto";
+
+// Common
+import "common/common.proto";
+
+// Auth requests
+import "identity/v1/messages/requests/init_google_auth_request.proto";
+import "identity/v1/messages/requests/login_google_request.proto";
+import "identity/v1/messages/requests/refresh_token_request.proto";
+import "identity/v1/messages/requests/logout_request.proto";
+
+// Auth responses
+import "identity/v1/messages/responses/init_google_auth_response.proto";
+import "identity/v1/messages/responses/token_response.proto";
+
+// Account requests
+import "identity/v1/messages/requests/get_account_request.proto";
+
+// Account responses
+import "identity/v1/messages/responses/account_response.proto";
+
+// Upgrade requests
+import "identity/v1/messages/requests/list_upgrade_requests_request.proto";
+import "identity/v1/messages/requests/request_upgrade_request.proto";
+import "identity/v1/messages/requests/approve_upgrade_request.proto";
+import "identity/v1/messages/requests/reject_upgrade_request.proto";
+import "identity/v1/messages/requests/lock_account_request.proto";
+import "identity/v1/messages/requests/unlock_account_request.proto";
+
+// Upgrade responses
+import "identity/v1/messages/responses/list_upgrade_requests_response.proto";
+
+// IdentityService — gRPC service definition cho identity-service.
+// HTTP annotations được dùng bởi grpc-gateway để expose REST endpoints.
+service IdentityService {
+
+  // Queries
+  // GetAccount — lấy thông tin account theo ID (Admin only).
+  rpc GetAccount(GetAccountRequest) returns (AccountResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/admin/accounts/{id}"
+    };
+  }
+
+  // ListUpgradeRequests — danh sách yêu cầu nâng cấp Companion (Admin only).
+  rpc ListUpgradeRequests(ListUpgradeRequestsRequest) returns (ListUpgradeRequestsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/admin/upgrade-requests"
+    };
+  }
+
+  // Commands
+  // RequestUpgrade — Client gửi yêu cầu nâng cấp thành Companion.
+  rpc RequestUpgrade(RequestUpgradeRequest) returns (common.v1.MessageResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/upgrade-requests"
+      body: "*"
+    };
+  }
+
+  // ApproveUpgrade — Admin duyệt yêu cầu nâng cấp.
+  rpc ApproveUpgrade(ApproveUpgradeRequest) returns (common.v1.MessageResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/admin/upgrade-requests/{id}/approve"
+      body: "*"
+    };
+  }
+
+  // RejectUpgrade — Admin từ chối yêu cầu nâng cấp.
+  rpc RejectUpgrade(RejectUpgradeRequest) returns (common.v1.MessageResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/admin/upgrade-requests/{id}/reject"
+      body: "*"
+    };
+  }
+
+  // LockAccount — Admin khóa tài khoản người dùng.
+  rpc LockAccount(LockAccountRequest) returns (common.v1.MessageResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/admin/accounts/{id}/lock"
+      body: "*"
+    };
+  }
+
+  // UnlockAccount — Admin mở khóa tài khoản người dùng.
+  rpc UnlockAccount(UnlockAccountRequest) returns (common.v1.MessageResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/admin/accounts/{id}/unlock"
+      body: "*"
+    };
+  }
+
+  // Auth Commands
+  // InitGoogleAuth — khởi tạo flow Google OAuth2, trả về auth URL.
+  rpc InitGoogleAuth(InitGoogleAuthRequest) returns (InitGoogleAuthResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/google/init"
+    };
+  }
+
+  // LoginGoogle — xử lý OAuth2 callback, trả về JWT tokens.
+  rpc LoginGoogle(LoginGoogleRequest) returns (TokenResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/google/callback"
+    };
+  }
+
+  // RefreshToken — đổi refresh token lấy access token mới.
+  rpc RefreshToken(RefreshTokenRequest) returns (TokenResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/refresh"
+      body: "*"
+    };
+  }
+
+  // Logout — thu hồi refresh token.
+  rpc Logout(LogoutRequest) returns (common.v1.MessageResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/logout"
+      body: "*"
+    };
+  }
+}

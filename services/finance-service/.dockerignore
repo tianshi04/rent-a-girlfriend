@@ -1,0 +1,11 @@
+.venv
+.env
+.pytest_cache
+.ruff_cache
+__pycache__
+*.pyc
+*.pyo
+docs/
+gen/
+# Lưu ý: Không ignore tests/ để Stage Tester có thể chạy được.
+# Image runtime cuối cùng vẫn sạch vì chúng ta chỉ copy internal/ và main.py.
