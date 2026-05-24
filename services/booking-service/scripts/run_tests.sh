@@ -6,7 +6,7 @@ set -e # Exit immediately on error
 
 scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 serviceRoot="$(cd "$scriptDir/.." && pwd)"
-dockerFile="$serviceRoot/test/docker-compose.test.yml"
+dockerFile="$serviceRoot/tests/docker-compose.test.yml"
 
 # Always execute cleanup on script exit
 cleanup() {
@@ -42,6 +42,6 @@ export PROFILE_SERVICE_ADDR="localhost:59991"
 export FINANCE_SERVICE_ADDR="localhost:59992"
 
 echo "==> [test-runner] Executing Unit & Integration tests..."
-go test -v ./internal/... ./test/... -count=1
+go test -v ./internal/... ./tests/... -count=1
 
 echo "==> [test-runner] All tests passed!"

@@ -19,8 +19,8 @@ graph TD
 
 * **Domain layer (`vo`, `aggregate`)**: Kiểm thử logic nghiệp vụ thuần túy (Pure Business Logic), xác thực các ràng buộc nghiệp vụ (Invariants `[INV-XXXX]`) mà không phụ thuộc vào hạ tầng.
 * **Application layer (`query`, `command`)**: Sử dụng Mocking/In-memory repositories để kiểm thử luồng nghiệp vụ, sự phối hợp điều hành SAGA Coordinator.
-* **Infrastructure / Integration layer (`test`)**: Kiểm thử sự tích hợp thực tế với Cơ sở dữ liệu (PostgreSQL) thông qua GORM và hệ thống truyền tin (Kafka) sử dụng `docker-compose.test.yml`.
-* **E2E / Security layer (`test`)**: Kiểm thử bảo mật (Role-based Authorization), sự hợp lệ của API Gateway (REST/gRPC) và các luồng đi từ cổng kết nối đến khi cập nhật DB.
+* **Infrastructure / Integration layer (`tests`)**: Kiểm thử sự tích hợp thực tế với Cơ sở dữ liệu (PostgreSQL) thông qua GORM và hệ thống truyền tin (Kafka) sử dụng `docker-compose.test.yml`.
+* **E2E / Security layer (`tests`)**: Kiểm thử bảo mật (Role-based Authorization), sự hợp lệ của API Gateway (REST/gRPC) và các luồng đi từ cổng kết nối đến khi cập nhật DB.
 
 ---
 
@@ -90,6 +90,8 @@ Nằm tại: [internal/domain/aggregate/booking_test.go](file:///e:/LEAN/SOA/ren
 | `TestSystemComplete_InvalidStatus` | Ngăn chặn hệ thống tự động hoàn thành nếu chưa được `CONFIRMED`. |
 | `TestDispute_Success` | Khách hàng mở khiếu nại (Dispute), chuyển trạng thái sang `DISPUTED` để đóng băng Escrow. |
 | `TestDispute_InvalidStatus` | Chỉ cho phép mở khiếu nại đối với cuộc hẹn đã được chấp nhận. |
+| `TestResolve_Success` | Chuyển trạng thái từ `DISPUTED` sang `RESOLVED` thành công sau khi được Admin phân xử. |
+| `TestResolve_InvalidStatus` | Ngăn chặn chuyển trạng thái `RESOLVED` nếu cuộc hẹn chưa ở trạng thái `DISPUTED`. |
 
 ### 3.3. Application Queries Tests
 Nằm tại:
@@ -119,9 +121,11 @@ Kiểm tra sự điều phối nghiệp vụ phân tán thông qua SAGA Coordina
 | `TestSagaCoordinator_HandleChatRoomFailed` | Khởi tạo phòng chat thất bại, thực hiện bồi hoàn giải phóng quỹ Escrow. |
 | `TestSagaCoordinator_HandleRefundSuccess` | Luồng bồi hoàn thành công giải phóng Escrow và hoàn coin về cho Client. |
 | `TestSagaCoordinator_HandleRefundFailed` | Kịch bản bồi hoàn lỗi, ghi nhận cảnh báo nguy hiểm cấp độ hệ thống để can thiệp thủ công. |
+| `TestResolveBooking_Success` | Xử lý ResolveBooking command chuyển đổi trạng thái của Booking từ DISPUTED sang RESOLVED. |
+| `TestResolveBooking_InvalidState` | Đảm bảo từ chối xử lý lệnh ResolveBooking nếu cuộc hẹn không ở trạng thái DISPUTED. |
 
 ### 3.5. Contracts & Serialization Tests
-Nằm tại: [test/contracts_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/test/contracts_test.go)
+Nằm tại: [tests/contracts_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/tests/contracts_test.go)
 
 Kiểm tra tính tương thích dữ liệu truyền tải qua mạng (Network Contracts):
 
@@ -131,7 +135,7 @@ Kiểm tra tính tương thích dữ liệu truyền tải qua mạng (Network C
 | `TestProtobufEnumMappping_Contracts` | Đảm bảo ánh xạ chính xác các Enum nghiệp vụ giữa Domain và các lớp định nghĩa Protobuf. |
 
 ### 3.6. Integration Tests (Database Repositories)
-Nằm tại: [test/integration_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/test/integration_test.go)
+Nằm tại: [tests/integration_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/tests/integration_test.go)
 
 Kiểm thử tích hợp thực tế với PostgreSQL (chạy trong Docker Container):
 
@@ -141,7 +145,7 @@ Kiểm thử tích hợp thực tế với PostgreSQL (chạy trong Docker Conta
 | `TestBookingSagaRepository_Integration` | Kiểm tra sự bền vững (Persistence) của các phiên Saga State trong DB để đảm bảo phục hồi giao dịch khi xảy ra crash. |
 
 ### 3.7. End-to-End (E2E) & Security Tests
-Nằm tại: [test/e2e_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/test/e2e_test.go)
+Nằm tại: [tests/e2e_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/tests/e2e_test.go)
 
 Kiểm thử xuyên suốt lớp mạng HTTP/gRPC-Gateway tích hợp ma trận phân quyền người dùng (Security Matrix):
 
@@ -155,7 +159,7 @@ Kiểm thử xuyên suốt lớp mạng HTTP/gRPC-Gateway tích hợp ma trận 
 | `TestE2E_CancelBooking_Success` | Giả lập Client/Companion gửi yêu cầu hủy lịch hẹn qua HTTP REST. |
 
 ### 3.8. E2E Distributed Saga Tests (Kafka & DB Integration)
-Nằm tại: [test/saga_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/test/saga_test.go)
+Nằm tại: [tests/saga_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/tests/saga_test.go)
 
 Mô phỏng toàn bộ hành trình giao dịch phân tán (Distributed Transaction) thực tế chạy qua Message Broker Kafka và PostgreSQL:
 

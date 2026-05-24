@@ -59,12 +59,12 @@ func NewBooking(
 	}
 
 	b.addEvent(event.BookingRequested{
-		BookingID:   b.id.String(),
-		ClientID:    b.clientID.String(),
-		CompanionID: b.companionID.String(),
-		Price:       b.scenario.Price().Amount(),
-		StartTime:   b.timeRange.StartTime(),
-		Timestamp:   now,
+		BookingID:      b.id.String(),
+		ClientID:       b.clientID.String(),
+		CompanionID:    b.companionID.String(),
+		Price:          b.scenario.Price().Amount(),
+		StartTime:      b.timeRange.StartTime(),
+		OccurredAtTime: now,
 	})
 
 	return b, nil
@@ -111,16 +111,15 @@ func (b *Booking) Accept(companionID vo.CompanionID, now time.Time) error {
 	b.updatedAt = now
 
 	b.addEvent(event.BookingAccepted{
-		BookingID:   b.id.String(),
-		CompanionID: b.companionID.String(),
-		Price:       b.scenario.Price().Amount(),
-		Timestamp:   now,
+		BookingID:      b.id.String(),
+		CompanionID:    b.companionID.String(),
+		OccurredAtTime: now,
 	})
 	return nil
 }
 
 // Reject transitions the booking to REJECTED. [INV-B03]
-func (b *Booking) Reject(companionID vo.CompanionID, now time.Time) error {
+func (b *Booking) Reject(companionID vo.CompanionID, reason string, now time.Time) error {
 	if !b.companionID.Equals(companionID) {
 		return domainerr.ErrUnauthorized
 	}
@@ -132,9 +131,11 @@ func (b *Booking) Reject(companionID vo.CompanionID, now time.Time) error {
 	b.updatedAt = now
 
 	b.addEvent(event.BookingRejected{
-		BookingID:   b.id.String(),
-		CompanionID: b.companionID.String(),
-		Timestamp:   now,
+		BookingID:      b.id.String(),
+		CompanionID:    b.companionID.String(),
+		ClientID:       b.clientID.String(),
+		Reason:         reason,
+		OccurredAtTime: now,
 	})
 	return nil
 }
@@ -160,17 +161,17 @@ func (b *Booking) Cancel(actorRole vo.ActorRole, now time.Time) error {
 
 	if b.isLateCancel {
 		b.addEvent(event.BookingCancelledLate{
-			BookingID: b.id.String(),
-			ActorID:   b.resolveActorID(actorRole),
-			ActorRole: string(actorRole),
-			Timestamp: now,
+			BookingID:      b.id.String(),
+			ActorID:        b.resolveActorID(actorRole),
+			ActorRole:      string(actorRole),
+			OccurredAtTime: now,
 		})
 	} else {
 		b.addEvent(event.BookingCancelledEarly{
-			BookingID: b.id.String(),
-			ActorID:   b.resolveActorID(actorRole),
-			ActorRole: string(actorRole),
-			Timestamp: now,
+			BookingID:      b.id.String(),
+			ActorID:        b.resolveActorID(actorRole),
+			ActorRole:      string(actorRole),
+			OccurredAtTime: now,
 		})
 	}
 	return nil
@@ -189,11 +190,11 @@ func (b *Booking) Complete(clientID vo.ClientID, now time.Time) error {
 	b.updatedAt = now
 
 	b.addEvent(event.BookingCompleted{
-		BookingID:   b.id.String(),
-		CompanionID: b.companionID.String(),
-		ClientID:    b.clientID.String(),
-		Price:       b.scenario.Price().Amount(),
-		Timestamp:   now,
+		BookingID:      b.id.String(),
+		CompanionID:    b.companionID.String(),
+		ClientID:       b.clientID.String(),
+		Price:          b.scenario.Price().Amount(),
+		OccurredAtTime: now,
 	})
 	return nil
 }
@@ -208,11 +209,11 @@ func (b *Booking) SystemComplete(now time.Time) error {
 	b.updatedAt = now
 
 	b.addEvent(event.BookingCompleted{
-		BookingID:   b.id.String(),
-		CompanionID: b.companionID.String(),
-		ClientID:    b.clientID.String(),
-		Price:       b.scenario.Price().Amount(),
-		Timestamp:   now,
+		BookingID:      b.id.String(),
+		CompanionID:    b.companionID.String(),
+		ClientID:       b.clientID.String(),
+		Price:          b.scenario.Price().Amount(),
+		OccurredAtTime: now,
 	})
 	return nil
 }
@@ -227,9 +228,9 @@ func (b *Booking) SystemTimeout(now time.Time) error {
 	b.updatedAt = now
 
 	b.addEvent(event.BookingTimedOut{
-		BookingID: b.id.String(),
-		ClientID:  b.clientID.String(),
-		Timestamp: now,
+		BookingID:      b.id.String(),
+		ClientID:       b.clientID.String(),
+		OccurredAtTime: now,
 	})
 	return nil
 }
@@ -242,6 +243,18 @@ func (b *Booking) Dispute(now time.Time) error {
 	}
 
 	b.status = vo.StatusDisputed
+	b.updatedAt = now
+
+	return nil
+}
+
+// Resolve transitions the booking from DISPUTED to RESOLVED status.
+func (b *Booking) Resolve(now time.Time) error {
+	if b.status != vo.StatusDisputed {
+		return domainerr.ErrInvalidStatus
+	}
+
+	b.status = vo.StatusResolved
 	b.updatedAt = now
 
 	return nil
