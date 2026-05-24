@@ -46,6 +46,38 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex);
     }
 
+    @ExceptionHandler(com.rentagf.notification.domain.errors.InvalidCursorException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidCursor(com.rentagf.notification.domain.errors.InvalidCursorException ex) {
+        log.warn("Invalid cursor: {}", ex.getMessage());
+        return buildResponse(HttpStatus.BAD_REQUEST, ex);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        log.warn("Invalid argument: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of(
+                        "error", Map.of(
+                                "code", "INVALID_PARAMETER",
+                                "message", ex.getMessage(),
+                                "details", List.of()
+                        )
+                ));
+    }
+
+    @ExceptionHandler(org.springframework.web.bind.MissingRequestHeaderException.class)
+    public ResponseEntity<Map<String, Object>> handleMissingHeader(org.springframework.web.bind.MissingRequestHeaderException ex) {
+        log.warn("Missing request header: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of(
+                        "error", Map.of(
+                                "code", "MISSING_HEADER",
+                                "message", String.format("Missing required request header '%s'", ex.getHeaderName()),
+                                "details", List.of()
+                        )
+                ));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleUnexpected(Exception ex) {
         log.error("Unexpected error", ex);

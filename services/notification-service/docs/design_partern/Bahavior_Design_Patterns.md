@@ -39,8 +39,8 @@
 
 *   **Dẫn chứng trong dự án**:
     *   **Base Domain Exception**: [NotificationDomainException.java](file:///e:/LEARN/rent-a-girlfriend/services/notification-service/internal/com/rentagf/notification/domain/errors/NotificationDomainException.java)
-    *   **Concrete Domain Exception**: [DuplicateEventException.java](file:///e:/LEARN/rent-a-girlfriend/services/notification-service/internal/com/rentagf/notification/domain/errors/DuplicateEventException.java)
-    *   **Application Usage**: [NotificationApplicationService.java:L39](file:///e:/LEARN/rent-a-girlfriend/services/notification-service/internal/com/rentagf/notification/application/service/NotificationApplicationService.java#L39)
+    *   **Concrete Domain Exception**: [DuplicateEventException.java](file:///e:/LEARN/rent-a-girlfriend/services/notification-service/internal/com/rentagf/notification/domain/errors/DuplicateEventException.java), [InvalidCursorException.java](file:///e:/LEARN/rent-a-girlfriend/services/notification-service/internal/com/rentagf/notification/domain/errors/InvalidCursorException.java)
+    *   **Application Usage**: [NotificationApplicationService.java:L39](file:///e:/LEARN/rent-a-girlfriend/services/notification-service/internal/com/rentagf/notification/application/service/NotificationApplicationService.java#L39), [FetchInboxService.java:L29](file:///e:/LEARN/rent-a-girlfriend/services/notification-service/internal/com/rentagf/notification/application/service/FetchInboxService.java#L29)
 
 ### 📝 Tại sao sử dụng và hoạt động thế nào?
 *   **Vấn đề**: Khi xảy ra vi phạm các ràng buộc nghiệp vụ (Invariants) tại tầng Domain hoặc Application (ví dụ: trùng lặp mã idempotency key khi gửi tin), việc ném ra các exception chung của Java như `IllegalArgumentException` hay `RuntimeException` sẽ gây khó khăn cho việc phân loại lỗi. Tầng Interface (REST API/gRPC) không thể nhận biết đây là lỗi do dữ liệu người dùng gửi lên bị sai (HTTP 400), trùng lặp dữ liệu (HTTP 409 Conflict), hay lỗi hệ thống (HTTP 500). Điều này dẫn đến việc trả về mã lỗi 500 INTERNAL_ERROR một cách bừa bãi, làm giảm chất lượng trải nghiệm API.

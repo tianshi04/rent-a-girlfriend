@@ -61,13 +61,33 @@ public class NotificationRepositoryImpl implements NotificationRepository {
 
     @Override
     @Transactional
-    public void markAsRead(UUID notificationId, Instant readAt) {
-        jpaRepository.updateReadAt(notificationId, readAt != null ? readAt : Instant.now(), Instant.now());
+    public boolean markAsRead(UUID notificationId, UUID userId, Instant readAt) {
+        Instant now = Instant.now();
+        Instant readTime = readAt != null ? readAt : now;
+
+        // 1. Thực hiện Optimistic Update để tối ưu database round-trip
+        int rowsAffected = jpaRepository.markSingleAsRead(notificationId, userId, readTime, now);
+
+        if (rowsAffected > 0) {
+            return true; // Cập nhật thành công (chuyển trạng thái từ chưa đọc thành đã đọc)
+        }
+
+        // 2. Fallback check: Đảm bảo bảo mật (BOLA) và tính Idempotent
+        boolean exists = jpaRepository.existsByIdAndUserId(notificationId, userId);
+        if (exists) {
+            // Bản ghi thuộc sở hữu của user nhưng đã được đọc trước đó -> Giữ tính Idempotency
+            return true;
+        }
+
+        // Không tồn tại hoặc bị tấn công IDOR/BOLA (bản ghi thuộc user khác)
+        return false;
     }
 
     @Override
     @Transactional
-    public void markAllAsRead(UUID userId, Instant readAt) {
-        jpaRepository.updateAllReadAt(userId, readAt != null ? readAt : Instant.now(), Instant.now());
+    public int markAllAsRead(UUID userId, Instant readAt) {
+        Instant now = Instant.now();
+        Instant readTime = readAt != null ? readAt : now;
+        return jpaRepository.markAllAsRead(userId, readTime, now);
     }
 }

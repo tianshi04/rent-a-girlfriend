@@ -149,7 +149,7 @@ Với mỗi Smart Consumer event, define rõ:
 
 ---
 
-## Phase 4: REST API (Song song Phase 2) - [PHASE HIỆN TẠI]
+## Phase 4: REST API (Song song Phase 2) - [ĐÃ HOÀN THÀNH]
 
 **Dependencies**: Phase 1
 
@@ -160,9 +160,9 @@ Với mỗi Smart Consumer event, define rõ:
 - Cursor Encoder/Decoder, Unread Count, Error Responses, Auth Middleware
 
 ### Tiêu chí Done
-- [ ] Cursor pagination chính xác
-- [ ] `unread_count` đúng
-- [ ] Response format khớp `api-contract.md`
+- [x] Cursor pagination chính xác
+- [x] `unread_count` đúng
+- [x] Response format khớp `api-contract.md`
 
 ---
 

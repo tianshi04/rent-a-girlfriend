@@ -147,6 +147,7 @@ class NotificationRepositoryTest {
     @Test
     void testCountUnreadAndMarkAsRead() {
         UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
         Notification n1 = Notification.create(userId, "evt_u1_" + UUID.randomUUID(), NotificationType.TRANSACTIONAL, NotificationPriority.HIGH, Map.of(), Map.of());
         Notification n2 = Notification.create(userId, "evt_u2_" + UUID.randomUUID(), NotificationType.TRANSACTIONAL, NotificationPriority.HIGH, Map.of(), Map.of());
 
@@ -155,13 +156,27 @@ class NotificationRepositoryTest {
 
         assertEquals(2, notificationRepository.countUnreadByUserId(userId));
 
-        // Mark n1 as read
-        notificationRepository.markAsRead(n1.getId(), Instant.now());
-
+        // 1. Mark n1 as read -> Trả về true (Cập nhật thành công lần đầu)
+        boolean firstMark = notificationRepository.markAsRead(n1.getId(), userId, Instant.now());
+        assertTrue(firstMark);
         assertEquals(1, notificationRepository.countUnreadByUserId(userId));
 
-        // Mark all as read
-        notificationRepository.markAllAsRead(userId, Instant.now());
+        // 2. Mark n1 as read lần 2 -> Trả về true (Idempotency check)
+        boolean secondMark = notificationRepository.markAsRead(n1.getId(), userId, Instant.now());
+        assertTrue(secondMark);
+        assertEquals(1, notificationRepository.countUnreadByUserId(userId));
+
+        // 3. Mark n1 as read với userId khác -> Trả về false (BOLA check)
+        boolean bolaMark = notificationRepository.markAsRead(n1.getId(), otherUserId, Instant.now());
+        assertFalse(bolaMark);
+
+        // 4. Mark random UUID as read -> Trả về false (Không tồn tại)
+        boolean nonExistentMark = notificationRepository.markAsRead(UUID.randomUUID(), userId, Instant.now());
+        assertFalse(nonExistentMark);
+
+        // 5. Mark all as read -> Trả về 1 (chỉ còn n2 chưa đọc)
+        int affectedRows = notificationRepository.markAllAsRead(userId, Instant.now());
+        assertEquals(1, affectedRows);
         assertEquals(0, notificationRepository.countUnreadByUserId(userId));
     }
 }

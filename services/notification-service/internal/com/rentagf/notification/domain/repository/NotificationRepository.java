@@ -42,12 +42,23 @@ public interface NotificationRepository {
     long countUnreadByUserId(UUID userId);
 
     /**
-     * Mark read: set read_at cho 1 notification.
+     * Mark read: set read_at cho 1 notification của user cụ thể.
+     * Sử dụng Optimistic Update để tối ưu số database round-trips.
+     *
+     * @param notificationId ID thông báo
+     * @param userId         ID người dùng sở hữu (ngăn chặn tấn công BOLA)
+     * @param readAt         Thời điểm đọc
+     * @return true nếu cập nhật thành công (hoặc thông báo đã được đọc từ trước - Idempotent),
+     *         false nếu thông báo không tồn tại hoặc không thuộc về người dùng này.
      */
-    void markAsRead(UUID notificationId, Instant readAt);
+    boolean markAsRead(UUID notificationId, UUID userId, Instant readAt);
 
     /**
      * Mark all read: set read_at cho tất cả notifications chưa đọc của user.
+     *
+     * @param userId ID người dùng
+     * @param readAt Thời điểm đọc
+     * @return số lượng thông báo đã được chuyển trạng thái sang đã đọc thành công
      */
-    void markAllAsRead(UUID userId, Instant readAt);
+    int markAllAsRead(UUID userId, Instant readAt);
 }

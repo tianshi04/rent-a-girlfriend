@@ -29,10 +29,12 @@ public interface NotificationJpaRepository extends JpaRepository<NotificationJpa
     long countByUserIdAndReadAtIsNull(UUID userId);
 
     @Modifying
-    @Query("UPDATE NotificationJpaEntity n SET n.readAt = :readAt, n.updatedAt = :now WHERE n.id = :id")
-    void updateReadAt(@Param("id") UUID id, @Param("readAt") Instant readAt, @Param("now") Instant now);
+    @Query("UPDATE NotificationJpaEntity n SET n.readAt = :readAt, n.updatedAt = :now WHERE n.id = :id AND n.userId = :userId AND n.readAt IS NULL")
+    int markSingleAsRead(@Param("id") UUID id, @Param("userId") UUID userId, @Param("readAt") Instant readAt, @Param("now") Instant now);
 
     @Modifying
     @Query("UPDATE NotificationJpaEntity n SET n.readAt = :readAt, n.updatedAt = :now WHERE n.userId = :userId AND n.readAt IS NULL")
-    void updateAllReadAt(@Param("userId") UUID userId, @Param("readAt") Instant readAt, @Param("now") Instant now);
+    int markAllAsRead(@Param("userId") UUID userId, @Param("readAt") Instant readAt, @Param("now") Instant now);
+
+    boolean existsByIdAndUserId(UUID id, UUID userId);
 }
