@@ -126,7 +126,7 @@ Với mỗi Smart Consumer event, define rõ:
 
 ---
 
-## Phase 3: Event Consumer + Routing Engine - [PHASE HIỆN TẠI]
+## Phase 3: Event Consumer + Routing Engine - [ĐÃ HOÀN THÀNH]
 
 **Mục tiêu**: Lắng nghe events từ Broker → dịch → routing → deliver.
 
@@ -142,14 +142,14 @@ Với mỗi Smart Consumer event, define rõ:
 - Send Notification Use Case
 
 ### Tiêu chí Done
-- [ ] Event → User nhận SSE notification đúng template
-- [ ] Duplicate rejected
-- [ ] Template interpolation đúng vi/en
-- [ ] Routing đúng Decision Tree
+- [x] Event → User nhận SSE notification đúng template
+- [x] Duplicate rejected
+- [x] Template interpolation đúng vi/en
+- [x] Routing đúng Decision Tree
 
 ---
 
-## Phase 4: REST API (Song song Phase 2)
+## Phase 4: REST API (Song song Phase 2) - [PHASE HIỆN TẠI]
 
 **Dependencies**: Phase 1
 
