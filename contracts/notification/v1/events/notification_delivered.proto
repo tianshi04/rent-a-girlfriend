@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/notification;notificationv1";
+
+import "notification/v1/enums/delivery_channel.proto";
+import "google/protobuf/timestamp.proto";
+
+// NotificationDelivered — Phát ra khi thông báo đã gửi thành công.
+//
+// CloudEvents type: rentagf.notification.delivered.v1
+//
+// Lưu ý: Outbound event này tạm hoãn (deferred) ở MVP.
+// Sẽ implement khi có service khác cần lắng nghe (tracking/audit).
+message NotificationDelivered {
+  // ID nội bộ của thông báo.
+  string notification_id = 1;
+
+  // ID người nhận.
+  string user_id = 2;
+
+  // ID của Sự kiện kích hoạt thông báo này.
+  string original_event_id = 3;
+
+  // Kênh đã gửi thành công.
+  DeliveryChannel channel_used = 4;
+
+  // Thời điểm gửi thành công.
+  google.protobuf.Timestamp delivered_at = 5;
+}

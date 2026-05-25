@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/notification;notificationv1";
+
+import "notification/v1/enums/notification_type.proto";
+import "notification/v1/enums/notification_priority.proto";
+import "notification/v1/messages/notification_content.proto";
+import "notification/v1/messages/policy_overrides.proto";
+
+// NotificationRequested — Kênh Passive Subscriber.
+//
+// Bất kỳ service nào cũng có thể publish event này lên Kafka
+// để yêu cầu Notification Service giao một thông báo tới user.
+// Source service tự chịu trách nhiệm format nội dung (title, body).
+//
+// CloudEvents type: rentagf.notification.requested.v1
+// Kafka topic: rentagf.notification.requested
+message NotificationRequested {
+  // ID người nhận thông báo.
+  string user_id = 1;
+
+  // Phân loại thông báo — quyết định chính sách phân phối mặc định.
+  NotificationType classification_type = 2;
+
+  // Mức độ ưu tiên.
+  NotificationPriority priority = 3;
+
+  // Nội dung thông báo đã format sẵn.
+  NotificationContent content = 4;
+
+  // Ghi đè chính sách phân phối (tùy chọn).
+  PolicyOverrides policy_overrides = 5;
+}

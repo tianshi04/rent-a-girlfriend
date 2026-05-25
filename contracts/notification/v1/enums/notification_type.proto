@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/notification;notificationv1";
+
+// Loại thông báo — quyết định chính sách phân phối mặc định.
+enum NotificationType {
+  NOTIFICATION_TYPE_UNSPECIFIED = 0;
+  NOTIFICATION_TYPE_TRANSACTIONAL = 1;
+  NOTIFICATION_TYPE_INTERACTION = 2;
+  NOTIFICATION_TYPE_PROMOTIONAL = 3;
+}

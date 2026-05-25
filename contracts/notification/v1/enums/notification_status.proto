@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/notification;notificationv1";
+
+// Trạng thái vòng đời của một Notification.
+enum NotificationStatus {
+  NOTIFICATION_STATUS_UNSPECIFIED = 0;
+  NOTIFICATION_STATUS_PENDING = 1;
+  NOTIFICATION_STATUS_PROCESSING = 2;
+  NOTIFICATION_STATUS_COMPLETED = 3;
+  NOTIFICATION_STATUS_FAILED = 4;
+}

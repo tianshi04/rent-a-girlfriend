@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/notification;notificationv1";
+
+import "google/protobuf/timestamp.proto";
+
+// NotificationFailed — Phát ra khi đã retry hết số lần cho phép mà vẫn thất bại.
+//
+// CloudEvents type: rentagf.notification.failed.v1
+//
+// Lưu ý: Outbound event này tạm hoãn (deferred) ở MVP.
+// Sẽ implement khi có service khác cần lắng nghe (monitoring/alerting).
+message NotificationFailed {
+  // ID nội bộ của thông báo.
+  string notification_id = 1;
+
+  // ID người nhận.
+  string user_id = 2;
+
+  // ID của Sự kiện kích hoạt thông báo này.
+  string original_event_id = 3;
+
+  // Mã lỗi kỹ thuật cụ thể (Ví dụ: "FCM_TOKEN_INVALID").
+  string error_code = 4;
+
+  // Lý do lỗi chi tiết.
+  string error_message = 5;
+
+  // Thời điểm chốt thất bại.
+  google.protobuf.Timestamp failed_at = 6;
+}

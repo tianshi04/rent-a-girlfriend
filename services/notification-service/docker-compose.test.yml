@@ -1,0 +1,75 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# docker-compose.test.yml — CI Test Environment
+#
+# Mục đích : Chạy toàn bộ test suite trong Docker.
+#             CI pipeline dùng file này để xác nhận code pass test trước khi build.
+#
+# Thiết kế  :
+#   - 1 container duy nhất (test-runner) — KHÔNG cần Postgres / Redis / Kafka
+#     vì tests/application.yml đã:
+#       • Dùng H2 in-memory thay Postgres     (ddl-auto: create-drop)
+#       • Exclude RedisAutoConfiguration
+#       • Exclude KafkaAutoConfiguration
+#       • Disable Flyway
+#   - Mount source code từ host
+#   - Named volume cho Gradle cache → lần 2 trở đi nhanh hơn nhiều
+#   - Exit code của container = exit code của Gradle test
+#     → CI tự động fail nếu có test nào broken
+#
+# Luồng CI  :
+#   1. docker compose -f docker-compose.test.yml run --rm test-runner
+#   2. Nếu exit 0 → pass → tiếp tục build production image
+#   3. Nếu exit != 0 → fail → dừng pipeline, không build image
+#
+# Cách dùng thủ công:
+#   make test-docker            ← chạy tất cả test
+#   make test-docker-unit       ← chỉ @Tag("unit")
+#   make test-docker-int        ← chỉ @Tag("integration")
+#
+# Report HTML (mount từ host):
+#   build/reports/tests/test/index.html
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  test-runner:
+    image: eclipse-temurin:21-jdk-alpine
+    container_name: notification-test-runner
+
+    working_dir: /app
+
+    volumes:
+      # Source code (read-write để Gradle ghi build output ra host)
+      - .:/app
+      # Gradle dependency cache — tồn tại giữa các lần chạy
+      - gradle-cache:/root/.gradle
+
+    environment:
+      # Kích hoạt profile test → Spring Boot tự dùng tests/application.yml
+      SPRING_PROFILES_ACTIVE: test
+
+      # Database: H2 in-memory — khớp với tests/application.yml
+      # (các biến này override phòng ngừa nếu Spring đọc application.yml gốc)
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: notification_db
+      DB_USERNAME: sa
+      DB_PASSWORD: ""
+      DB_OPTIONS: ""
+
+      # Tắt các infra không cần trong test
+      REDIS_HOST: localhost
+      KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+
+      # JVM memory limit phù hợp với CI runner
+      JAVA_TOOL_OPTIONS: "-Xmx512m -Xms256m"
+
+    # Lệnh mặc định: chạy TẤT CẢ test
+    # Exit code tự động trả về CI (0 = pass, non-0 = fail)
+    command: ./gradlew test --no-daemon --continue
+
+    # Không expose port — test không cần kết nối từ bên ngoài
+
+# Named volume — giữ Gradle cache giữa các lần docker compose run
+volumes:
+  gradle-cache:
+    name: notification-gradle-cache
