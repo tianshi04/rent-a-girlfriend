@@ -7,7 +7,7 @@ spring:
 
   # --- Database ---
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/notification_db}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:notification_db}${DB_OPTIONS:}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -70,7 +70,7 @@ spring:
 
 # --- Server ---
 server:
-  port: ${SERVER_PORT:8084}
+  port: ${SERVER_PORT:8080}
 
 # --- Actuator ---
 management:

@@ -1,0 +1,270 @@
+# 📋 NOTIFICATION TEMPLATES CONFIGURATION
+# File này quản lý toàn bộ nội dung hiển thị của thông báo.
+# Tham khảo: docs/event-integration-guide.md
+
+events:
+  # --- BOOKING EVENTS ---
+  com.rentagf.booking.BookingRequested.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "companionId"
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Yêu cầu mới! 🔔"
+        body: "Bạn có một yêu cầu đặt lịch mới từ khách hàng."
+      en:
+        title: "New Request! 🔔"
+        body: "You have a new booking request from a client."
+
+  com.rentagf.booking.BookingAccepted.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "clientId"
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Yêu cầu được chấp nhận ✅"
+        body: "Companion đã chấp nhận yêu cầu #{{bookingId}} của bạn."
+      en:
+        title: "Booking Accepted ✅"
+        body: "Companion has accepted your booking request #{{bookingId}}."
+
+  com.rentagf.booking.BookingRejected.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "clientId"
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Yêu cầu bị từ chối ❌"
+        body: "Rất tiếc, yêu cầu đặt lịch #{{bookingId}} đã bị từ chối. Lý do: {{reason}}."
+      en:
+        title: "Booking Rejected ❌"
+        body: "Sorry, your booking request #{{bookingId}} has been rejected. Reason: {{reason}}."
+
+  com.rentagf.booking.BookingCancelled.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "_dynamic"  # Xác định bởi logic: đối phương của actorRole
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Lịch hẹn bị hủy ⚠️"
+        body: "Lịch hẹn #{{bookingId}} đã bị hủy bởi {{actorRole}}."
+      en:
+        title: "Booking Cancelled ⚠️"
+        body: "Booking #{{bookingId}} has been cancelled by {{actorRole}}."
+
+  com.rentagf.booking.BookingAcceptSagaFailed.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "clientId"
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Lỗi chấp nhận yêu cầu ❌"
+        body: "Rất tiếc, hệ thống gặp sự cố khi chấp nhận yêu cầu #{{bookingId}}. Chúng tôi đã hoàn trả lại Kano-Coin của bạn."
+      en:
+        title: "Booking Acceptance Failed ❌"
+        body: "Sorry, a technical issue occurred while accepting booking #{{bookingId}}. Your Kano-Coin has been refunded."
+
+  # --- FINANCE EVENTS ---
+  com.rentagf.finance.KanoCoinDeposited.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "userId"
+    priority: "MEDIUM"
+    channels: ["SSE"]
+    template:
+      vi:
+        title: "Nạp tiền thành công 💰"
+        body: "Bạn vừa nạp thành công {{amount}} Kano-Coin."
+      en:
+        title: "Top-up Successful 💰"
+        body: "You have successfully topped up {{amount}} Kano-Coin."
+
+  com.rentagf.finance.DepositFailed.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "userId"
+    priority: "HIGH"
+    channels: ["SSE"]
+    template:
+      vi:
+        title: "Nạp tiền thất bại ❌"
+        body: "Giao dịch nạp {{amount}} Kano-Coin của bạn đã thất bại. Lý do: {{reason}}."
+      en:
+        title: "Top-up Failed ❌"
+        body: "Your deposit of {{amount}} Kano-Coin failed. Reason: {{reason}}."
+
+  com.rentagf.finance.PayoutProcessed.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "companionId"
+    priority: "MEDIUM"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Thu nhập mới 💸"
+        body: "Bạn đã nhận được thanh toán {{payoutAmount}} Kano-Coin cho booking #{{bookingId}}."
+      en:
+        title: "New Income 💸"
+        body: "You received {{payoutAmount}} Kano-Coin for booking #{{bookingId}}."
+
+  # --- INTERACTION EVENTS ---
+  com.rentagf.interaction.ChatMessageSent.v1:
+    type: "INTERACTION"
+    recipient_field: "recipientId"
+    priority: "MEDIUM"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Tin nhắn từ {{senderName}}"
+        body: "{{snippet}}"
+      en:
+        title: "Message from {{senderName}}"
+        body: "{{snippet}}"
+
+  com.rentagf.interaction.ReviewSubmitted.v1:
+    type: "INTERACTION"
+    recipient_field: "companionId"
+    priority: "MEDIUM"
+    channels: ["SSE"]
+    template:
+      vi:
+        title: "Đánh giá mới! ⭐"
+        body: "Bạn vừa nhận được đánh giá {{rating}}⭐ từ khách hàng."
+      en:
+        title: "New Review! ⭐"
+        body: "You just received a {{rating}}⭐ review from a client."
+
+  # --- PROFILE EVENTS ---
+  com.rentagf.profile.ProfileApproved.v1:
+    type: "PROMOTIONAL"
+    recipient_field: "companionId"
+    priority: "LOW"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Chào mừng Companion! 🎉"
+        body: "Hồ sơ của bạn đã được duyệt. Hãy bắt đầu nhận lịch ngay!"
+      en:
+        title: "Welcome Companion! 🎉"
+        body: "Your profile has been approved. Start accepting bookings now!"
+
+  com.rentagf.profile.ProfileRejected.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "companionId"
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Hồ sơ bị từ chối 😔"
+        body: "Rất tiếc, hồ sơ Companion của bạn chưa được duyệt. Lý do: {{reason}}."
+      en:
+        title: "Profile Rejected 😔"
+        body: "Sorry, your Companion profile was not approved. Reason: {{reason}}."
+
+  com.rentagf.profile.ScenarioRejected.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "companionId"
+    priority: "MEDIUM"
+    channels: ["SSE"]
+    template:
+      vi:
+        title: "Kịch bản bị từ chối ❌"
+        body: "Kịch bản của bạn đã bị từ chối. Lý do: {{reason}}."
+      en:
+        title: "Scenario Rejected ❌"
+        body: "Your scenario has been rejected. Reason: {{reason}}."
+
+  com.rentagf.profile.VoiceIntroRejected.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "companionId"
+    priority: "MEDIUM"
+    channels: ["SSE"]
+    template:
+      vi:
+        title: "Voice Intro bị từ chối 🎤"
+        body: "Giới thiệu giọng nói của bạn đã bị từ chối. Lý do: {{reason}}."
+      en:
+        title: "Voice Intro Rejected 🎤"
+        body: "Your voice intro has been rejected. Reason: {{reason}}."
+
+  com.rentagf.profile.AlbumImageRejected.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "companionId"
+    priority: "MEDIUM"
+    channels: ["SSE"]
+    template:
+      vi:
+        title: "Ảnh bị từ chối 📷"
+        body: "Ảnh album của bạn đã bị từ chối. Lý do: {{reason}}."
+      en:
+        title: "Album Image Rejected 📷"
+        body: "Your album image has been rejected. Reason: {{reason}}."
+
+  # --- IDENTITY EVENTS ---
+  com.rentagf.identity.UpgradeApproved.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "userId"
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Nâng cấp thành công! 🚀"
+        body: "Bạn đã được nâng cấp thành Companion. Hãy hoàn thiện hồ sơ ngay!"
+      en:
+        title: "Upgrade Approved! 🚀"
+        body: "You have been upgraded to Companion. Complete your profile now!"
+
+  com.rentagf.identity.UpgradeRejected.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "userId"
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Yêu cầu nâng cấp bị từ chối 😔"
+        body: "Rất tiếc, yêu cầu nâng cấp Companion đã bị từ chối. Lý do: {{reason}}."
+      en:
+        title: "Upgrade Rejected 😔"
+        body: "Sorry, your Companion upgrade request was rejected. Reason: {{reason}}."
+
+  com.rentagf.identity.AccountLocked.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "userId"
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Tài khoản bị khóa 🔒"
+        body: "Tài khoản của bạn đã bị khóa. Lý do: {{reason}}."
+      en:
+        title: "Account Locked 🔒"
+        body: "Your account has been locked. Reason: {{reason}}."
+
+  # --- DISPUTE EVENTS ---
+  com.rentagf.dispute.ReportCreated.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "accusedId"
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Bạn bị báo cáo ⚠️"
+        body: "Bạn đã bị báo cáo vi phạm. Lý do: {{reason}}."
+      en:
+        title: "You Have Been Reported ⚠️"
+        body: "You have been reported for a violation. Reason: {{reason}}."
+
+  com.rentagf.dispute.DisputeResolved.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "_dynamic"  # Gửi cho cả clientId và companionId
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Kết quả khiếu nại 📋"
+        body: "Khiếu nại cho booking đã được giải quyết: {{resolution}}."
+      en:
+        title: "Dispute Resolved 📋"
+        body: "The dispute for your booking has been resolved: {{resolution}}."
