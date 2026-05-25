@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
  * Controller Inbound Adapter xử lý kết nối Server-Sent Events (SSE).
  * Duy trì kết nối thời gian thực non-blocking và quản lý heartbeat định kỳ [INV-N05].
  */
+
 @RestController
 @RequestMapping("/v1/notifications")
 public class SseController {

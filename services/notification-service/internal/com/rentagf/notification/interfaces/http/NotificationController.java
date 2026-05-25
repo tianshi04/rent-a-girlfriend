@@ -3,9 +3,13 @@ package com.rentagf.notification.interfaces.http;
 import com.rentagf.notification.application.port.inbound.FetchInboxUseCase;
 import com.rentagf.notification.application.port.inbound.MarkAllAsReadUseCase;
 import com.rentagf.notification.application.port.inbound.MarkAsReadUseCase;
+import com.rentagf.notification.application.port.inbound.SendNotificationUseCase;
+import com.rentagf.notification.application.port.inbound.TriggerNotificationUseCase;
 import com.rentagf.notification.domain.aggregate.Notification;
 import com.rentagf.notification.interfaces.http.dto.FetchInboxResponse;
 import com.rentagf.notification.interfaces.http.dto.MarkAllReadResponse;
+import com.rentagf.notification.interfaces.http.dto.RouteNotificationRequest;
+import com.rentagf.notification.interfaces.http.dto.TriggerNotificationRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +23,7 @@ import java.util.UUID;
  * Tuyệt đối KHÔNG tự cài đặt logic xác thực JWT (đã được offload cho Istio Waypoint).
  * Lấy danh tính người dùng trực tiếp qua HTTP Header `user-id`.
  */
+
 @RestController
 @RequestMapping("/v1/notifications")
 @RequiredArgsConstructor
@@ -27,6 +32,8 @@ public class NotificationController {
     private final FetchInboxUseCase fetchInboxUseCase;
     private final MarkAsReadUseCase markAsReadUseCase;
     private final MarkAllAsReadUseCase markAllAsReadUseCase;
+    private final TriggerNotificationUseCase triggerNotificationUseCase;
+    private final SendNotificationUseCase sendNotificationUseCase;
 
     /**
      * Tải danh sách thông báo phân trang cursor-based của người dùng.
@@ -76,6 +83,69 @@ public class NotificationController {
         UUID userId = getAndValidateUserId(userIdHeader);
         int affectedRows = markAllAsReadUseCase.markAllAsRead(userId);
         return ResponseEntity.ok(new MarkAllReadResponse(affectedRows));
+    }
+
+    /**
+     * Gửi/Trigger thông báo thủ công phục vụ việc demo và kiểm thử.
+     * POST /v1/notifications/trigger
+     */
+    @PostMapping("/trigger")
+    public ResponseEntity<Void> triggerNotification(
+        @RequestBody TriggerNotificationRequest request
+    ) {
+        UUID userId = request.userId() != null ? request.userId() : UUID.randomUUID();
+        String eventId = request.eventId() != null && !request.eventId().trim().isEmpty() 
+            ? request.eventId() : "demo-evt-" + UUID.randomUUID();
+        
+        com.rentagf.notification.domain.vo.enums.NotificationType type = 
+            com.rentagf.notification.domain.vo.enums.NotificationType.valueOf(
+                request.type() != null ? request.type().toUpperCase() : "TRANSACTIONAL"
+            );
+        
+        com.rentagf.notification.domain.vo.enums.NotificationPriority priority = 
+            com.rentagf.notification.domain.vo.enums.NotificationPriority.valueOf(
+                request.priority() != null ? request.priority().toUpperCase() : "HIGH"
+            );
+        
+        com.rentagf.notification.domain.vo.enums.DeliveryChannel channel = 
+            com.rentagf.notification.domain.vo.enums.DeliveryChannel.valueOf(
+                request.channel() != null ? request.channel().toUpperCase() : "SSE"
+            );
+
+        triggerNotificationUseCase.triggerNotification(userId, eventId, type, priority, request.payload(), channel);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    /**
+     * Gửi thông báo tự động thông qua bộ định tuyến thông minh (Smart Routing Engine).
+     * POST /v1/notifications/route
+     */
+    @PostMapping("/route")
+    public ResponseEntity<Void> routeNotification(
+        @RequestBody RouteNotificationRequest request
+    ) {
+        UUID userId = request.userId() != null ? request.userId() : UUID.randomUUID();
+        String eventId = request.eventId() != null && !request.eventId().trim().isEmpty() 
+            ? request.eventId() : "route-evt-" + UUID.randomUUID();
+        
+        com.rentagf.notification.domain.vo.enums.NotificationType type = 
+            com.rentagf.notification.domain.vo.enums.NotificationType.valueOf(
+                request.type() != null ? request.type().toUpperCase() : "TRANSACTIONAL"
+            );
+        
+        com.rentagf.notification.domain.vo.enums.NotificationPriority priority = 
+            com.rentagf.notification.domain.vo.enums.NotificationPriority.valueOf(
+                request.priority() != null ? request.priority().toUpperCase() : "HIGH"
+            );
+
+        java.util.Map<String, Object> policyOverrides = new java.util.HashMap<>();
+        if (request.channels() != null) {
+            policyOverrides.put("channels", request.channels());
+        }
+
+        Notification notification = Notification.create(userId, eventId, type, priority, request.payload(), policyOverrides);
+        sendNotificationUseCase.routeAndSend(notification);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     /**
