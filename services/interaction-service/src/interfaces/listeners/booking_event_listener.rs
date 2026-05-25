@@ -136,14 +136,25 @@ impl BookingEventListener {
                     cloudevent.data.companion_id.clone(),
                 ) {
                     match chat_cases
-                        .create_chat_room(booking_id.clone(), client_id, companion_id, Some(cloudevent.id.clone()))
+                        .create_chat_room(
+                            booking_id.clone(),
+                            client_id,
+                            companion_id,
+                            Some(cloudevent.id.clone()),
+                        )
                         .await
                     {
                         Ok(_) => {
-                            info!("Successfully created chat room via event for booking {}", booking_id);
+                            info!(
+                                "Successfully created chat room via event for booking {}",
+                                booking_id
+                            );
                         }
                         Err(e) => {
-                            error!("Failed to create chat room via event for booking {}: {:?}", booking_id, e);
+                            error!(
+                                "Failed to create chat room via event for booking {}: {:?}",
+                                booking_id, e
+                            );
                         }
                     }
                 } else {
@@ -160,7 +171,10 @@ impl BookingEventListener {
                     "Booking {} cancelled. Locking chat room immediately.",
                     booking_id
                 );
-                if let Err(e) = chat_cases.lock_chat_room(&booking_id, Some(cloudevent.id.clone())).await {
+                if let Err(e) = chat_cases
+                    .lock_chat_room(&booking_id, Some(cloudevent.id.clone()))
+                    .await
+                {
                     error!(
                         "Failed to lock chat room for booking {}: {:?}",
                         booking_id, e
@@ -195,7 +209,10 @@ impl BookingEventListener {
                         sleep(tokio::time::Duration::from_secs(delay_seconds)).await;
                     }
                     info!("Executing scheduled lock for booking {}...", booking_id);
-                    if let Err(e) = chat_cases.lock_chat_room(&booking_id, Some(event_id_for_task)).await {
+                    if let Err(e) = chat_cases
+                        .lock_chat_room(&booking_id, Some(event_id_for_task))
+                        .await
+                    {
                         error!(
                             "Failed to lock chat room on completion schedule for booking {}: {:?}",
                             booking_id, e

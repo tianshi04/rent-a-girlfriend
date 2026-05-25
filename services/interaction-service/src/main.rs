@@ -35,12 +35,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let server_port = std::env::var("SERVER_PORT").unwrap_or_else(|_| "8080".to_string());
     let grpc_port = std::env::var("GRPC_PORT").unwrap_or_else(|_| "50051".to_string());
 
-    let db_host = std::env::var("DB_HOST").unwrap_or_else(|_| "localhost".to_string());
-    let db_port = std::env::var("DB_PORT").unwrap_or_else(|_| "5432".to_string());
-    let db_user = std::env::var("DB_USER").unwrap_or_else(|_| "postgres".to_string());
-    let db_password = std::env::var("DB_PASSWORD").unwrap_or_else(|_| "postgres".to_string());
-    let db_name = std::env::var("DB_NAME").unwrap_or_else(|_| "interaction_service".to_string());
-    let db_sslmode = std::env::var("DB_SSLMODE").unwrap_or_else(|_| "disable".to_string());
+    let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+        "postgres://postgres:postgres@localhost:5432/interaction_service?sslmode=disable"
+            .to_string()
+    });
 
     let kafka_brokers =
         std::env::var("KAFKA_BROKERS").unwrap_or_else(|_| "localhost:9092".to_string());
@@ -63,10 +61,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Configuration Loaded. Environment: {}", app_env);
 
     // 3. Database Connection Pool & Auto-Migrations
-    let db_url = format!(
-        "postgres://{}:{}@{}:{}/{}?sslmode={}",
-        db_user, db_password, db_host, db_port, db_name, db_sslmode
-    );
 
     info!("Connecting to PostgreSQL Database...");
     let pool = PgPoolOptions::new()

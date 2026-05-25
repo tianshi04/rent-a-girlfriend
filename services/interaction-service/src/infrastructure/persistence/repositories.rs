@@ -424,7 +424,11 @@ impl SqlxProcessedEventRepository {
 
 #[async_trait]
 impl ProcessedEventRepository for SqlxProcessedEventRepository {
-    async fn check_and_record(&self, event_id: &str, event_type: &str) -> Result<bool, DomainError> {
+    async fn check_and_record(
+        &self,
+        event_id: &str,
+        event_type: &str,
+    ) -> Result<bool, DomainError> {
         let now = Utc::now();
         let result = sqlx::query(
             r#"

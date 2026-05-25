@@ -36,7 +36,10 @@ impl ChatUseCases {
                 if let Some(existing) = self.repo.find_by_booking_id(&booking_id).await? {
                     return Ok(existing);
                 }
-                return Err(DomainError::ChatRoomNotFound(format!("Booking ID: {}", booking_id)));
+                return Err(DomainError::ChatRoomNotFound(format!(
+                    "Booking ID: {}",
+                    booking_id
+                )));
             }
         }
 
@@ -177,10 +180,7 @@ mod tests {
             .returning(move |_| Ok(Some(existing_room.clone())));
 
         // Save SHOULD be called 1 time to trigger outbox event (idempotency self-healing)
-        mock_repo
-            .expect_save()
-            .times(1)
-            .returning(|_| Ok(()));
+        mock_repo.expect_save().times(1).returning(|_| Ok(()));
 
         let use_cases = ChatUseCases::new(Arc::new(mock_repo), Arc::new(mock_processed_repo));
         let res = use_cases

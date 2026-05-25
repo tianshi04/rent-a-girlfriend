@@ -69,12 +69,7 @@ services/interaction-service/
 | `GRPC_PORT` | Tonic gRPC server listening port | `50051` |
 | `APP_ENV` | Environment mode (`development`/`production`) | `development` |
 | `RUST_LOG` | Logger filter configuration | `info` |
-| `DB_HOST` | PostgreSQL Host | `localhost` |
-| `DB_PORT` | PostgreSQL Port | `5432` |
-| `DB_USER` | PostgreSQL Username | `postgres` |
-| `DB_PASSWORD` | PostgreSQL Password | `postgres` |
-| `DB_NAME` | PostgreSQL Database name | `interaction_service` |
-| `DB_SSLMODE` | SSL requirement | `disable` |
+| `DATABASE_URL` | PostgreSQL connection URL string | `postgres://postgres:postgres@localhost:5432/interaction_service?sslmode=disable` |
 | `KAFKA_BROKERS` | Kafka connection string | `localhost:9092` |
 | `KAFKA_TOPIC_INTERACTION` | Kafka topic to publish events | `interaction-events` |
 | `KAFKA_TOPIC_BOOKING` | Kafka topic to consume booking events | `booking-events` |
