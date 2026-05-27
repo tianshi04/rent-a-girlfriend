@@ -92,6 +92,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let review_cases = Arc::new(ReviewUseCases::new(review_repo));
 
     // 5. Start Background Workers
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+
     // A. Outbox Worker
     let outbox_worker = Arc::new(OutboxWorker::new(
         pool.clone(),
@@ -100,8 +102,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Duration::from_millis(outbox_polling_ms),
         outbox_batch_size,
     ));
-    let outbox_handle = tokio::spawn(async move {
-        outbox_worker.start().await;
+    let outbox_shutdown_rx = shutdown_rx.clone();
+    let mut outbox_handle = tokio::spawn(async move {
+        outbox_worker.start(outbox_shutdown_rx).await;
     });
 
     // B. Booking Event Listener
@@ -111,8 +114,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         kafka_topic_booking,
         kafka_group_id,
     ));
-    let listener_handle = tokio::spawn(async move {
-        booking_listener.start().await;
+    let listener_shutdown_rx = shutdown_rx.clone();
+    let mut listener_handle = tokio::spawn(async move {
+        booking_listener.start(listener_shutdown_rx).await;
     });
 
     // 6. Bind Interfaces
@@ -126,45 +130,102 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Binding Axum HTTP REST server to: {}", http_addr);
     let http_listener = TcpListener::bind(http_addr).await?;
-    let http_server = axum::serve(http_listener, http_router);
+    
+    let mut http_shutdown_rx = shutdown_rx.clone();
+    let http_server_fut = axum::serve(http_listener, http_router)
+        .with_graceful_shutdown(async move {
+            let _ = http_shutdown_rx.changed().await;
+            info!("Axum HTTP server graceful shutdown triggered.");
+        });
+    let mut http_handle = tokio::spawn(async move {
+        http_server_fut.await
+    });
 
     // B. Tonic gRPC Servicer & Server
     let grpc_servicer = InteractionServicer::new(chat_cases, review_cases);
     let grpc_addr: SocketAddr = format!("0.0.0.0:{}", grpc_port).parse()?;
     info!("Binding Tonic gRPC server to: {}", grpc_addr);
-    let grpc_server = Server::builder()
+    
+    let mut grpc_shutdown_rx = shutdown_rx.clone();
+    let grpc_server_fut = Server::builder()
         .add_service(InteractionServiceServer::new(grpc_servicer))
-        .serve(grpc_addr);
+        .serve_with_shutdown(grpc_addr, async move {
+            let _ = grpc_shutdown_rx.changed().await;
+            info!("Tonic gRPC server graceful shutdown triggered.");
+        });
+    let mut grpc_handle = tokio::spawn(grpc_server_fut);
 
     // 7. Concurrent Startup & Graceful Shutdown
-    let shutdown = async {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("Failed to register Ctrl+C handler");
-        info!("Shutdown signal (Ctrl+C) received. Stopping services gracefully...");
-    };
-
     tokio::select! {
-        res = http_server => {
-            if let Err(e) = res {
-                error!("HTTP server encountered an error: {:?}", e);
+        res = &mut http_handle => {
+            match res {
+                Ok(Ok(())) => info!("HTTP server stopped."),
+                Ok(Err(e)) => error!("HTTP server error: {:?}", e),
+                Err(e) => error!("HTTP server join error: {:?}", e),
             }
         }
-        res = grpc_server => {
-            if let Err(e) = res {
-                error!("gRPC server encountered an error: {:?}", e);
+        res = &mut grpc_handle => {
+            match res {
+                Ok(Ok(())) => info!("gRPC server stopped."),
+                Ok(Err(e)) => error!("gRPC server error: {:?}", e),
+                Err(e) => error!("gRPC server join error: {:?}", e),
             }
         }
-        _ = outbox_handle => {
-            warn!("Background Transactional Outbox worker exited.");
+        _ = &mut outbox_handle => {
+            warn!("Background Transactional Outbox worker exited unexpectedly.");
         }
-        _ = listener_handle => {
-            warn!("Background Kafka Booking listener exited.");
+        _ = &mut listener_handle => {
+            warn!("Background Kafka Booking listener exited unexpectedly.");
         }
-        _ = shutdown => {
-            info!("Graceful shutdown complete. Exiting.");
+        _ = shutdown_signal() => {
+            info!("Shutdown signal received. Broadcasting shutdown to all tasks...");
+            let _ = shutdown_tx.send(true);
+
+            // Chờ tất cả kết thúc an toàn với thời gian timeout (15s)
+            info!("Waiting for all tasks to complete gracefully...");
+            
+            let wait_all = async {
+                let _ = tokio::join!(http_handle, grpc_handle, outbox_handle, listener_handle);
+            };
+            
+            tokio::select! {
+                _ = wait_all => {
+                    info!("All tasks shut down gracefully.");
+                }
+                _ = tokio::time::sleep(Duration::from_secs(15)) => {
+                    warn!("Shutdown timed out. Some tasks did not exit in time. Forcing exit.");
+                }
+            }
         }
     }
 
     Ok(())
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Failed to register Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("Failed to register SIGTERM handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            info!("Received SIGINT (Ctrl+C) signal.");
+        }
+        _ = terminate => {
+            info!("Received SIGTERM signal.");
+        }
+    }
 }

@@ -32,7 +32,7 @@ impl OutboxWorker {
         }
     }
 
-    pub async fn start(self: Arc<Self>) {
+    pub async fn start(self: Arc<Self>, mut shutdown_rx: tokio::sync::watch::Receiver<bool>) {
         info!("Starting Transactional Outbox Worker...");
 
         // Build FutureProducer from ClientConfig
@@ -51,10 +51,20 @@ impl OutboxWorker {
         let producer = Arc::new(producer);
 
         loop {
+            if *shutdown_rx.borrow() {
+                info!("Outbox worker received shutdown signal. Exiting loop.");
+                break;
+            }
             if let Err(e) = self.process_batch(&producer).await {
                 error!("Error in Outbox process batch: {}", e);
             }
-            sleep(self.polling_interval).await;
+            tokio::select! {
+                _ = sleep(self.polling_interval) => {}
+                _ = shutdown_rx.changed() => {
+                    info!("Outbox worker received shutdown signal. Exiting loop.");
+                    break;
+                }
+            }
         }
     }
 

@@ -51,7 +51,7 @@ impl BookingEventListener {
         }
     }
 
-    pub async fn start(self: Arc<Self>) {
+    pub async fn start(self: Arc<Self>, mut shutdown_rx: tokio::sync::watch::Receiver<bool>) {
         info!("Starting Kafka Booking Event Listener...");
 
         let consumer: StreamConsumer = match ClientConfig::new()
@@ -79,24 +79,42 @@ impl BookingEventListener {
         }
 
         loop {
-            match consumer.recv().await {
-                Ok(borrowed_message) => {
-                    let payload = match borrowed_message.payload_view::<str>() {
-                        None => continue,
-                        Some(Ok(s)) => s,
-                        Some(Err(e)) => {
-                            error!("Error parsing message payload as string: {:?}", e);
-                            continue;
-                        }
-                    };
+            if *shutdown_rx.borrow() {
+                info!("Booking listener received shutdown signal. Exiting loop.");
+                break;
+            }
+            tokio::select! {
+                msg = consumer.recv() => {
+                    match msg {
+                        Ok(borrowed_message) => {
+                            let payload = match borrowed_message.payload_view::<str>() {
+                                None => continue,
+                                Some(Ok(s)) => s,
+                                Some(Err(e)) => {
+                                    error!("Error parsing message payload as string: {:?}", e);
+                                    continue;
+                                }
+                            };
 
-                    if let Err(e) = self.handle_message(payload).await {
-                        error!("Error handling booking event: {:?}", e);
+                            if let Err(e) = self.handle_message(payload).await {
+                                error!("Error handling booking event: {:?}", e);
+                            }
+                        }
+                        Err(e) => {
+                            error!("Error receiving message from Kafka: {:?}", e);
+                            tokio::select! {
+                                _ = sleep(tokio::time::Duration::from_secs(2)) => {}
+                                _ = shutdown_rx.changed() => {
+                                    info!("Booking listener received shutdown signal. Exiting loop.");
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
-                Err(e) => {
-                    error!("Error receiving message from Kafka: {:?}", e);
-                    sleep(tokio::time::Duration::from_secs(2)).await;
+                _ = shutdown_rx.changed() => {
+                    info!("Booking listener received shutdown signal. Exiting loop.");
+                    break;
                 }
             }
         }
