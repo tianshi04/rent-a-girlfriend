@@ -1,0 +1,34 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.mail.MailHealthContributorAutoConfiguration
+  datasource:
+    url: jdbc:h2:mem:notification_db;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        default_schema: public
+        format_sql: true
+    open-in-view: false
+  flyway:
+    enabled: false
+  mail:
+    host: localhost
+
+logging:
+  level:
+    root: INFO
+    com.rentagf.notification: DEBUG
+
+notification:
+  templates:
+    path: file:config/templates.yaml

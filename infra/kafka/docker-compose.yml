@@ -90,7 +90,7 @@ services:
     image: provectuslabs/kafka-ui:${KAFKA_UI_VERSION}
     container_name: kafka-ui
     ports:
-      - "8080:8080"
+      - "8888:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: local-kraft
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
@@ -118,6 +118,8 @@ services:
       /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-1:9092 --create --if-not-exists --topic booking-events --partitions 3 --replication-factor 3;
       /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-1:9092 --create --if-not-exists --topic notification-events --partitions 3 --replication-factor 3;
       /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-1:9092 --create --if-not-exists --topic finance-events --partitions 3 --replication-factor 3;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-1:9092 --create --if-not-exists --topic interaction-events --partitions 3 --replication-factor 3;
+      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-1:9092 --create --if-not-exists --topic dispute-events --partitions 3 --replication-factor 3;
       echo 'Successfully created topics:';
       /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka-1:9092 --list;
       "

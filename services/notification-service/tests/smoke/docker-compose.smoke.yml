@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  notification-db:
+    image: postgres:15-alpine
+    container_name: notification-db-smoke
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d notification_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - smoke-network
+
+  notification-service:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: notification-service-smoke
+    ports:
+      - "8084:8084"
+    environment:
+      - SERVER_PORT=8084
+      - DB_URL=jdbc:postgresql://notification-db:5432/notification_db
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - TEMPLATES_PATH=classpath:templates.yaml
+      # Bypass Redis and Kafka by excluding their auto-configuration classes
+      - SPRING_AUTOCONFIGURE_EXCLUDE=org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration,org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+    depends_on:
+      notification-db:
+        condition: service_healthy
+    networks:
+      - smoke-network
+
+networks:
+  smoke-network:
+    driver: bridge

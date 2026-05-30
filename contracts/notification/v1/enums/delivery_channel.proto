@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/notification;notificationv1";
+
+// Kênh phân phối thông báo.
+enum DeliveryChannel {
+  DELIVERY_CHANNEL_UNSPECIFIED = 0;
+  DELIVERY_CHANNEL_SSE = 1;
+  DELIVERY_CHANNEL_FCM = 2;
+  DELIVERY_CHANNEL_EMAIL = 3;
+}

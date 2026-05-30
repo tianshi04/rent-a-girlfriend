@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/notification;notificationv1";
+
+// Cấu hình ghi đè chính sách phân phối mặc định.
+// Source service dùng message này để ép buộc Notification Service
+// phá vỡ rule mặc định (VD: bắt buộc gửi Email cho event đổi mật khẩu).
+message PolicyOverrides {
+  // Ép buộc gửi Push (FCM) ngay cả khi user đang Online.
+  bool require_push = 1;
+
+  // Ép buộc gửi Email song song với SSE/FCM.
+  bool require_email = 2;
+}
