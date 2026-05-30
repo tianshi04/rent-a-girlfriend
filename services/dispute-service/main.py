@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import signal
 import sys
 import grpc
 import uvicorn
@@ -24,7 +25,7 @@ logging.basicConfig(
 logger = logging.getLogger("server")
 
 
-async def run_grpc_server():
+async def run_grpc_server(shutdown_event: asyncio.Event):
     server = grpc.aio.server()
     servicer = DisputeServiceServicer(SessionLocal)
     dispute_service_pb2_grpc.add_DisputeServiceServicer_to_server(servicer, server)
@@ -35,7 +36,7 @@ async def run_grpc_server():
     await server.wait_for_termination()
 
 
-async def run_http_server():
+async def run_http_server(shutdown_event: asyncio.Event):
     config = uvicorn.Config(
         app=app, host="0.0.0.0", port=settings.SERVER_PORT, log_level="info"
     )
@@ -45,6 +46,16 @@ async def run_http_server():
 
 
 async def main():
+    loop = asyncio.get_running_loop()
+    shutdown_event = asyncio.Event()
+
+    def handle_shutdown(sig_name):
+        logger.info(f"Received {sig_name}, initiating graceful shutdown...")
+        shutdown_event.set()
+
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(sig, lambda s=sig: handle_shutdown(s.name))
+
     # Initialize Database Tables
     await init_db()
 
@@ -70,7 +81,7 @@ async def main():
 
     # Concurrently execute gRPC Server and FastAPI Server
     try:
-        await asyncio.gather(run_grpc_server(), run_http_server())
+        await asyncio.gather(run_grpc_server(shutdown_event), run_http_server(shutdown_event))
     finally:
         logger.info("Stopping background workers...")
         await outbox_worker.stop()
