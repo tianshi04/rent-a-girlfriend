@@ -46,7 +46,7 @@ jobs:
 
           # If true, the PR title must have a scope: type(scope): subject
           # If false, the scope is optional: type: subject OR type(scope): subject
-          requireScope: false
+          requireScope: true
 
           # Subject validation (must not start with an uppercase letter)
           subjectPattern: ^(?![A-Z]).+$
