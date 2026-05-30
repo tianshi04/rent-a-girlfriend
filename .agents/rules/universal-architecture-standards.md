@@ -26,6 +26,7 @@ globs: services/**/*
 - **Deployment**:
     - Standalone Dockerfile mỗi service đặt tại root của service. Multi-stage build.
     - Config qua biến môi trường (.env.example). No hard-code.
+    - **Port Conventions**: Tất cả các Microservices phải sử dụng cổng kết nối chuẩn: HTTP chạy trên `8080` (`SERVER_PORT`), gRPC chạy trên `50051` (`GRPC_PORT`).
 - **Quality & Documentation**:
     - **Self-Documenting**: Mỗi service phải tự quản lý `docs/` riêng. Cập nhật tài liệu ngay khi thay đổi logic nghiệp vụ.
     - **Test-Driven**: Mọi tính năng/logic mới phải có Unit Test (cho Domain/Application) và Integration Test (cho Infrastructure).

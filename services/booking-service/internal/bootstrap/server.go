@@ -84,6 +84,7 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 	completeBookingHandler := command.NewCompleteBookingHandler(bookingRepo)
 	systemCompleteBookingHandler := command.NewSystemCompleteBookingHandler(bookingRepo)
 	disputeBookingHandler := command.NewDisputeBookingHandler(bookingRepo)
+	resolveBookingHandler := command.NewResolveBookingHandler(bookingRepo)
 
 	// --- Auto-Complete Worker ---
 	autoCompleteWorker := worker.NewAutoCompleteWorker(
@@ -111,6 +112,7 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 		[]string{cfg.Kafka.TopicFinance, cfg.Kafka.TopicInteraction, cfg.Kafka.TopicDispute},
 		sagaCoordinator,
 		disputeBookingHandler,
+		resolveBookingHandler,
 		db,
 	)
 

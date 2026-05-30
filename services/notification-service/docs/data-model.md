@@ -24,7 +24,7 @@ erDiagram
     notifications {
         UUID id PK
         UUID user_id FK "Index"
-        VARCHAR event_id UK "Unique (Idempotency)"
+        VARCHAR idempotency_key UK "Composite Unique (Idempotency)"
         VARCHAR type 
         VARCHAR priority
         JSONB payload
@@ -57,7 +57,7 @@ erDiagram
 | :--- | :--- | :--- |
 | `id` | `UUID` | Khóa chính (Primary Key). |
 | `user_id` | `UUID` | ID của người nhận. |
-| `event_id` | `VARCHAR(128)` | Khóa duy nhất (Unique). ID của CloudEvent gửi đến để đảm bảo **Idempotency**. |
+| `idempotency_key` | `VARCHAR(128)` | Cột trong khóa composite unique. Đảm bảo **Idempotency** theo từng User nhận tin. |
 | `type` | `VARCHAR(50)` | `TRANSACTIONAL`, `INTERACTION`, `PROMOTIONAL`. |
 | `priority` | `VARCHAR(20)` | `HIGH`, `MEDIUM`, `LOW`. |
 | `payload` | `JSONB` | Chứa `{ "title": "...", "body": "...", "actionUrl": "..." }`. |
@@ -75,8 +75,10 @@ Lưu vết từng lần gọi API nội bộ hoặc bên thứ 3 (Firebase, Emai
 | `id` | `UUID` | Khóa chính (Primary Key). |
 | `notification_id` | `UUID` | Khóa ngoại (Foreign Key) chỉ tới `notifications(id)`. Xóa cascade. |
 | `channel` | `VARCHAR(20)` | `SSE`, `FCM`, `EMAIL`. |
-| `status` | `VARCHAR(20)` | `PENDING`, `SUCCESS`, `FAILED`. |
-| `error_message` | `TEXT` | Nullable. Ghi lại lý do lỗi (VD: `socket: connection reset by peer`, `FCM token invalid`). |
+| `status` | `VARCHAR(20)` | `PENDING`, `SUCCESS`, `FAILED_RECOVERABLE`, `FAILED_UNRECOVERABLE`. |
+| `message_id` | `VARCHAR(128)` | Nullable. ID tin nhắn từ Provider (Email message ID hoặc FCM message ID). |
+| `error_code` | `VARCHAR(50)` | Nullable. Mã lỗi kỹ thuật thu được từ bên thứ 3 (VD: `SMTP_TIMEOUT`, `FCM_TOKEN_INVALID`). |
+| `error_message` | `TEXT` | Nullable. Ghi lại lý do lỗi chi tiết (VD: `socket: connection reset by peer`). |
 | `attempted_at` | `TIMESTAMP` | Thời điểm Worker bốc Job lên gửi. Mặc định `NOW()`. |
 | `resolved_at` | `TIMESTAMP` | Nullable. Thời điểm nhận được kết quả từ Provider. |
 
@@ -87,8 +89,8 @@ Lưu vết từng lần gọi API nội bộ hoặc bên thứ 3 (Firebase, Emai
 Việc đánh Index quyết định trực tiếp hiệu năng hệ thống ở mức Production.
 
 ### Indexes trên bảng `notifications`:
-1. `UNIQUE INDEX idx_notifications_event_id (event_id)`: 
-   - **Tác dụng**: Cực kỳ quan trọng. Ngăn chặn triệt để việc Message Broker đẩy lại 1 sự kiện 2 lần dẫn đến gửi 2 tin nhắn giống nhau cho User.
+1. `UNIQUE INDEX uk_notifications_idempotency_user (idempotency_key, user_id)`: 
+   - **Tác dụng**: Cực kỳ quan trọng. Ngăn chặn gửi trùng lặp thông báo cho cùng một User từ cùng một khóa idempotency gốc, đồng thời cho phép phân phối đa đối tượng (multi-recipient).
 2. `INDEX idx_notifications_inbox (user_id, created_at DESC)`:
    - **Tác dụng**: Phục vụ API lấy danh sách Inbox của Client (App/Web). Client thường query: `WHERE user_id = ? ORDER BY created_at DESC LIMIT 20`. Index kép này giúp câu query tốn chưa tới 1ms.
 3. `INDEX idx_notifications_stuck (status, created_at)`:

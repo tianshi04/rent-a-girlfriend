@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌌 Rent-A-Girlfriend - Notification Control Center</title>
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome 6 (CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    
+    <!-- Fetch‑event‑source bundle (self-contained, no imports required) -->
+    <script src="lib/fetch-event-source/bundle.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(22, 28, 45, 0.4);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --primary: #ec4899;
+            --primary-glow: rgba(236, 72, 153, 0.4);
+            --secondary: #8b5cf6;
+            --secondary-glow: rgba(139, 92, 246, 0.4);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.4);
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --neon-blue: #06b6d4;
+            --neon-blue-glow: rgba(6, 182, 212, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(236, 72, 153, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 50% 0%, rgba(6, 182, 212, 0.1) 0px, transparent 50%);
+        }
+
+        header {
+            padding: 2rem 3rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(11, 15, 25, 0.8);
+            backdrop-filter: blur(12px);
+            z-index: 100;
+        }
+
+        .logo-section h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-section p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .badge-container {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .status-badge {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-dot.offline {
+            background-color: var(--error);
+            box-shadow: 0 0 10px var(--error);
+        }
+
+        .status-dot.online {
+            background-color: var(--success);
+            box-shadow: 0 0 10px var(--success-glow);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 2rem;
+            padding: 2rem 3rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 1.25rem;
+            backdrop-filter: blur(16px);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .card-title i {
+            color: var(--primary);
+        }
+
+        /* Forms Styling */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, select, textarea {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            padding: 0.85rem 1rem;
+            border-radius: 0.75rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .row-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.25rem;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .radio-option input {
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        /* Buttons Custom */
+        .btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            font-weight: 700;
+            padding: 1rem;
+            border: none;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--primary-glow);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            box-shadow: none;
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: none;
+            border-color: var(--text-secondary);
+        }
+
+        /* Logger area */
+        .log-container {
+            background: rgba(10, 10, 18, 0.9);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            flex: 1;
+            overflow-y: auto;
+            max-height: 450px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+        }
+
+        .log-entry {
+            border-left: 3px solid var(--text-secondary);
+            padding-left: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .log-entry.connect { border-color: var(--success); color: var(--success); }
+        .log-entry.ping { border-color: var(--neon-blue); color: var(--neon-blue); }
+        .log-entry.notification { border-color: var(--primary); color: #fff; }
+        .log-entry.system { border-color: var(--warning); color: var(--warning); }
+        .log-entry.error { border-color: var(--error); color: var(--error); }
+
+        .log-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+
+        /* Toast container */
+        #toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 1000;
+        }
+
+        .toast {
+            background: rgba(22, 28, 45, 0.95);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--primary);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            backdrop-filter: blur(12px);
+            animation: slideIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toast-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .toast-title.transactional { color: var(--neon-blue); }
+        .toast-title.marketing { color: var(--primary); }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .toast-close:hover {
+            color: white;
+        }
+
+        .toast-body {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            line-height: 1.4;
+        }
+
+        .toast-footer {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            padding-top: 0.5rem;
+        }
+
+        .toast-channel {
+            background: rgba(255,255,255,0.05);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .empty-logs {
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 2rem;
+            font-style: italic;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-section">
+            <h1><i class="fa-solid fa-wand-magic-sparkles"></i> Delivery Hub</h1>
+            <p>Rent-A-Girlfriend Notification Control Center (Production Ready)</p>
+        </div>
+        <div class="badge-container">
+            <div class="status-badge">
+                <span id="sse-status-dot" class="status-dot offline"></span>
+                <span id="sse-status-text">SSE: Disconnected</span>
+            </div>
+            <div class="status-badge">
+                <i class="fa-solid fa-server" style="color: var(--neon-blue);"></i>
+                <span>Port: 8084</span>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- PANEL TRÁI: TRIGGER / ROUTING FORM -->
+        <section class="glass-card">
+            <h2 class="card-title"><i class="fa-solid fa-paper-plane"></i> Kích Hoạt Gửi Tin (Dispatch Notification)</h2>
+            
+            <!-- CHỌN CHẾ ĐỘ ENGINE -->
+            <div class="form-group">
+                <label>Chế độ gửi (Delivery Engine Mode)</label>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="engineMode" value="routing" checked>
+                        <span>Định tuyến thông minh (Smart Routing)</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="engineMode" value="trigger">
+                        <span>Ép kênh thủ công (Manual Trigger)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="backendUrl">Backend API URL</label>
+                <input type="text" id="backendUrl" placeholder="Ví dụ: http://localhost:8084">
+            </div>
+
+            <div class="form-group">
+                <label for="userId">User ID (UUID)</label>
+                <input type="text" id="userId" value="9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d" placeholder="Nhập UUID của User nhận">
+            </div>
+
+            <div class="row-grid">
+                <div class="form-group">
+                    <label for="notifType">Loại Thông Báo</label>
+                    <select id="notifType">
+                        <option value="TRANSACTIONAL">TRANSACTIONAL (Giao dịch)</option>
+                        <option value="MARKETING">MARKETING (Quảng cáo)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="notifPriority">Độ Ưu Tiên</label>
+                    <select id="notifPriority">
+                        <option value="HIGH">HIGH (Cao)</option>
+                        <option value="MEDIUM">MEDIUM (Trung bình)</option>
+                        <option value="LOW">LOW (Thấp)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row-grid">
+                <!-- Dropdown này dùng cho Manual Trigger, hoặc ẩn đi/đổi tiêu đề ở Smart Routing -->
+                <div class="form-group">
+                    <label id="channel-label" for="channel">Kênh ưu tiên (Smart/Manual Channel)</label>
+                    <select id="channel">
+                        <option value="SSE">SSE (Realtime Web Stream)</option>
+                        <option value="EMAIL">EMAIL (Mailtrap SMTP)</option>
+                        <option value="FCM">FCM (Firebase Cloud Messaging)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="eventId">Event ID (Idempotency Key)</label>
+                    <input type="text" id="eventId" placeholder="Tự sinh nếu để trống">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="title">Tiêu Đề (Title)</label>
+                <input type="text" id="title" value="Cập nhật Booking thành công! 💖">
+            </div>
+
+            <div class="form-group">
+                <label for="body">Nội Dung (Body)</label>
+                <textarea id="body" rows="3">Chizuru Ichinose đã chấp nhận cuộc hẹn thuê của bạn vào ngày mai!</textarea>
+            </div>
+
+            <button id="btn-trigger" class="btn"><i class="fa-solid fa-bolt"></i> Phát Phát Thông Báo</button>
+        </section>
+
+        <!-- PANEL PHẢI: LOGS & STREAMING -->
+        <section class="glass-card">
+            <h2 class="card-title"><i class="fa-solid fa-satellite-dish"></i> Realtime Listener (SSE Streaming via Header)</h2>
+            
+            <div class="row-grid">
+                <div class="form-group">
+                    <label>Kết Nối Live Stream (Sử dụng Header 'user-id')</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button id="btn-connect-sse" class="btn" style="flex: 1; background: linear-gradient(135deg, var(--success), #059669); box-shadow: 0 4px 15px var(--success-glow);"><i class="fa-solid fa-link"></i> Kết nối SSE (Header)</button>
+                        <button id="btn-disconnect-sse" class="btn btn-secondary" style="flex: 1;"><i class="fa-solid fa-link-slash"></i> Ngắt Kết Nối</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group" style="flex: 1; display: flex; flex-direction: column;">
+                <label>Logs Nhận Sự Kiện Thực Tế (SSE Live Logs)</label>
+                <div id="log-console" class="log-container">
+                    <div class="empty-logs">Chưa có kết nối nào. Nhấn "Kết nối SSE" để bắt đầu lắng nghe sự kiện thời gian thực.</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- TOAST ALERTS POPUP CONTAINER -->
+    <div id="toast-container"></div>
+
+    <script>
+        <!-- Removed unused eventSource variable -->
+let abortController = null;
+
+        // Element Selectors
+        const btnConnect = document.getElementById('btn-connect-sse');
+        const btnDisconnect = document.getElementById('btn-disconnect-sse');
+        const btnTrigger = document.getElementById('btn-trigger');
+        const sseStatusDot = document.getElementById('sse-status-dot');
+        const sseStatusText = document.getElementById('sse-status-text');
+        const logConsole = document.getElementById('log-console');
+        const toastContainer = document.getElementById('toast-container');
+        const channelLabel = document.getElementById('channel-label');
+        const backendUrlInput = document.getElementById('backendUrl');
+
+        // Tự động phát hiện Backend URL phù hợp
+        // Nếu mở bằng file:// hoặc origin khác, mặc định trỏ về cổng 8084. Nếu không, dùng origin hiện tại.
+        const defaultBackend = (window.location.protocol === 'file:' || 
+                                (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') ||
+                                (window.location.port !== '8084')) 
+                               ? 'http://localhost:8084' 
+                               : window.location.origin;
+        backendUrlInput.value = defaultBackend;
+
+        // Lắng nghe đổi chế độ Engine để thay đổi label giao diện
+        document.querySelectorAll('input[name="engineMode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === 'routing') {
+                    channelLabel.innerText = "Kênh ưu tiên (Smart Channels)";
+                } else {
+                    channelLabel.innerText = "Kênh ép gửi (Manual Channel)";
+                }
+            });
+        });
+
+        // Khởi tạo Event ID mặc định
+        document.getElementById('eventId').value = "evt-" + Math.random().toString(36).substring(2, 9);
+
+        // Hàm ghi Log ra Console ảo
+        function writeLog(type, message, details = '') {
+            const emptyLog = logConsole.querySelector('.empty-logs');
+            if (emptyLog) emptyLog.remove();
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            
+            const time = new Date().toLocaleTimeString();
+            let detailsHtml = '';
+            if (details) {
+                detailsHtml = `<pre style="margin-top: 0.5rem; background: rgba(0,0,0,0.4); padding: 0.5rem; border-radius: 4px; overflow-x: auto; color: #a5f3fc;">${details}</pre>`;
+            }
+
+            entry.innerHTML = `
+                <span class="log-time">[${time}]</span>
+                <strong>${message}</strong>
+                ${detailsHtml}
+            `;
+            
+            logConsole.appendChild(entry);
+            logConsole.scrollTop = logConsole.scrollHeight;
+        }
+
+        // Connect SSE using fetch-event-source with custom header 'user-id'
+        btnConnect.addEventListener('click', () => {
+            const userId = document.getElementById('userId').value.trim();
+            if (!userId) {
+                alert('Vui lòng điền User ID (UUID) trước khi kết nối!');
+                return;
+            }
+            const backendUrl = backendUrlInput.value.trim().replace(/\/$/, '');
+            if (!backendUrl) {
+                alert('Vui lòng nhập Backend API URL!');
+                return;
+            }
+            if (abortController) {
+                abortController.abort(); // Abort any previous connection
+            }
+            const streamUrl = `${backendUrl}/v1/notifications/stream`;
+            writeLog('system', `Khởi tạo fetchEventSource tại ${streamUrl}... Thiết lập Header 'user-id': ${userId}`);
+            abortController = new AbortController();
+            fetchEventSource(streamUrl, {
+                method: 'GET',
+                headers: {
+                    'user-id': userId,
+                    'Accept': 'text/event-stream'
+                },
+                signal: abortController.signal,
+                // keepalive ensures connection stays open when tab is hidden
+                openWhenHidden: true,
+                onopen: (response) => {
+                    if (response.ok) {
+                        sseStatusDot.className = 'status-dot online';
+                        sseStatusText.innerText = 'SSE: Connected';
+                        writeLog('connect', 'Đã bắt tay SSE thành công với Header user-id! Đang lắng nghe sự kiện...');
+                    } else {
+                        writeLog('error', `Kết nối SSE thất bại, status: ${response.status}`);
+                    }
+                },
+                onmessage: (event) => {
+                    if (event.event === 'ping') {
+                        writeLog('ping', 'Heartbeat Ping: Nhận tín hiệu giữ kết nối (:ping)');
+                        return;
+                    }
+                    if (event.event === 'notification') {
+                        const data = JSON.parse(event.data);
+                        writeLog('notification', `Nhận Thông Báo Mới [ID: ${data.id}]`, JSON.stringify(data, null, 2));
+                        createToast(data);
+                        return;
+                    }
+                    // Fallback for generic messages
+                    writeLog('notification', 'Nhận gói tin mặc định từ SSE:', event.data);
+                },
+                onclose: () => {
+                    sseStatusDot.className = 'status-dot offline';
+                    sseStatusText.innerText = 'SSE: Disconnected';
+                    writeLog('system', 'Kết nối SSE đã đóng.');
+                },
+                onerror: (err) => {
+                    sseStatusDot.className = 'status-dot offline';
+                    sseStatusText.innerText = 'SSE: Error / Closed';
+                    writeLog('error', 'Lỗi kết nối hoặc phiên SSE đã bị đóng.', err.message);
+                }
+            }).catch(err => {
+                if (err.name !== 'AbortError') {
+                    sseStatusDot.className = 'status-dot offline';
+                    sseStatusText.innerText = 'SSE: Error / Closed';
+                    writeLog('error', 'Lỗi kết nối hoặc phiên SSE đã bị đóng.', err.message);
+                }
+            });
+        });
+
+        // Ngắt kết nối SSE
+        btnDisconnect.addEventListener('click', () => {
+                if (abortController) {
+                    abortController.abort();
+                    abortController = null;
+                }
+                sseStatusDot.className = 'status-dot offline';
+                sseStatusText.innerText = 'SSE: Disconnected';
+                writeLog('system', 'Đã chủ động đóng kết nối SSE.');
+        });
+
+        // Trigger / Route thông báo
+        btnTrigger.addEventListener('click', async () => {
+            btnTrigger.disabled = true;
+            btnTrigger.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
+
+            const engineMode = document.querySelector('input[name="engineMode"]:checked').value;
+            const userId = document.getElementById('userId').value.trim();
+            const eventId = document.getElementById('eventId').value.trim();
+            const type = document.getElementById('notifType').value;
+            const priority = document.getElementById('notifPriority').value;
+            const channel = document.getElementById('channel').value;
+            const title = document.getElementById('title').value;
+            const body = document.getElementById('body').value;
+            const backendUrl = backendUrlInput.value.trim().replace(/\/$/, '');
+
+            if (!backendUrl) {
+                alert('Vui lòng nhập Backend API URL!');
+                btnTrigger.disabled = false;
+                btnTrigger.innerHTML = '<i class="fa-solid fa-bolt"></i> Phát Phát Thông Báo';
+                return;
+            }
+
+            let endpoint = '';
+            let requestBody = {};
+
+            if (engineMode === 'trigger') {
+                // Chế độ ép kênh thủ công (TriggerNotificationUseCase)
+                endpoint = '/v1/notifications/trigger';
+                requestBody = {
+                    userId: userId,
+                    eventId: eventId,
+                    type: type,
+                    priority: priority,
+                    channel: channel,
+                    payload: { title: title, body: body }
+                };
+            } else {
+                // Chế độ Định tuyến thông minh (SendNotificationUseCase)
+                endpoint = '/v1/notifications/route';
+                
+                // Mặc định cho phép đi qua cả 3 kênh SSE, FCM, EMAIL để bộ routing tự quyết định dựa trên Online Status
+                requestBody = {
+                    userId: userId,
+                    eventId: eventId,
+                    type: type,
+                    priority: priority,
+                    payload: { title: title, body: body },
+                    channels: [channel, "SSE", "FCM", "EMAIL"] // bao gồm cả kênh test và fallback
+                };
+            }
+
+            const targetUrl = `${backendUrl}${endpoint}`;
+
+            try {
+                writeLog('system', `Gửi yêu cầu tới ${targetUrl} ở chế độ: ${engineMode.toUpperCase()}...`);
+                
+                const response = await fetch(targetUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (response.ok) {
+                    writeLog('system', `Gửi yêu cầu xử lý thành công!`, JSON.stringify(requestBody, null, 2));
+                    // Tạo một eventId mới cho lần gửi tiếp theo để tránh lỗi Idempotency
+                    document.getElementById('eventId').value = "evt-" + Math.random().toString(36).substring(2, 9);
+                } else {
+                    const errText = await response.text();
+                    writeLog('error', `Yêu cầu thất bại! Mã lỗi: ${response.status}`, errText);
+                }
+            } catch (err) {
+                writeLog('error', 'Lỗi kết nối khi gửi yêu cầu: ' + err.message);
+            } finally {
+                btnTrigger.disabled = false;
+                btnTrigger.innerHTML = '<i class="fa-solid fa-bolt"></i> Phát Phát Thông Báo';
+            }
+        });
+
+        // Tạo Toast alert đẹp đẽ
+        function createToast(data) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.style.borderLeftColor = data.type === 'MARKETING' ? 'var(--primary)' : 'var(--neon-blue)';
+
+            toast.innerHTML = `
+                <div class="toast-header">
+                    <span class="toast-title ${data.type.toLowerCase()}">
+                        <i class="fa-solid ${data.type === 'MARKETING' ? 'fa-bullhorn' : 'fa-receipt'}"></i> 
+                        ${data.type}
+                    </span>
+                    <button class="toast-close">&times;</button>
+                </div>
+                <div class="toast-body">
+                    <strong style="display:block; margin-bottom: 0.25rem;">${data.title || 'Thông báo mới'}</strong>
+                    <span>${data.body || ''}</span>
+                </div>
+                <div class="toast-footer">
+                    <span>Ưu tiên: <strong>${data.priority}</strong></span>
+                    <span class="toast-channel">SSE Stream</span>
+                </div>
+            `;
+
+            toast.querySelector('.toast-close').addEventListener('click', () => {
+                toast.remove();
+            });
+
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.transform = 'translateX(100%)';
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 350);
+            }, 6000);
+        }
+    </script>
+</body>
+</html>

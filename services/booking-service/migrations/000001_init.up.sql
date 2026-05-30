@@ -22,6 +22,7 @@ CREATE INDEX IF NOT EXISTS idx_bookings_client_companion_status ON bookings(clie
 CREATE INDEX IF NOT EXISTS idx_bookings_client_status ON bookings(client_id, status);
 CREATE INDEX IF NOT EXISTS idx_bookings_companion_status ON bookings(companion_id, status);
 CREATE INDEX IF NOT EXISTS idx_bookings_status_end_time ON bookings(status, end_time);
+CREATE INDEX IF NOT EXISTS idx_bookings_pending_timeout ON bookings(status, created_at, start_time);
 
 -- Outbox table (Transactional Outbox Pattern)
 CREATE TABLE IF NOT EXISTS outbox (

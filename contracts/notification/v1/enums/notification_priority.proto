@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/notification;notificationv1";
+
+// Mức độ ưu tiên — quyết định thứ tự xử lý trong queue.
+enum NotificationPriority {
+  NOTIFICATION_PRIORITY_UNSPECIFIED = 0;
+  NOTIFICATION_PRIORITY_HIGH = 1;
+  NOTIFICATION_PRIORITY_MEDIUM = 2;
+  NOTIFICATION_PRIORITY_LOW = 3;
+}

@@ -108,6 +108,7 @@ func (h *BookingGRPCHandler) RejectBooking(ctx context.Context, req *bookingv1.R
 	booking, err := h.rejectBooking.Handle(ctx, command.RejectBookingCmd{
 		BookingID:   req.BookingId,
 		CompanionID: companionID,
+		Reason:      req.Reason,
 	})
 	if err != nil {
 		return nil, mapDomainError(err)
@@ -303,6 +304,8 @@ func mapBookingStatus(status vo.BookingStatus) bookingv1.BookingStatus {
 		return bookingv1.BookingStatus_BOOKING_STATUS_CANCELLED
 	case vo.StatusDisputed:
 		return bookingv1.BookingStatus_BOOKING_STATUS_DISPUTED
+	case vo.StatusResolved:
+		return bookingv1.BookingStatus_BOOKING_STATUS_RESOLVED
 	default:
 		return bookingv1.BookingStatus_BOOKING_STATUS_UNSPECIFIED
 	}

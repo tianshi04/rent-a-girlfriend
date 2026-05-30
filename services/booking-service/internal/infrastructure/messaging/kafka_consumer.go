@@ -31,6 +31,7 @@ type bookingIDPayload struct {
 type KafkaConsumer struct {
 	coordinators   *command.SagaCoordinator
 	disputeHandler *command.DisputeBookingHandler
+	resolveHandler *command.ResolveBookingHandler
 	db             *gorm.DB
 	readers        []*kafka.Reader
 }
@@ -42,6 +43,7 @@ func NewKafkaConsumer(
 	topics []string,
 	coordinator *command.SagaCoordinator,
 	disputeHandler *command.DisputeBookingHandler,
+	resolveHandler *command.ResolveBookingHandler,
 	db *gorm.DB,
 ) *KafkaConsumer {
 	brokerList := strings.Split(cfg.Brokers, ",")
@@ -63,6 +65,7 @@ func NewKafkaConsumer(
 	return &KafkaConsumer{
 		coordinators:   coordinator,
 		disputeHandler: disputeHandler,
+		resolveHandler: resolveHandler,
 		db:             db,
 		readers:        readers,
 	}
@@ -178,6 +181,21 @@ func (c *KafkaConsumer) dispatch(ctx context.Context, msg kafka.Message) error {
 				return nil
 			}
 			_, err = c.disputeHandler.Handle(txCtx, command.DisputeBookingCmd{BookingID: bookingID})
+			return err
+		})
+		return err
+	case "com.rentagf.dispute.DisputeResolved.v1":
+		err := c.db.Transaction(func(tx *gorm.DB) error {
+			txCtx := context.WithValue(ctx, "tx", tx)
+			alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, tx, ce.ID, ce.Type)
+			if err != nil {
+				return err
+			}
+			if alreadyProcessed {
+				log.Printf("[KAFKA-CONSUMER] Skipping duplicate event id=%s type=%s", ce.ID, ce.Type)
+				return nil
+			}
+			_, err = c.resolveHandler.Handle(txCtx, command.ResolveBookingCmd{BookingID: bookingID})
 			return err
 		})
 		return err

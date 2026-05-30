@@ -32,6 +32,7 @@ func TestRejectBooking_Success(t *testing.T) {
 	cmd := command.RejectBookingCmd{
 		BookingID:   bid.String(),
 		CompanionID: companionID.String(),
+		Reason:      "busy",
 	}
 
 	res, err := handler.Handle(context.Background(), cmd)
@@ -69,6 +70,7 @@ func TestRejectBooking_UnauthorizedCompanion(t *testing.T) {
 	cmd := command.RejectBookingCmd{
 		BookingID:   bid.String(),
 		CompanionID: "550e8400-e29b-41d4-a716-446655440099",
+		Reason:      "busy",
 	}
 
 	_, err := handler.Handle(context.Background(), cmd)

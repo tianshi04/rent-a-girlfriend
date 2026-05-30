@@ -14,6 +14,7 @@ import (
 type RejectBookingCmd struct {
 	BookingID   string
 	CompanionID string
+	Reason      string
 }
 
 // RejectBookingHandler handles the RejectBooking command.
@@ -41,7 +42,7 @@ func (h *RejectBookingHandler) Handle(ctx context.Context, cmd RejectBookingCmd)
 		return nil, err
 	}
 
-	if err := booking.Reject(companionID, time.Now()); err != nil {
+	if err := booking.Reject(companionID, cmd.Reason, time.Now()); err != nil {
 		return nil, err
 	}
 

@@ -14,13 +14,13 @@ type BookingModel struct {
 	CompanionID      string    `gorm:"column:companion_id;type:uuid;not null;index:idx_bookings_client_companion_status;index:idx_bookings_companion_status"`
 	ScenarioPrice    int64     `gorm:"column:scenario_price;not null"`
 	ScenarioDuration int64     `gorm:"column:scenario_duration;not null"`
-	StartTime        time.Time `gorm:"column:start_time;type:timestamptz;not null"`
+	StartTime        time.Time `gorm:"column:start_time;type:timestamptz;not null;index:idx_bookings_pending_timeout"`
 	EndTime          time.Time `gorm:"column:end_time;type:timestamptz;not null;index:idx_bookings_status_end_time"`
-	Status           string    `gorm:"column:status;type:varchar(20);not null;default:'PENDING';index:idx_bookings_client_companion_status;index:idx_bookings_status_end_time;index:idx_bookings_companion_status;index:idx_bookings_client_status"`
+	Status           string    `gorm:"column:status;type:varchar(20);not null;default:'PENDING';index:idx_bookings_client_companion_status;index:idx_bookings_status_end_time;index:idx_bookings_companion_status;index:idx_bookings_client_status;index:idx_bookings_pending_timeout"`
 	CancelledByRole  string    `gorm:"column:cancelled_by_role;type:varchar(20)"`
 	IsLateCancel     bool      `gorm:"column:is_late_cancel;default:false"`
 	Version          int64     `gorm:"column:version;not null;default:1"`
-	CreatedAt        time.Time `gorm:"column:created_at;type:timestamptz;not null;autoCreateTime"`
+	CreatedAt        time.Time `gorm:"column:created_at;type:timestamptz;not null;autoCreateTime;index:idx_bookings_pending_timeout"`
 	UpdatedAt        time.Time `gorm:"column:updated_at;type:timestamptz;not null;autoUpdateTime"`
 }
 

@@ -54,7 +54,7 @@ Khi một service khác muốn gửi thông báo, nó sẽ phát ra một Event 
 
 ```json
 {
-  "eventId": "uuid",
+  "idempotencyKey": "uuid",
   "userId": "user-123",
   "type": "TRANSACTIONAL",
   "content": {

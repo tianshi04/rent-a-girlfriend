@@ -1,0 +1,106 @@
+spring:
+  application:
+    name: notification-service
+  threads:
+    virtual:
+      enabled: true
+
+  # --- Database ---
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:notification_db}${DB_OPTIONS:}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:8}
+      minimum-idle: ${DB_POOL_MIN:2}
+      idle-timeout: 30000
+      connection-timeout: 20000
+      max-lifetime: 1800000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: public
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+  # --- Flyway ---
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  # --- Redis ---
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  # --- Mail (Mailtrap Sandbox) ---
+  mail:
+    host: ${SMTP_HOST:sandbox.smtp.mailtrap.io}
+    port: ${SMTP_PORT:2525}
+    username: ${SMTP_USERNAME:c0042c33109bac}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+  # --- Kafka ---
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: notification-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    listener:
+      ack-mode: manual
+
+# --- Server ---
+server:
+  port: ${SERVER_PORT:8080}
+
+# --- Actuator ---
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# --- Logging ---
+logging:
+  level:
+    root: INFO
+    com.rentagf.notification: DEBUG
+    org.springframework.kafka: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+
+# --- App Custom ---
+notification:
+  templates:
+    path: ${TEMPLATES_PATH:classpath:templates.yaml}
+  sse:
+    heartbeat-interval-seconds: 15
+  retry:
+    max-attempts: 3
+    backoff-multiplier: 2
+    initial-delay-ms: 2000
+  worker-pool:
+    size: 50
+  default-locale: vi

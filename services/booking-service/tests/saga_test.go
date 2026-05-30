@@ -80,6 +80,7 @@ func TestSagaLifecycle_E2E_Kafka(t *testing.T) {
 
 	// Injecting dummy dispute handler
 	disputeHandler := command.NewDisputeBookingHandler(bookingRepo)
+	resolveHandler := command.NewResolveBookingHandler(bookingRepo)
 
 	// 3. Start Kafka Consumer in the background
 	connCfg := messaging.KafkaConnConfig{
@@ -96,6 +97,7 @@ func TestSagaLifecycle_E2E_Kafka(t *testing.T) {
 		[]string{financeTopic, interactionTopic, disputeTopic},
 		coordinator,
 		disputeHandler,
+		resolveHandler,
 		db,
 	)
 

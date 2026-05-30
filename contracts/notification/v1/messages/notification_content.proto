@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package notification.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/notification;notificationv1";
+
+// Nội dung hiển thị của thông báo.
+message NotificationContent {
+  // Tiêu đề thông báo.
+  string title = 1;
+
+  // Nội dung chi tiết.
+  string body = 2;
+
+  // Deep link để điều hướng khi user bấm vào (tùy chọn).
+  string action_url = 3;
+
+  // URL ảnh đính kèm (tùy chọn).
+  string image_url = 4;
+}
