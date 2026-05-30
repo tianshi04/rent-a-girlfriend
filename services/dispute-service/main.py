@@ -69,22 +69,18 @@ async def main():
         logger.warning(f"Event Consumer failed to start: {e}.")
 
     # Concurrently execute gRPC Server and FastAPI Server
-    await asyncio.gather(run_grpc_server(), run_http_server())
+    try:
+        await asyncio.gather(run_grpc_server(), run_http_server())
+    finally:
+        logger.info("Stopping background workers...")
+        await outbox_worker.stop()
+        await saga_retry_worker.stop()
+        await event_consumer.stop()
+        logger.info("Server successfully stopped.")
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("Server shutdown initiated...")
-        # Stop background worker loops
-        async def stop_workers():
-            await outbox_worker.stop()
-            await saga_retry_worker.stop()
-            await event_consumer.stop()
-        
-        try:
-            asyncio.run(stop_workers())
-        except Exception as e:
-            logger.error(f"Error during shutdown: {e}")
-        logger.info("Server successfully stopped.")
+        logger.info("Server shutdown initiated by KeyboardInterrupt...")
