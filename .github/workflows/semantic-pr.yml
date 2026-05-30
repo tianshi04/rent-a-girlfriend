@@ -1,9 +1,9 @@
 name: "Lint Pull Request"
 
 on:
-  # Temporarily changed to 'pull_request' to test the CI immediately in PR #32.
-  # We will revert this back to 'pull_request_target' before merging for public repo safety.
-  pull_request:
+  # Using 'pull_request_target' is highly recommended for public repositories.
+  # This allows PRs created from forks to run the workflow safely and update the PR status check.
+  pull_request_target:
     types:
       - opened
       - edited
