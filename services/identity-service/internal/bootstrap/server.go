@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 
 	"google.golang.org/grpc"
 	"gorm.io/gorm"
@@ -134,10 +135,7 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 }
 
 // Run starts both HTTP and gRPC servers, and the background workers.
-func (s *Server) Run(httpAddr, grpcAddr string) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
+func (s *Server) Run(ctx context.Context, httpAddr, grpcAddr string) error {
 	errChan := make(chan error, 3)
 
 	// Start Outbox Worker
@@ -157,30 +155,50 @@ func (s *Server) Run(httpAddr, grpcAddr string) error {
 			errChan <- fmt.Errorf("failed to listen for gRPC: %w", err)
 			return
 		}
-		if err := s.GRPCServer.Serve(lis); err != nil {
+		if err := s.GRPCServer.Serve(lis); err != nil && err != grpc.ErrServerStopped {
 			errChan <- fmt.Errorf("failed to serve gRPC: %w", err)
 		}
 	}()
+
+	// Initialize HTTP Gateway
+	gatewayOpts := s.getTestGatewayOptions()
+	gwHandler, err := gateway.NewGateway(ctx, grpcAddr, s.getJWKSHandler, gatewayOpts...)
+	if err != nil {
+		return fmt.Errorf("failed to initialize HTTP Gateway: %w", err)
+	}
+
+	httpServer := &http.Server{
+		Addr:    httpAddr,
+		Handler: gwHandler,
+	}
+
 	// Start HTTP server (gRPC Gateway)
 	go func() {
-		gatewayOpts := s.getTestGatewayOptions()
-
-		// Initialize the gateway
-		gwHandler, err := gateway.NewGateway(ctx, grpcAddr, s.getJWKSHandler, gatewayOpts...)
-		if err != nil {
-			errChan <- fmt.Errorf("failed to initialize HTTP Gateway: %w", err)
-			return
-		}
-
-		httpServer := &http.Server{
-			Addr:    httpAddr,
-			Handler: gwHandler,
-		}
-
 		log.Printf("[HTTP] Identity Service starting on %s (grpc-gateway)", httpAddr)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errChan <- fmt.Errorf("failed to start HTTP server: %w", err)
 		}
+	}()
+
+	// Graceful shutdown listener
+	go func() {
+		<-ctx.Done()
+		log.Println("[SERVER] Shutting down servers gracefully...")
+
+		// Stop HTTP server
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+		_ = httpServer.Shutdown(shutdownCtx)
+
+		// Stop gRPC server
+		s.GRPCServer.GracefulStop()
+
+		// Close Kafka connection if exists
+		if s.kafkaAdapter != nil {
+			_ = s.kafkaAdapter.Close()
+		}
+
+		errChan <- nil // unblock Run
 	}()
 
 	return <-errChan
