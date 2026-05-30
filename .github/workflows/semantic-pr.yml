@@ -1,0 +1,59 @@
+name: "Lint Pull Request"
+
+on:
+  # Using 'pull_request_target' is highly recommended for public repositories.
+  # This allows PRs created from forks to run the workflow safely and update the PR status check.
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - synchronize
+
+# Ensure permissions are set correctly.
+# 'pull-requests: read' is required to fetch PR information.
+# 'statuses: write' is required to report the pass/fail status back to GitHub and block merging if check fails.
+permissions:
+  pull-requests: read
+  statuses: write
+
+jobs:
+  main:
+    name: Validate PR Title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Semantic PR Title Linter
+        uses: amannn/action-semantic-pull-request@v5.5.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Types allowed according to the Conventional Commits specification (aligned with commit skill)
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          
+          # By leaving 'scopes' undefined, we allow ANY scope (e.g., type(any-scope): subject).
+          # This provides absolute flexibility for future services and project expansions
+          # without requiring updates to this workflow.
+
+          # If true, the PR title must have a scope: type(scope): subject
+          # If false, the scope is optional: type: subject OR type(scope): subject
+          requireScope: false
+
+          # Subject validation (must not start with an uppercase letter)
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            The subject (description) in the PR title must not start with an uppercase letter.
+
+          # With wip: true, if the PR title begins with WIP or [WIP] (or is a Draft PR),
+          # the action skips validation and keeps the check in 'pending' state to prevent accidental merge.
+          wip: true
+
