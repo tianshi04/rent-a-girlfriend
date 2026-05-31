@@ -25,8 +25,7 @@ logging.basicConfig(
 logger = logging.getLogger("server")
 
 
-async def run_grpc_server():
-    server = grpc.aio.server()
+async def run_grpc_server(server):
     servicer = FinanceServiceServicer(SessionLocal)
     finance_service_pb2_grpc.add_FinanceServiceServicer_to_server(servicer, server)
     listen_addr = f"0.0.0.0:{settings.GRPC_PORT}"
@@ -36,11 +35,7 @@ async def run_grpc_server():
     await server.wait_for_termination()
 
 
-async def run_http_server():
-    config = uvicorn.Config(
-        app=app, host="0.0.0.0", port=settings.SERVER_PORT, log_level="info"
-    )
-    server = uvicorn.Server(config)
+async def run_http_server(server):
     logger.info(f"Starting HTTP/REST server on port {settings.SERVER_PORT}...")
     await server.serve()
 
@@ -110,6 +105,8 @@ async def run_identity_event_listener():
 
 
 async def main():
+    import signal
+
     # Initialize Database Tables
     await init_db()
 
@@ -124,25 +121,85 @@ async def main():
     # Start Identity Listener in background
     identity_listener_task = asyncio.create_task(run_identity_event_listener())
 
-    # Concurrently execute gRPC Server and FastAPI Server
-    try:
-        await asyncio.gather(
-            run_grpc_server(), run_http_server(), return_exceptions=True
+    # Setup Server Instances
+    grpc_server = grpc.aio.server()
+
+    http_config = uvicorn.Config(
+        app=app, host="0.0.0.0", port=settings.SERVER_PORT, log_level="info"
+    )
+    http_server = uvicorn.Server(http_config)
+
+    shutdown_event = asyncio.Event()
+
+    def handle_shutdown(sig):
+        logger.info(
+            f"Received shutdown signal {sig.name if hasattr(sig, 'name') else sig}..."
         )
-    finally:
-        # Clean up background listener
-        identity_listener_task.cancel()
+        shutdown_event.set()
+
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
         try:
-            await identity_listener_task
-        except asyncio.CancelledError:
-            pass
+            loop.add_signal_handler(sig, lambda s=sig: handle_shutdown(s))
+        except NotImplementedError:
+            # Fallback for platforms without add_signal_handler support (e.g. Windows)
+            import signal as signal_module
+
+            signal_module.signal(
+                sig, lambda s, f: loop.call_soon_threadsafe(handle_shutdown, sig)
+            )
+
+    # Concurrently execute gRPC Server and FastAPI Server
+    grpc_task = asyncio.create_task(run_grpc_server(grpc_server))
+    http_task = asyncio.create_task(run_http_server(http_server))
+
+    async def wait_for_shutdown():
+        await shutdown_event.wait()
+        logger.info("Shutdown event triggered.")
+
+    # Concurrently await either a server exit or shutdown_event
+    done, pending = await asyncio.wait(
+        [grpc_task, http_task, asyncio.create_task(wait_for_shutdown())],
+        return_when=asyncio.FIRST_COMPLETED,
+    )
+
+    logger.info("Initiating graceful shutdown...")
+
+    # 1. Graceful stop gRPC server
+    logger.info("Stopping gRPC server...")
+    await grpc_server.stop(grace=5)
+
+    # 2. Graceful stop HTTP server
+    logger.info("Stopping HTTP/REST server...")
+    http_server.should_exit = True
+
+    # Allow servers a grace period to stop
+    try:
+        await asyncio.wait_for(
+            asyncio.gather(grpc_task, http_task, return_exceptions=True), timeout=5
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Servers did not stop within grace period, cancelling tasks...")
+        grpc_task.cancel()
+        http_task.cancel()
+
+    # 3. Clean up background listener
+    logger.info("Stopping Identity Event Listener...")
+    identity_listener_task.cancel()
+    try:
+        await identity_listener_task
+    except asyncio.CancelledError:
+        pass
+
+    # 4. Stop Transactional Outbox Worker
+    logger.info("Stopping Transactional Outbox Worker...")
+    await outbox_worker.stop()
+
+    logger.info("Graceful shutdown completed successfully.")
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("Server shutdown initiated...")
-        # Stop background worker loop
-        asyncio.run(outbox_worker.stop())
-        logger.info("Server successfully stopped.")
+        logger.info("Server forced to shutdown.")
