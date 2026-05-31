@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feature/interaction-service
     paths:
       - 'services/interaction-service/**'
       - 'contracts/**'
@@ -16,6 +15,10 @@ on:
       - 'services/interaction-service/**'
       - 'contracts/**'
       - '.github/workflows/interaction-service-ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   check-and-test:
