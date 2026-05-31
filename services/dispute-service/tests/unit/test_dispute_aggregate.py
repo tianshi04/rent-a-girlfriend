@@ -1,7 +1,16 @@
 import pytest
-from internal.domain.aggregate import Dispute, DisputeEvidence
-from internal.domain.errors import DisputeAlreadyResolvedError, InvalidDisputeStatusTransitionError
-from internal.domain.events import ReportCreated, DisputeAssigned, DisputeResolvedRefund, DisputeResolvedPayout, DisputeRejected
+from internal.domain.aggregate import Dispute
+from internal.domain.errors import (
+    DisputeAlreadyResolvedError,
+    InvalidDisputeStatusTransitionError,
+)
+from internal.domain.events import (
+    ReportCreated,
+    DisputeAssigned,
+    DisputeResolvedRefund,
+    DisputeResolvedPayout,
+    DisputeRejected,
+)
 
 
 def test_dispute_creation_flow():
@@ -133,7 +142,7 @@ def test_dispute_invalid_status_transition():
         accused_id="user-companion",
         reason="NO_SHOW",
     )
-    
+
     # Cannot resolve an OPEN dispute without assigning an admin first (status must be RESOLVING)
     with pytest.raises(InvalidDisputeStatusTransitionError):
         dispute.resolve_refund("admin-789")

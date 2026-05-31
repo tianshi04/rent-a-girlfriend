@@ -4,7 +4,10 @@ import uuid
 import grpc
 
 from internal.interfaces.grpc.servicer import DisputeServiceServicer
-from gen.dispute.v1.messages.create_report_request_pb2 import CreateReportRequest, EvidenceItem
+from gen.dispute.v1.messages.create_report_request_pb2 import (
+    CreateReportRequest,
+    EvidenceItem,
+)
 from gen.dispute.v1.messages.resolve_dispute_request_pb2 import ResolveDisputeRequest
 from internal.infrastructure.persistence.models import DisputeModel
 from sqlalchemy import select
@@ -31,9 +34,7 @@ async def test_grpc_create_report_success(grpc_servicer, db_session):
         reporter_id="client-id-111",
         accused_id="companion-id-222",
         reason="NO_SHOW",
-        evidences=[
-            EvidenceItem(type="TEXT", content="No show companion")
-        ]
+        evidences=[EvidenceItem(type="TEXT", content="No show companion")],
     )
 
     response = await grpc_servicer.CreateReport(request, context)
@@ -41,23 +42,27 @@ async def test_grpc_create_report_success(grpc_servicer, db_session):
     assert response.dispute_id != ""
 
     # Verify dispute in database
-    dispute_db = (await db_session.execute(
-        select(DisputeModel).filter_by(dispute_id=response.dispute_id)
-    )).scalar_one()
+    dispute_db = (
+        await db_session.execute(
+            select(DisputeModel).filter_by(dispute_id=response.dispute_id)
+        )
+    ).scalar_one()
     assert dispute_db.booking_id == booking_id
     assert dispute_db.status == "OPEN"
 
 
-async def test_grpc_resolve_dispute_success(grpc_servicer, db_session, integration_deps):
+async def test_grpc_resolve_dispute_success(
+    grpc_servicer, db_session, integration_deps
+):
     cmd_service = integration_deps["cmd_service"]
-    
+
     # 1. Create a dispute first and assign admin
     booking_id = str(uuid.uuid4())
     dispute_id = await cmd_service.create_report(
         booking_id=booking_id,
         reporter_id="client-id-111",
         accused_id="companion-id-222",
-        reason="NO_SHOW"
+        reason="NO_SHOW",
     )
     await cmd_service.assign_admin(dispute_id, "admin-id-789")
     await db_session.commit()
@@ -73,7 +78,7 @@ async def test_grpc_resolve_dispute_success(grpc_servicer, db_session, integrati
         dispute_id=dispute_id,
         admin_id="admin-id-789",
         resolution="REFUND_CLIENT",
-        notes="Refunding because client requested it and it is valid."
+        notes="Refunding because client requested it and it is valid.",
     )
 
     response = await grpc_servicer.ResolveDispute(request, context)
@@ -92,15 +97,17 @@ async def test_grpc_resolve_dispute_success(grpc_servicer, db_session, integrati
         assert dispute.resolution == "REFUND_CLIENT"
 
 
-async def test_grpc_resolve_dispute_permission_denied(grpc_servicer, db_session, integration_deps):
+async def test_grpc_resolve_dispute_permission_denied(
+    grpc_servicer, db_session, integration_deps
+):
     cmd_service = integration_deps["cmd_service"]
-    
+
     booking_id = str(uuid.uuid4())
     dispute_id = await cmd_service.create_report(
         booking_id=booking_id,
         reporter_id="client-id-111",
         accused_id="companion-id-222",
-        reason="NO_SHOW"
+        reason="NO_SHOW",
     )
     await db_session.commit()
 
@@ -115,7 +122,7 @@ async def test_grpc_resolve_dispute_permission_denied(grpc_servicer, db_session,
         dispute_id=dispute_id,
         admin_id="client-id-111",
         resolution="REFUND_CLIENT",
-        notes="Hacking attempt"
+        notes="Hacking attempt",
     )
 
     response = await grpc_servicer.ResolveDispute(request, context)

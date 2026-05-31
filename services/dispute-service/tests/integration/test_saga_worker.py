@@ -32,27 +32,28 @@ async def test_saga_retry_worker_success(db_session, test_session_factory):
     await db_session.commit()
 
     # Verify initially saved state in database
-    init_db_state = (await db_session.execute(
-        select(SagaStateModel).filter_by(saga_id=saga_id)
-    )).scalar_one()
+    init_db_state = (
+        await db_session.execute(select(SagaStateModel).filter_by(saga_id=saga_id))
+    ).scalar_one()
     assert init_db_state.current_state == "HIDING_REVIEW"
     assert init_db_state.last_error == "Network timeout on interaction port"
 
     # 2. Act: Initialize SagaRetryWorker and run the retry cycle manually
     worker = SagaRetryWorker(
-        session_factory=test_session_factory,
-        polling_interval_seconds=1.0
+        session_factory=test_session_factory, polling_interval_seconds=1.0
     )
-    
+
     # Run a single loop iteration of retrying sagas
     await worker._retry_pending_sagas()
 
     # 3. Assert: Verify the SAGA state advanced to completed and last_error is cleared
     # Query database using a fresh session to ensure changes persisted
     async with test_session_factory() as verify_session:
-        updated_db_state = (await verify_session.execute(
-            select(SagaStateModel).filter_by(saga_id=saga_id)
-        )).scalar_one()
+        updated_db_state = (
+            await verify_session.execute(
+                select(SagaStateModel).filter_by(saga_id=saga_id)
+            )
+        ).scalar_one()
 
         # Since MockInteractionAdapter succeeds by default, the retry will succeed.
         # It should advance state to DISPUTE_RESOLVED_REFUNDED and clear last_error.
