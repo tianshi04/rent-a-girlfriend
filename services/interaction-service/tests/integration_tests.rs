@@ -40,7 +40,10 @@ async fn setup_test_container() -> (sqlx::PgPool, impl Drop) {
 #[tokio::test]
 async fn test_chat_room_repository_integration() {
     let (pool, _container) = setup_test_container().await;
-    let repo = SqlxChatRoomRepository::new(pool.clone());
+    let repo = SqlxChatRoomRepository::new(
+        pool.clone(),
+        std::sync::Arc::new(tokio::sync::Notify::new()),
+    );
 
     let booking_id = Uuid::new_v4().to_string();
     let client_id = Uuid::new_v4().to_string();
@@ -140,7 +143,10 @@ async fn test_chat_room_repository_integration() {
 #[tokio::test]
 async fn test_review_repository_integration() {
     let (pool, _container) = setup_test_container().await;
-    let repo = SqlxReviewRepository::new(pool.clone());
+    let repo = SqlxReviewRepository::new(
+        pool.clone(),
+        std::sync::Arc::new(tokio::sync::Notify::new()),
+    );
 
     let booking_id = Uuid::new_v4().to_string();
     let client_id = Uuid::new_v4().to_string();

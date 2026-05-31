@@ -85,8 +85,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Database migrations executed successfully.");
 
     // 4. Domain / Application / Persistence Assembly
-    let chat_repo = Arc::new(SqlxChatRoomRepository::new(pool.clone()));
-    let review_repo = Arc::new(SqlxReviewRepository::new(pool.clone()));
+    let outbox_notify = Arc::new(tokio::sync::Notify::new());
+    let chat_repo = Arc::new(SqlxChatRoomRepository::new(
+        pool.clone(),
+        outbox_notify.clone(),
+    ));
+    let review_repo = Arc::new(SqlxReviewRepository::new(
+        pool.clone(),
+        outbox_notify.clone(),
+    ));
     let processed_event_repo = Arc::new(SqlxProcessedEventRepository::new(pool.clone()));
 
     let chat_cases = Arc::new(ChatUseCases::new(chat_repo, processed_event_repo));
@@ -102,6 +109,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         kafka_topic_interaction,
         Duration::from_millis(outbox_polling_ms),
         outbox_batch_size,
+        outbox_notify.clone(),
     ));
     let outbox_shutdown_rx = shutdown_rx.clone();
     let mut outbox_handle = tokio::spawn(async move {

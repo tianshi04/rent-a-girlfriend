@@ -10,15 +10,21 @@ use async_trait::async_trait;
 use chrono::Utc;
 use sqlx::{PgPool, Postgres, Row, Transaction};
 use std::str::FromStr;
+use std::sync::Arc;
+use tokio::sync::Notify;
 use uuid::Uuid;
 
 pub struct SqlxChatRoomRepository {
     pool: PgPool,
+    outbox_notify: Arc<Notify>,
 }
 
 impl SqlxChatRoomRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(pool: PgPool, outbox_notify: Arc<Notify>) -> Self {
+        Self {
+            pool,
+            outbox_notify,
+        }
     }
 }
 
@@ -106,6 +112,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         tx.commit()
             .await
             .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+        self.outbox_notify.notify_one();
         Ok(())
     }
 
@@ -313,6 +320,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         tx.commit()
             .await
             .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+        self.outbox_notify.notify_one();
 
         Ok(locked_bookings)
     }
@@ -320,11 +328,15 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
 
 pub struct SqlxReviewRepository {
     pool: PgPool,
+    outbox_notify: Arc<Notify>,
 }
 
 impl SqlxReviewRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(pool: PgPool, outbox_notify: Arc<Notify>) -> Self {
+        Self {
+            pool,
+            outbox_notify,
+        }
     }
 }
 
@@ -411,6 +423,7 @@ impl ReviewRepository for SqlxReviewRepository {
         tx.commit()
             .await
             .map_err(|e| DomainError::ReviewNotFound(e.to_string()))?;
+        self.outbox_notify.notify_one();
         Ok(())
     }
 

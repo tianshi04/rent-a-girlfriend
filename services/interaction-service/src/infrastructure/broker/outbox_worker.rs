@@ -5,6 +5,7 @@ use serde_json::Value;
 use sqlx::{PgPool, Row};
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Notify;
 use tokio::time::sleep;
 use tracing::{error, info, warn};
 
@@ -22,6 +23,7 @@ pub struct OutboxWorker {
     topic: String,
     polling_interval: Duration,
     batch_size: i64,
+    outbox_notify: Arc<Notify>,
 }
 
 impl OutboxWorker {
@@ -31,6 +33,7 @@ impl OutboxWorker {
         topic: String,
         polling_interval: Duration,
         batch_size: i64,
+        outbox_notify: Arc<Notify>,
     ) -> Self {
         Self {
             pool,
@@ -38,6 +41,7 @@ impl OutboxWorker {
             topic,
             polling_interval,
             batch_size,
+            outbox_notify,
         }
     }
 
@@ -79,6 +83,9 @@ impl OutboxWorker {
             if processed == 0 {
                 tokio::select! {
                     _ = sleep(self.polling_interval) => {}
+                    _ = self.outbox_notify.notified() => {
+                        info!("Outbox worker proactively woken up by new event signal.");
+                    }
                     _ = shutdown_rx.changed() => {
                         info!("Outbox worker received shutdown signal. Exiting loop.");
                         break;
