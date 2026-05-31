@@ -130,22 +130,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Binding Axum HTTP REST server to: {}", http_addr);
     let http_listener = TcpListener::bind(http_addr).await?;
-    
+
     let mut http_shutdown_rx = shutdown_rx.clone();
-    let http_server_fut = axum::serve(http_listener, http_router)
-        .with_graceful_shutdown(async move {
+    let http_server_fut =
+        axum::serve(http_listener, http_router).with_graceful_shutdown(async move {
             let _ = http_shutdown_rx.changed().await;
             info!("Axum HTTP server graceful shutdown triggered.");
         });
-    let mut http_handle = tokio::spawn(async move {
-        http_server_fut.await
-    });
+    let mut http_handle = tokio::spawn(async move { http_server_fut.await });
 
     // B. Tonic gRPC Servicer & Server
     let grpc_servicer = InteractionServicer::new(chat_cases, review_cases);
     let grpc_addr: SocketAddr = format!("0.0.0.0:{}", grpc_port).parse()?;
     info!("Binding Tonic gRPC server to: {}", grpc_addr);
-    
+
     let mut grpc_shutdown_rx = shutdown_rx.clone();
     let grpc_server_fut = Server::builder()
         .add_service(InteractionServiceServer::new(grpc_servicer))
@@ -183,11 +181,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // Chờ tất cả kết thúc an toàn với thời gian timeout (15s)
             info!("Waiting for all tasks to complete gracefully...");
-            
+
             let wait_all = async {
                 let _ = tokio::join!(http_handle, grpc_handle, outbox_handle, listener_handle);
             };
-            
+
             tokio::select! {
                 _ = wait_all => {
                     info!("All tasks shut down gracefully.");
