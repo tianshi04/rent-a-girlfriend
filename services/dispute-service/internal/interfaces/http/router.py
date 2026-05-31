@@ -1,12 +1,13 @@
 from typing import Optional, List
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status, Response
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from pydantic import BaseModel
 from internal.application.query import DisputeQueryService
 from internal.domain.errors import DomainError
 
 router = APIRouter(prefix="/api/v1")
 
-from internal.bootstrap import get_query_service  # noqa: E402
+from internal.bootstrap import get_query_service, get_db_session  # noqa: E402
 
 
 class AuthInfo(BaseModel):
@@ -96,6 +97,7 @@ class SagaStateDTO(BaseModel):
     @classmethod
     def from_domain(cls, domain) -> "SagaStateDTO":
         from internal.domain.aggregate import DisputeRefundSaga
+
         saga_type = "REFUND" if isinstance(domain, DisputeRefundSaga) else "PAYOUT"
         return cls(
             saga_id=domain.saga_id,
@@ -109,12 +111,31 @@ class SagaStateDTO(BaseModel):
         )
 
 
-# --- Routes ---
+@router.get("/healthz", tags=["System"])
+async def liveness_check():
+    """Liveness probe: returns 200 OK if the container is alive."""
+    return {"status": "ALIVE"}
 
 
-@router.get("/health", tags=["System"])
-async def health_check():
-    return {"status": "HEALTHY"}
+@router.get("/readyz", tags=["System"])
+async def readiness_check(session=Depends(get_db_session)):
+    """Readiness probe: returns 200 OK if database is reachable."""
+    from sqlalchemy import text
+
+    try:
+        await session.execute(text("SELECT 1"))
+        return {"status": "READY", "database": "CONNECTED"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Database unavailable: {e}",
+        )
+
+
+@router.get("/metrics", tags=["System"])
+async def metrics():
+    """Prometheus metrics endpoint."""
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @router.get("/disputes", response_model=dict, tags=["Admin Dispute Management"])
@@ -143,7 +164,11 @@ async def list_disputes(
         )
 
 
-@router.get("/disputes/{dispute_id}", response_model=DisputeDTO, tags=["Admin Dispute Management"])
+@router.get(
+    "/disputes/{dispute_id}",
+    response_model=DisputeDTO,
+    tags=["Admin Dispute Management"],
+)
 async def get_dispute_detail(
     dispute_id: str,
     auth_info: AuthInfo = Depends(get_admin_auth_info),
@@ -160,7 +185,11 @@ async def get_dispute_detail(
         )
 
 
-@router.get("/disputes/{dispute_id}/saga", response_model=Optional[SagaStateDTO], tags=["Admin Dispute Management"])
+@router.get(
+    "/disputes/{dispute_id}/saga",
+    response_model=Optional[SagaStateDTO],
+    tags=["Admin Dispute Management"],
+)
 async def get_saga_state(
     dispute_id: str,
     auth_info: AuthInfo = Depends(get_admin_auth_info),

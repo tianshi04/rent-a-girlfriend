@@ -22,7 +22,9 @@ class DisputeRefundSaga:
 
     VALID_TRANSITIONS = {
         "REFUNDING": {"HIDING_REVIEW", "DISPUTE_FAILED"},
-        "HIDING_REVIEW": {"DISPUTE_RESOLVED_REFUNDED"},  # On failure: stays in HIDING_REVIEW with retry
+        "HIDING_REVIEW": {
+            "DISPUTE_RESOLVED_REFUNDED"
+        },  # On failure: stays in HIDING_REVIEW with retry
     }
 
     def __init__(
@@ -53,7 +55,9 @@ class DisputeRefundSaga:
         return events
 
     @classmethod
-    def create(cls, saga_id: str, dispute_id: str, booking_id: str) -> "DisputeRefundSaga":
+    def create(
+        cls, saga_id: str, dispute_id: str, booking_id: str
+    ) -> "DisputeRefundSaga":
         return cls(
             saga_id=saga_id,
             dispute_id=dispute_id,
@@ -77,7 +81,9 @@ class DisputeRefundSaga:
     def on_refund_success(self):
         """Finance Service returned refund success. Advance to HIDING_REVIEW."""
         if self.current_state != "REFUNDING":
-            raise InvalidSagaTransitionError(self.saga_id, self.current_state, "refund_success")
+            raise InvalidSagaTransitionError(
+                self.saga_id, self.current_state, "refund_success"
+            )
 
         self.current_state = "HIDING_REVIEW"
         self.last_error = None
@@ -92,7 +98,9 @@ class DisputeRefundSaga:
     def on_refund_failed(self, error: str):
         """Finance Service returned refund failure. SAGA fails entirely."""
         if self.current_state != "REFUNDING":
-            raise InvalidSagaTransitionError(self.saga_id, self.current_state, "refund_failed")
+            raise InvalidSagaTransitionError(
+                self.saga_id, self.current_state, "refund_failed"
+            )
 
         self.current_state = "DISPUTE_FAILED"
         self.last_error = error
@@ -109,7 +117,9 @@ class DisputeRefundSaga:
     def on_hide_review_success(self):
         """Interaction Service successfully hid review and locked chat."""
         if self.current_state != "HIDING_REVIEW":
-            raise InvalidSagaTransitionError(self.saga_id, self.current_state, "hide_review_success")
+            raise InvalidSagaTransitionError(
+                self.saga_id, self.current_state, "hide_review_success"
+            )
 
         self.current_state = "DISPUTE_RESOLVED_REFUNDED"
         self.last_error = None
@@ -128,7 +138,9 @@ class DisputeRefundSaga:
         Uses Infinite Retry strategy — do NOT rollback the refund.
         """
         if self.current_state != "HIDING_REVIEW":
-            raise InvalidSagaTransitionError(self.saga_id, self.current_state, "hide_review_failed")
+            raise InvalidSagaTransitionError(
+                self.saga_id, self.current_state, "hide_review_failed"
+            )
 
         # Stay in same state, increment retry
         self.retry_count += 1
@@ -192,7 +204,14 @@ class DisputePayoutSaga:
         return events
 
     @classmethod
-    def create(cls, saga_id: str, dispute_id: str, booking_id: str, companion_wallet_id: str, commission_rate: float) -> "DisputePayoutSaga":
+    def create(
+        cls,
+        saga_id: str,
+        dispute_id: str,
+        booking_id: str,
+        companion_wallet_id: str,
+        commission_rate: float,
+    ) -> "DisputePayoutSaga":
         return cls(
             saga_id=saga_id,
             dispute_id=dispute_id,
@@ -217,7 +236,9 @@ class DisputePayoutSaga:
     def on_payout_success(self):
         """Finance Service returned payout success. Advance to LOCKING_CHAT."""
         if self.current_state != "PAYING_OUT":
-            raise InvalidSagaTransitionError(self.saga_id, self.current_state, "payout_success")
+            raise InvalidSagaTransitionError(
+                self.saga_id, self.current_state, "payout_success"
+            )
 
         self.current_state = "LOCKING_CHAT"
         self.last_error = None
@@ -232,7 +253,9 @@ class DisputePayoutSaga:
     def on_payout_failed(self, error: str):
         """Finance Service returned payout failure. SAGA fails entirely."""
         if self.current_state != "PAYING_OUT":
-            raise InvalidSagaTransitionError(self.saga_id, self.current_state, "payout_failed")
+            raise InvalidSagaTransitionError(
+                self.saga_id, self.current_state, "payout_failed"
+            )
 
         self.current_state = "DISPUTE_FAILED"
         self.last_error = error
@@ -249,7 +272,9 @@ class DisputePayoutSaga:
     def on_lock_chat_success(self):
         """Interaction Service successfully locked chat room."""
         if self.current_state != "LOCKING_CHAT":
-            raise InvalidSagaTransitionError(self.saga_id, self.current_state, "lock_chat_success")
+            raise InvalidSagaTransitionError(
+                self.saga_id, self.current_state, "lock_chat_success"
+            )
 
         self.current_state = "DISPUTE_RESOLVED_PAID_OUT"
         self.last_error = None
@@ -268,7 +293,9 @@ class DisputePayoutSaga:
         Uses Infinite Retry strategy — do NOT rollback the payout.
         """
         if self.current_state != "LOCKING_CHAT":
-            raise InvalidSagaTransitionError(self.saga_id, self.current_state, "lock_chat_failed")
+            raise InvalidSagaTransitionError(
+                self.saga_id, self.current_state, "lock_chat_failed"
+            )
 
         self.retry_count += 1
         self.last_error = error

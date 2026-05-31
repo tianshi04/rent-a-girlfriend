@@ -4,6 +4,7 @@ import signal
 import sys
 import grpc
 import uvicorn
+from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 
 from internal.bootstrap import (
     settings,
@@ -16,12 +17,16 @@ from internal.bootstrap import (
 )
 from gen.dispute.v1.service import dispute_service_pb2_grpc
 from internal.interfaces.grpc.servicer import DisputeServiceServicer
+from internal.observability import setup_observability
+from pythonjsonlogger import jsonlogger
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
+logHandler = logging.StreamHandler(sys.stdout)
+formatter = jsonlogger.JsonFormatter(
+    fmt="%(asctime)s %(levelname)s %(name)s %(message)s"
 )
+logHandler.setFormatter(formatter)
+logging.basicConfig(level=logging.INFO, handlers=[logHandler])
+
 logger = logging.getLogger("server")
 
 
@@ -29,31 +34,44 @@ async def run_grpc_server(shutdown_event: asyncio.Event):
     server = grpc.aio.server()
     servicer = DisputeServiceServicer(SessionLocal)
     dispute_service_pb2_grpc.add_DisputeServiceServicer_to_server(servicer, server)
+
+    # --- Health Checking Service ---
+    health_servicer = health.HealthServicer(
+        experimental_non_blocking=True, experimental_thread_pool=None
+    )
+    health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
+    health_servicer.set("", health_pb2.HealthCheckResponse.SERVING)
+    health_servicer.set(
+        "dispute.v1.service.DisputeService", health_pb2.HealthCheckResponse.SERVING
+    )
+
     listen_addr = f"0.0.0.0:{settings.GRPC_PORT}"
     server.add_insecure_port(listen_addr)
     logger.info(f"Starting gRPC server on {listen_addr}...")
     await server.start()
-    
+
     # Wait for the shutdown signal
     await shutdown_event.wait()
-    logger.info("Gracefully stopping gRPC server (waiting for active RPCs to finish)...")
+    logger.info(
+        "Gracefully stopping gRPC server (waiting for active RPCs to finish)..."
+    )
     await server.stop(grace=5)
 
 
 async def run_http_server(shutdown_event: asyncio.Event):
     config = uvicorn.Config(
-        app=app, 
-        host="0.0.0.0", 
-        port=settings.SERVER_PORT, 
+        app=app,
+        host="0.0.0.0",
+        port=settings.SERVER_PORT,
         log_level="info",
-        handle_signals=False  # Disable Uvicorn's default signal handlers
+        handle_signals=False,  # Disable Uvicorn's default signal handlers
     )
     server = uvicorn.Server(config)
     logger.info(f"Starting HTTP/REST server on port {settings.SERVER_PORT}...")
-    
+
     # Start the server as a background task
     server_task = asyncio.create_task(server.serve())
-    
+
     # Wait for the shutdown signal
     await shutdown_event.wait()
     logger.info("Gracefully stopping HTTP/REST server...")
@@ -71,6 +89,9 @@ async def main():
 
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, lambda s=sig: handle_shutdown(s.name))
+
+    # Initialize Observability (Metrics & Tracing)
+    setup_observability(app)
 
     # Initialize Database Tables
     await init_db()
@@ -97,7 +118,9 @@ async def main():
 
     # Concurrently execute gRPC Server and FastAPI Server
     try:
-        await asyncio.gather(run_grpc_server(shutdown_event), run_http_server(shutdown_event))
+        await asyncio.gather(
+            run_grpc_server(shutdown_event), run_http_server(shutdown_event)
+        )
     finally:
         logger.info("Stopping background workers...")
         await outbox_worker.stop()
