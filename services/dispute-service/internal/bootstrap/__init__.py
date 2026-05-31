@@ -1,6 +1,5 @@
 import os
 import logging
-import asyncio
 from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from pydantic_settings import BaseSettings, SettingsConfigDict

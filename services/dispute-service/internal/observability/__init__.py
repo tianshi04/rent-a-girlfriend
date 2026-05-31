@@ -1,6 +1,6 @@
 import logging
 from fastapi import FastAPI
-from prometheus_client import CollectorRegistry, multiprocess
+from prometheus_client import CollectorRegistry
 
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider

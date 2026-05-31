@@ -14,12 +14,12 @@ grpc_dir = os.path.join(root_dir, "gen")
 if grpc_dir not in sys.path:
     sys.path.insert(0, grpc_dir)
 
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession  # noqa: E402
+from sqlalchemy.pool import StaticPool  # noqa: E402
 
 # Now we import bootstrap
-import internal.bootstrap
-from internal.bootstrap import Base, app
+import internal.bootstrap  # noqa: E402
+from internal.bootstrap import Base, app  # noqa: E402
 
 # Patch engine to use StaticPool for SQLite in-memory sharing
 patched_engine = create_async_engine(
