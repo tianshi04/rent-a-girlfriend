@@ -15,6 +15,7 @@ from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 
 logger = logging.getLogger("observability")
 
+
 def setup_observability(app: FastAPI, service_name: str = "dispute-service"):
     """
     Initializes OpenTelemetry Tracing and integrates it with FastAPI, gRPC, and SQLAlchemy.
@@ -25,12 +26,12 @@ def setup_observability(app: FastAPI, service_name: str = "dispute-service"):
 
         # 2. Setup Tracer Provider
         provider = TracerProvider(resource=resource)
-        
+
         # 3. Setup OTLP Exporter (Defaults to localhost:4317 if OTEL_EXPORTER_OTLP_ENDPOINT is not set)
         otlp_exporter = OTLPSpanExporter()
         processor = BatchSpanProcessor(otlp_exporter)
         provider.add_span_processor(processor)
-        
+
         # Register the provider globally
         trace.set_tracer_provider(provider)
 
@@ -42,13 +43,16 @@ def setup_observability(app: FastAPI, service_name: str = "dispute-service"):
         grpc_instrumentor.instrument()
 
         # 6. Auto-instrument SQLAlchemy
-        # (SQLAlchemy instrumentation is typically called after the engine is created, 
+        # (SQLAlchemy instrumentation is typically called after the engine is created,
         # but calling instrument() globally hooks into create_engine automatically)
         SQLAlchemyInstrumentor().instrument()
 
         logger.info(f"Observability initialized for {service_name} with OTLP Exporter")
     except Exception as e:
-        logger.warning(f"Failed to initialize OpenTelemetry: {e}. Tracing will be disabled.")
+        logger.warning(
+            f"Failed to initialize OpenTelemetry: {e}. Tracing will be disabled."
+        )
+
 
 def get_metrics_registry() -> CollectorRegistry:
     """

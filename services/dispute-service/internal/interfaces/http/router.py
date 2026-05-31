@@ -121,6 +121,7 @@ async def liveness_check():
 async def readiness_check(session=Depends(get_db_session)):
     """Readiness probe: returns 200 OK if database is reachable."""
     from sqlalchemy import text
+
     try:
         await session.execute(text("SELECT 1"))
         return {"status": "READY", "database": "CONNECTED"}
