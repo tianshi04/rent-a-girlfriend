@@ -1,3 +1,4 @@
+use chrono::Utc;
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use serde_json::Value;
@@ -6,6 +7,14 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
 use tracing::{error, info, warn};
+
+struct OutboxEvent {
+    id: i64,
+    event_id: String,
+    event_type: String,
+    payload: String,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
 
 pub struct OutboxWorker {
     pool: PgPool,
@@ -55,97 +64,159 @@ impl OutboxWorker {
                 info!("Outbox worker received shutdown signal. Exiting loop.");
                 break;
             }
-            if let Err(e) = self.process_batch(&producer).await {
-                error!("Error in Outbox process batch: {}", e);
+
+            let mut processed = 0;
+            match self.process_batch(&producer).await {
+                Ok(count) => {
+                    processed = count;
+                }
+                Err(e) => {
+                    error!("Error in Outbox process batch: {}", e);
+                }
             }
-            tokio::select! {
-                _ = sleep(self.polling_interval) => {}
-                _ = shutdown_rx.changed() => {
-                    info!("Outbox worker received shutdown signal. Exiting loop.");
-                    break;
+
+            // Only sleep if no events were processed to avoid CPU spam and maximize throughput.
+            if processed == 0 {
+                tokio::select! {
+                    _ = sleep(self.polling_interval) => {}
+                    _ = shutdown_rx.changed() => {
+                        info!("Outbox worker received shutdown signal. Exiting loop.");
+                        break;
+                    }
                 }
             }
         }
     }
 
-    async fn process_batch(&self, producer: &FutureProducer) -> Result<(), sqlx::Error> {
-        // 1. Fetch unprocessed rows in FIFO order
+    async fn process_batch(&self, producer: &FutureProducer) -> Result<usize, sqlx::Error> {
+        let mut tx = self.pool.begin().await?;
+        let now = Utc::now();
+        let lock_duration = chrono::Duration::minutes(1);
+        let locked_until = now + lock_duration;
+
+        // 1. Fetch unprocessed and unlocked (or lock-expired) rows in FIFO order
         let rows = sqlx::query(
             r#"
             SELECT id, event_id, event_type, payload, created_at
             FROM outbox
-            WHERE processed = false
+            WHERE processed = false AND (locked_until IS NULL OR locked_until < $1)
             ORDER BY id ASC
-            LIMIT $1
+            LIMIT $2
+            FOR UPDATE SKIP LOCKED
             "#,
         )
+        .bind(now)
         .bind(self.batch_size)
-        .fetch_all(&self.pool)
+        .fetch_all(&mut *tx)
         .await?;
 
         if rows.is_empty() {
-            return Ok(());
+            tx.commit().await?;
+            return Ok(0);
         }
 
-        info!("Fetched {} events from outbox to publish", rows.len());
+        let ids: Vec<i64> = rows.iter().map(|row| row.get::<i64, _>("id")).collect();
 
-        for row in rows {
-            let id: i64 = row.get("id");
-            let event_id: String = row.get("event_id");
-            let event_type: String = row.get("event_type");
-            let payload: String = row.get("payload");
-            let created_at: chrono::DateTime<chrono::Utc> = row.get("created_at");
+        // 2. Lock the rows immediately in a fast update
+        sqlx::query(
+            r#"
+            UPDATE outbox
+            SET locked_until = $1
+            WHERE id = ANY($2)
+            "#,
+        )
+        .bind(locked_until)
+        .bind(&ids)
+        .execute(&mut *tx)
+        .await?;
 
+        // Map database rows to in-memory events before committing to release the database connection
+        let events: Vec<OutboxEvent> = rows
+            .into_iter()
+            .map(|row| OutboxEvent {
+                id: row.get("id"),
+                event_id: row.get("event_id"),
+                event_type: row.get("event_type"),
+                payload: row.get("payload"),
+                created_at: row.get("created_at"),
+            })
+            .collect();
+
+        // Commit transaction immediately to release PostgreSQL locks
+        tx.commit().await?;
+
+        info!("Fetched and locked {} events from outbox", events.len());
+
+        let mut processed_count = 0;
+        for event in events {
             // Parse event data from outbox payload
-            let data: Value = serde_json::from_str(&payload).unwrap_or(Value::Null);
+            let data: Value = serde_json::from_str(&event.payload).unwrap_or(Value::Null);
 
             // Construct standard GFM CloudEvents JSON envelope
             let cloudevent = serde_json::json!({
                 "specversion": "1.0",
-                "id": event_id,
+                "id": event.event_id,
                 "source": "/rent-a-gf/interaction-service",
-                "type": event_type,
+                "type": event.event_type,
                 "datacontenttype": "application/json",
-                "time": created_at.to_rfc3339(),
+                "time": event.created_at.to_rfc3339(),
                 "data": data
             });
 
             let cloudevent_str = cloudevent.to_string();
 
-            // 2. Publish to Kafka topic asynchronously
+            // 3. Publish to Kafka topic asynchronously (completely outside DB transaction)
             let record = FutureRecord::to(&self.topic)
-                .key(&event_id)
+                .key(&event.event_id)
                 .payload(&cloudevent_str);
 
             match producer.send(record, Duration::from_secs(3)).await {
                 Ok(_) => {
-                    // 3. Mark event as processed atomically in database
+                    // 4. Mark event as processed atomically in database
                     sqlx::query(
                         r#"
                         UPDATE outbox
-                        SET processed = true
+                        SET processed = true, locked_until = NULL
                         WHERE id = $1
                         "#,
                     )
-                    .bind(id)
+                    .bind(event.id)
                     .execute(&self.pool)
                     .await?;
                     info!(
                         "Successfully published and marked processed event: {}",
-                        event_id
+                        event.event_id
                     );
+                    processed_count += 1;
                 }
                 Err((e, _)) => {
                     warn!(
-                        "Failed to publish event {} to Kafka: {}. Retrying later.",
-                        event_id, e
+                        "Failed to publish event {} to Kafka: {}. Releasing lock to retry.",
+                        event.event_id, e
                     );
-                    // Do not mark processed; exit batch loop and let the next polling cycle retry
+                    // Release the lock immediately so another poll cycle or another worker can pick it up
+                    if let Err(unlock_err) = sqlx::query(
+                        r#"
+                        UPDATE outbox
+                        SET locked_until = NULL
+                        WHERE id = $1
+                        "#,
+                    )
+                    .bind(event.id)
+                    .execute(&self.pool)
+                    .await
+                    {
+                        error!(
+                            "Failed to release lock for event {}: {}",
+                            event.id, unlock_err
+                        );
+                    }
+                    // Exit the batch loop and let the next polling cycle retry
                     break;
                 }
             }
         }
 
-        Ok(())
+        Ok(processed_count)
     }
 }
