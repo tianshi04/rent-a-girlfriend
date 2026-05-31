@@ -48,7 +48,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         .bind(&chat_room.client_id)
         .bind(&chat_room.companion_id)
         .bind(status_str)
-        .bind(&chat_room.lock_at)
+        .bind(chat_room.lock_at)
         .bind(chat_room.created_at)
         .bind(chat_room.updated_at)
         .execute(&mut *tx)

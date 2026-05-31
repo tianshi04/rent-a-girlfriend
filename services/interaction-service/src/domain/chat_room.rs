@@ -52,6 +52,7 @@ pub struct ChatMessage {
 }
 
 impl ChatRoom {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         room_id: String,
         booking_id: String,
