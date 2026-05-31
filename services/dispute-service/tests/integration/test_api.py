@@ -15,9 +15,9 @@ async def client():
 
 
 async def test_health_check(client):
-    response = await client.get("/health")
+    response = await client.get("/healthz")
     assert response.status_code == 200
-    assert response.json() == {"status": "HEALTHY"}
+    assert response.json() == {"status": "ALIVE"}
 
 
 async def test_get_disputes_unauthorized(client):
