@@ -1,0 +1,62 @@
+name: Interaction Service CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/interaction-service/**'
+      - 'contracts/**'
+      - '.github/workflows/interaction-service-ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'services/interaction-service/**'
+      - 'contracts/**'
+      - '.github/workflows/interaction-service-ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  check-and-test:
+    name: "Lint, Format Check & Test"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install C dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libssl-dev libcurl4-openssl-dev pkg-config
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "services/interaction-service -> target"
+
+      - name: Run cargo fmt check
+        working-directory: services/interaction-service
+        run: cargo fmt -- --check
+
+      - name: Run cargo clippy
+        working-directory: services/interaction-service
+        run: cargo clippy -- -D warnings
+
+      - name: Run cargo test
+        working-directory: services/interaction-service
+        run: cargo test
