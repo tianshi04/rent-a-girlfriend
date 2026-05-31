@@ -200,48 +200,34 @@ impl BookingEventListener {
                 }
             }
             "com.rentagf.booking.BookingCompleted.v1" => {
-                let mut delay_seconds = 24 * 3600; // default 24 hours in seconds
+                let mut lock_time = Utc::now() + Duration::hours(24); // default 24 hours from now
 
                 if let Some(end_time_str) = cloudevent.data.end_time {
                     if let Ok(end_time) = DateTime::parse_from_rfc3339(&end_time_str) {
                         let end_time_utc = end_time.with_timezone(&Utc);
-                        let lock_time = end_time_utc + Duration::hours(24);
-                        let now = Utc::now();
-                        let diff = lock_time - now;
-                        if diff.num_seconds() > 0 {
-                            delay_seconds = diff.num_seconds() as u64;
-                        } else {
-                            delay_seconds = 0; // immediate lock since 24 hours has already passed
-                        }
+                        lock_time = end_time_utc + Duration::hours(24);
                     }
                 }
 
                 info!(
-                    "Booking {} completed. Scheduling chat room lock in {} seconds (24h post-end).",
-                    booking_id, delay_seconds
+                    "Booking {} completed. Scheduling chat room lock at {} (24h post-end).",
+                    booking_id, lock_time
                 );
 
-                let event_id_for_task = cloudevent.id.clone();
-                tokio::spawn(async move {
-                    if delay_seconds > 0 {
-                        sleep(tokio::time::Duration::from_secs(delay_seconds)).await;
-                    }
-                    info!("Executing scheduled lock for booking {}...", booking_id);
-                    if let Err(e) = chat_cases
-                        .lock_chat_room(&booking_id, Some(event_id_for_task))
-                        .await
-                    {
-                        error!(
-                            "Failed to lock chat room on completion schedule for booking {}: {:?}",
-                            booking_id, e
-                        );
-                    } else {
-                        info!(
-                            "Successfully locked chat room on completion schedule for booking {}.",
-                            booking_id
-                        );
-                    }
-                });
+                if let Err(e) = chat_cases
+                    .schedule_chat_room_lock(&booking_id, lock_time, Some(cloudevent.id.clone()))
+                    .await
+                {
+                    error!(
+                        "Failed to schedule chat room lock for booking {}: {:?}",
+                        booking_id, e
+                    );
+                } else {
+                    info!(
+                        "Successfully scheduled chat room lock for booking {}.",
+                        booking_id
+                    );
+                }
             }
             _ => {
                 // Ignore other event types

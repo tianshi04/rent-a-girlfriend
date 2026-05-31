@@ -35,10 +35,11 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         let status_str = chat_room.status.as_str();
         sqlx::query(
             r#"
-            INSERT INTO chat_rooms (room_id, booking_id, client_id, companion_id, status, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO chat_rooms (room_id, booking_id, client_id, companion_id, status, lock_at, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (room_id) DO UPDATE SET
                 status = EXCLUDED.status,
+                lock_at = EXCLUDED.lock_at,
                 updated_at = EXCLUDED.updated_at
             "#,
         )
@@ -47,6 +48,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         .bind(&chat_room.client_id)
         .bind(&chat_room.companion_id)
         .bind(status_str)
+        .bind(&chat_room.lock_at)
         .bind(chat_room.created_at)
         .bind(chat_room.updated_at)
         .execute(&mut *tx)
@@ -110,7 +112,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
     async fn find_by_id(&self, room_id: &str) -> Result<Option<ChatRoom>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT room_id, booking_id, client_id, companion_id, status, created_at, updated_at
+            SELECT room_id, booking_id, client_id, companion_id, status, lock_at, created_at, updated_at
             FROM chat_rooms WHERE room_id = $1
             "#,
         )
@@ -129,6 +131,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
                 r.get("client_id"),
                 r.get("companion_id"),
                 status,
+                r.get("lock_at"),
                 r.get("created_at"),
                 r.get("updated_at"),
             )))
@@ -140,7 +143,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
     async fn find_by_booking_id(&self, booking_id: &str) -> Result<Option<ChatRoom>, DomainError> {
         let row = sqlx::query(
             r#"
-            SELECT room_id, booking_id, client_id, companion_id, status, created_at, updated_at
+            SELECT room_id, booking_id, client_id, companion_id, status, lock_at, created_at, updated_at
             FROM chat_rooms WHERE booking_id = $1
             "#,
         )
@@ -159,6 +162,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
                 r.get("client_id"),
                 r.get("companion_id"),
                 status,
+                r.get("lock_at"),
                 r.get("created_at"),
                 r.get("updated_at"),
             )))
@@ -218,6 +222,99 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
             .collect();
 
         Ok(messages)
+    }
+
+    async fn lock_expired_rooms(
+        &self,
+        now: chrono::DateTime<chrono::Utc>,
+        limit: i64,
+    ) -> Result<Vec<String>, DomainError> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+
+        // 1. Select expired active rooms with FOR UPDATE SKIP LOCKED
+        let rows = sqlx::query(
+            r#"
+            SELECT room_id, booking_id, client_id, companion_id, status, lock_at, created_at, updated_at
+            FROM chat_rooms
+            WHERE status = 'ACTIVE' AND lock_at <= $1
+            ORDER BY lock_at ASC
+            LIMIT $2
+            FOR UPDATE SKIP LOCKED
+            "#,
+        )
+        .bind(now)
+        .bind(limit)
+        .fetch_all(&mut *tx)
+        .await
+        .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+
+        if rows.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut locked_bookings = Vec::new();
+
+        for r in rows {
+            let room_id: String = r.get("room_id");
+            let booking_id: String = r.get("booking_id");
+
+            let status_locked = ChatRoomStatus::Locked.as_str();
+            let now_utc = chrono::Utc::now();
+
+            // Update status in chat_rooms to LOCKED
+            sqlx::query(
+                r#"
+                UPDATE chat_rooms
+                SET status = $1, updated_at = $2
+                WHERE room_id = $3
+                "#,
+            )
+            .bind(status_locked)
+            .bind(now_utc)
+            .bind(&room_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+
+            // Insert ChatRoomLocked event into outbox
+            let event = ChatRoomLockedEvent {
+                room_id: room_id.clone(),
+                booking_id: booking_id.clone(),
+                occurred_at: now_utc,
+            };
+
+            let event_id = Uuid::new_v4().to_string();
+            let event_type = "com.rentagf.interaction.ChatRoomLocked.v1".to_string();
+            let payload = serde_json::to_value(&event).unwrap();
+            let payload_str = payload.to_string();
+
+            sqlx::query(
+                r#"
+                INSERT INTO outbox (event_id, event_type, payload, processed, created_at)
+                VALUES ($1, $2, $3, $4, $5)
+                "#,
+            )
+            .bind(event_id)
+            .bind(event_type)
+            .bind(payload_str)
+            .bind(false)
+            .bind(now_utc)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+
+            locked_bookings.push(booking_id);
+        }
+
+        tx.commit()
+            .await
+            .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+
+        Ok(locked_bookings)
     }
 }
 

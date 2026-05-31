@@ -16,6 +16,11 @@ pub trait ChatRoomRepository: Send + Sync {
         limit: i64,
         offset: i64,
     ) -> Result<Vec<ChatMessage>, DomainError>;
+    async fn lock_expired_rooms(
+        &self,
+        now: chrono::DateTime<chrono::Utc>,
+        limit: i64,
+    ) -> Result<Vec<String>, DomainError>;
 }
 
 #[cfg_attr(test, mockall::automock)]

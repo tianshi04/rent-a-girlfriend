@@ -2,6 +2,7 @@ use crate::application::ports::{ChatRoomRepository, ProcessedEventRepository};
 use crate::domain::chat_room::{ChatMessage, ChatRoom};
 use crate::domain::errors::DomainError;
 use crate::domain::value_objects::ChatContent;
+use chrono::{DateTime, Utc};
 use std::sync::Arc;
 
 pub struct ChatUseCases {
@@ -81,6 +82,39 @@ impl ChatUseCases {
         chat_room.lock()?;
         self.repo.save(&chat_room).await?;
         Ok(())
+    }
+
+    pub async fn schedule_chat_room_lock(
+        &self,
+        booking_id: &str,
+        lock_at: DateTime<Utc>,
+        event_id: Option<String>,
+    ) -> Result<(), DomainError> {
+        if let Some(ref ev_id) = event_id {
+            let already_processed = self
+                .processed_event_repo
+                .check_and_record(ev_id, "com.rentagf.booking.BookingCompleted.v1")
+                .await?;
+            if already_processed {
+                return Ok(());
+            }
+        }
+
+        let mut chat_room = self
+            .repo
+            .find_by_booking_id(booking_id)
+            .await?
+            .ok_or_else(|| DomainError::ChatRoomNotFound(format!("Booking ID: {}", booking_id)))?;
+
+        if chat_room.status == crate::domain::chat_room::ChatRoomStatus::Active {
+            chat_room.lock_at = Some(lock_at);
+            self.repo.save(&chat_room).await?;
+        }
+        Ok(())
+    }
+
+    pub async fn lock_expired_rooms(&self, limit: i64) -> Result<Vec<String>, DomainError> {
+        self.repo.lock_expired_rooms(Utc::now(), limit).await
     }
 
     pub async fn send_message(
@@ -305,5 +339,49 @@ mod tests {
             DomainError::UnauthorizedSender { .. } => {}
             _ => panic!("Expected UnauthorizedSender error"),
         }
+    }
+
+    #[tokio::test]
+    async fn test_schedule_chat_room_lock_success() {
+        let mut mock_repo = MockChatRoomRepository::new();
+        let mut mock_processed_repo = MockProcessedEventRepository::new();
+        let room = ChatRoom::create(
+            "booking-123".to_string(),
+            "client-789".to_string(),
+            "companion-456".to_string(),
+        );
+
+        mock_processed_repo
+            .expect_check_and_record()
+            .with(
+                mockall::predicate::eq("event-xyz"),
+                mockall::predicate::eq("com.rentagf.booking.BookingCompleted.v1"),
+            )
+            .times(1)
+            .returning(|_, _| Ok(false));
+
+        mock_repo
+            .expect_find_by_booking_id()
+            .with(mockall::predicate::eq("booking-123"))
+            .times(1)
+            .returning(move |_| Ok(Some(room.clone())));
+
+        let target_lock_time = Utc::now() + chrono::Duration::hours(24);
+        mock_repo
+            .expect_save()
+            .withf(move |r| r.lock_at == Some(target_lock_time))
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let use_cases = ChatUseCases::new(Arc::new(mock_repo), Arc::new(mock_processed_repo));
+        let res = use_cases
+            .schedule_chat_room_lock(
+                "booking-123",
+                target_lock_time,
+                Some("event-xyz".to_string()),
+            )
+            .await;
+
+        assert!(res.is_ok());
     }
 }

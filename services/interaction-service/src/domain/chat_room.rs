@@ -37,6 +37,7 @@ pub struct ChatRoom {
     pub client_id: String,
     pub companion_id: String,
     pub status: ChatRoomStatus,
+    pub lock_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -57,6 +58,7 @@ impl ChatRoom {
         client_id: String,
         companion_id: String,
         status: ChatRoomStatus,
+        lock_at: Option<DateTime<Utc>>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
     ) -> Self {
@@ -66,6 +68,7 @@ impl ChatRoom {
             client_id,
             companion_id,
             status,
+            lock_at,
             created_at,
             updated_at,
         }
@@ -79,6 +82,7 @@ impl ChatRoom {
             client_id,
             companion_id,
             status: ChatRoomStatus::Active,
+            lock_at: None,
             created_at: now,
             updated_at: now,
         }

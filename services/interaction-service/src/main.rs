@@ -10,6 +10,7 @@ use tracing_subscriber::EnvFilter;
 use interaction_service::application::chat_use_cases::ChatUseCases;
 use interaction_service::application::review_use_cases::ReviewUseCases;
 use interaction_service::infrastructure::broker::OutboxWorker;
+use interaction_service::infrastructure::chat_lock_worker::ChatLockWorker;
 use interaction_service::infrastructure::persistence::{
     SqlxChatRoomRepository, SqlxProcessedEventRepository, SqlxReviewRepository,
 };
@@ -119,6 +120,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         booking_listener.start(listener_shutdown_rx).await;
     });
 
+    // C. Chat Lock Worker
+    let chat_lock_worker = Arc::new(ChatLockWorker::new(
+        chat_cases.clone(),
+        Duration::from_secs(10), // poll every 10 seconds
+        50,                      // batch size
+    ));
+    let chat_lock_shutdown_rx = shutdown_rx.clone();
+    let mut chat_lock_handle = tokio::spawn(async move {
+        chat_lock_worker.start(chat_lock_shutdown_rx).await;
+    });
+
     // 6. Bind Interfaces
     // A. Axum HTTP Router & Server
     let app_state = AppState {
@@ -175,6 +187,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ = &mut listener_handle => {
             warn!("Background Kafka Booking listener exited unexpectedly.");
         }
+        _ = &mut chat_lock_handle => {
+            warn!("Background Chat Lock worker exited unexpectedly.");
+        }
         _ = shutdown_signal() => {
             info!("Shutdown signal received. Broadcasting shutdown to all tasks...");
             let _ = shutdown_tx.send(true);
@@ -183,7 +198,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             info!("Waiting for all tasks to complete gracefully...");
 
             let wait_all = async {
-                let _ = tokio::join!(http_handle, grpc_handle, outbox_handle, listener_handle);
+                let _ = tokio::join!(http_handle, grpc_handle, outbox_handle, listener_handle, chat_lock_handle);
             };
 
             tokio::select! {
