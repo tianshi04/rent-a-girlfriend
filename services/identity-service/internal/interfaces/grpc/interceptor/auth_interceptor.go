@@ -65,4 +65,3 @@ func AdminInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServ
 
 	return handler(ctx, req)
 }
-

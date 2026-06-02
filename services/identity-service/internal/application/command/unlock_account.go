@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/rent-a-girlfriend/identity-service/internal/application/port"
 	domainerr "github.com/rent-a-girlfriend/identity-service/internal/domain/errors"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/repository"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/vo"
-	"github.com/rent-a-girlfriend/identity-service/internal/application/port"
 )
 
 // UnlockAccountCommand contains the unlock parameters.

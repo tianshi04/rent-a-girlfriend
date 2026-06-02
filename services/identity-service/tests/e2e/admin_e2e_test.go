@@ -36,9 +36,9 @@ func TestAdminLockAccountE2E(t *testing.T) {
 	resp, err := clientHTTP.Do(req)
 	assert.NoError(t, err)
 	if resp != nil {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 	}
-	
+
 	// They shouldn't be blocked (yet)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -63,12 +63,12 @@ func TestAdminLockAccountE2E(t *testing.T) {
 	lockResp, err := clientHTTP.Do(lockReq)
 	assert.NoError(t, err)
 	if lockResp != nil {
-		defer lockResp.Body.Close()
+		defer func() { _ = lockResp.Body.Close() }()
 	}
 
 	if lockResp != nil && lockResp.StatusCode != http.StatusOK {
 		var errBody map[string]interface{}
-		json.NewDecoder(lockResp.Body).Decode(&errBody)
+		_ = json.NewDecoder(lockResp.Body).Decode(&errBody)
 		t.Logf("Lock failed error: %v", errBody)
 	}
 	assert.Equal(t, http.StatusOK, lockResp.StatusCode)
@@ -82,7 +82,7 @@ func TestAdminLockAccountE2E(t *testing.T) {
 	resp2, err := clientHTTP.Do(req2)
 	assert.NoError(t, err)
 	if resp2 != nil {
-		defer resp2.Body.Close()
+		defer func() { _ = resp2.Body.Close() }()
 	}
 
 	assert.Equal(t, http.StatusForbidden, resp2.StatusCode)

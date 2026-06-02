@@ -18,7 +18,7 @@ func TestJWTTokenService_Lifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open database: %v", err)
 	}
-	db.AutoMigrate(&persistence.RefreshTokenModel{}, &persistence.SigningKeyModel{})
+	_ = db.AutoMigrate(&persistence.RefreshTokenModel{}, &persistence.SigningKeyModel{})
 
 	// Setup Key Provider
 	kp := NewRSAKeyProvider(db)

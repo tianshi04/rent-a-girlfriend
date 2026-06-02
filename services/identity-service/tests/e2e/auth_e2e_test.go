@@ -33,10 +33,10 @@ func TestAuthE2E(t *testing.T) {
 		"refreshToken": refreshToken,
 	}
 	body, _ := json.Marshal(refreshPayload)
-	
+
 	resp, err := http.Post(refreshURL, "application/json", bytes.NewBuffer(body))
 	assert.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -61,14 +61,14 @@ func TestAuthE2E(t *testing.T) {
 
 	logoutResp, err := http.Post(logoutURL, "application/json", bytes.NewBuffer(logoutBody))
 	assert.NoError(t, err)
-	defer logoutResp.Body.Close()
+	defer func() { _ = logoutResp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, logoutResp.StatusCode)
 
 	// 4. Try refreshing with the logged-out token (Should Fail)
 	failRefreshResp, err := http.Post(refreshURL, "application/json", bytes.NewBuffer(logoutBody))
 	assert.NoError(t, err)
-	defer failRefreshResp.Body.Close()
+	defer func() { _ = failRefreshResp.Body.Close() }()
 
 	assert.Equal(t, http.StatusUnauthorized, failRefreshResp.StatusCode)
 }

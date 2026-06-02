@@ -6,9 +6,9 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/rent-a-girlfriend/identity-service/internal/application/port"
 	domainerr "github.com/rent-a-girlfriend/identity-service/internal/domain/errors"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/repository"
-	"github.com/rent-a-girlfriend/identity-service/internal/application/port"
 )
 
 // RejectUpgradeCommand contains the upgrade request ID to reject.

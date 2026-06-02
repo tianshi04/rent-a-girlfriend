@@ -3,16 +3,16 @@ package handler
 import (
 	"context"
 
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	identityv1 "github.com/rent-a-girlfriend/identity-service/gen/proto"
 	"github.com/rent-a-girlfriend/identity-service/internal/application/command"
 	"github.com/rent-a-girlfriend/identity-service/internal/application/query"
-	"github.com/rent-a-girlfriend/identity-service/internal/interfaces/grpc/util"
 	domainerr "github.com/rent-a-girlfriend/identity-service/internal/domain/errors"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/vo"
+	"github.com/rent-a-girlfriend/identity-service/internal/interfaces/grpc/util"
 )
 
 type IdentityGRPCHandler struct {
