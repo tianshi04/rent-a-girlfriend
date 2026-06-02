@@ -3,9 +3,9 @@ package command
 import (
 	"context"
 
+	"github.com/rent-a-girlfriend/identity-service/internal/application/port"
 	domainerr "github.com/rent-a-girlfriend/identity-service/internal/domain/errors"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/repository"
-	"github.com/rent-a-girlfriend/identity-service/internal/application/port"
 )
 
 // RefreshTokenCommand contains the refresh token to rotate.

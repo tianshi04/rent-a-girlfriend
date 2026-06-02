@@ -36,7 +36,7 @@ func TestCompanionUpgradeE2E(t *testing.T) {
 	resp, err := clientHTTP.Do(req)
 	assert.NoError(t, err)
 	if resp != nil {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 	}
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -54,7 +54,7 @@ func TestCompanionUpgradeE2E(t *testing.T) {
 	listResp, err := clientHTTP.Do(listReq)
 	assert.NoError(t, err)
 	if listResp != nil {
-		defer listResp.Body.Close()
+		defer func() { _ = listResp.Body.Close() }()
 	}
 
 	assert.Equal(t, http.StatusOK, listResp.StatusCode)
@@ -80,7 +80,7 @@ func TestCompanionUpgradeE2E(t *testing.T) {
 	approveResp, err := clientHTTP.Do(approveReq)
 	assert.NoError(t, err)
 	if approveResp != nil {
-		defer approveResp.Body.Close()
+		defer func() { _ = approveResp.Body.Close() }()
 	}
 
 	assert.Equal(t, http.StatusOK, approveResp.StatusCode)

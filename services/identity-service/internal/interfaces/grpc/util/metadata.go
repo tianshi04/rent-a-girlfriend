@@ -29,4 +29,3 @@ func GetUserRole(ctx context.Context) string {
 	}
 	return ""
 }
-

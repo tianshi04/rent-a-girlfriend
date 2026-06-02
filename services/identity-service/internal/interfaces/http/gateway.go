@@ -10,8 +10,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/rent-a-girlfriend/identity-service/internal/application/query"
 	identityv1 "github.com/rent-a-girlfriend/identity-service/gen/proto"
+	"github.com/rent-a-girlfriend/identity-service/internal/application/query"
 )
 
 // customHeaderMatcher maps incoming HTTP headers to gRPC metadata.

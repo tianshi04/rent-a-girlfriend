@@ -8,7 +8,7 @@ func FuzzParseUserID(f *testing.F) {
 	f.Add("550e8400-e29b-41d4-a716-446655440000")
 	f.Add("invalid")
 	f.Add("")
-	
+
 	f.Fuzz(func(t *testing.T, idStr string) {
 		id, err := ParseUserID(idStr)
 		if err == nil {
@@ -31,7 +31,7 @@ func FuzzParseRole(f *testing.F) {
 	f.Add("COMPANION")
 	f.Add("ADMIN")
 	f.Add("UNKNOWN")
-	
+
 	f.Fuzz(func(t *testing.T, roleStr string) {
 		role, err := ParseRole(roleStr)
 		if err == nil {
@@ -45,7 +45,7 @@ func FuzzParseRole(f *testing.F) {
 func FuzzParseAccountStatus(f *testing.F) {
 	f.Add("ACTIVE")
 	f.Add("LOCKED")
-	
+
 	f.Fuzz(func(t *testing.T, statusStr string) {
 		status, err := ParseAccountStatus(statusStr)
 		if err == nil {
@@ -60,7 +60,7 @@ func FuzzParseUpgradeStatus(f *testing.F) {
 	f.Add("PENDING")
 	f.Add("APPROVED")
 	f.Add("REJECTED")
-	
+
 	f.Fuzz(func(t *testing.T, statusStr string) {
 		status, err := ParseUpgradeStatus(statusStr)
 		if err == nil {

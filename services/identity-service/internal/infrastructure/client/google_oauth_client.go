@@ -35,13 +35,13 @@ func NewGoogleOAuthClient(clientID, clientSecret, redirectURI string) *GoogleOAu
 func (c *GoogleOAuthClient) BuildAuthURL(state, codeChallenge string) string {
 	params := url.Values{
 		"client_id":             {c.clientID},
-		"redirect_uri":         {c.redirectURI},
-		"response_type":        {"code"},
-		"scope":                {"openid email profile"},
-		"state":                {state},
-		"code_challenge":       {codeChallenge},
+		"redirect_uri":          {c.redirectURI},
+		"response_type":         {"code"},
+		"scope":                 {"openid email profile"},
+		"state":                 {state},
+		"code_challenge":        {codeChallenge},
 		"code_challenge_method": {"S256"},
-		"access_type":          {"offline"},
+		"access_type":           {"offline"},
 	}
 	return "https://accounts.google.com/o/oauth2/v2/auth?" + params.Encode()
 }
@@ -50,10 +50,10 @@ func (c *GoogleOAuthClient) ExchangeCode(code, codeVerifier string) (*port.Googl
 	// Exchange authorization code for tokens
 	data := url.Values{
 		"code":          {code},
-		"client_id":    {c.clientID},
+		"client_id":     {c.clientID},
 		"client_secret": {c.clientSecret},
-		"redirect_uri": {c.redirectURI},
-		"grant_type":   {"authorization_code"},
+		"redirect_uri":  {c.redirectURI},
+		"grant_type":    {"authorization_code"},
 		"code_verifier": {codeVerifier},
 	}
 
@@ -61,7 +61,7 @@ func (c *GoogleOAuthClient) ExchangeCode(code, codeVerifier string) (*port.Googl
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange code: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
@@ -86,7 +86,7 @@ func (c *GoogleOAuthClient) verifyIDToken(idTokenStr string) (*port.GoogleUserIn
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch google certs: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var jwks struct {
 		Keys []struct {

@@ -3,8 +3,8 @@ package query
 import (
 	"context"
 
-	domainerr "github.com/rent-a-girlfriend/identity-service/internal/domain/errors"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/aggregate"
+	domainerr "github.com/rent-a-girlfriend/identity-service/internal/domain/errors"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/repository"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/vo"
 )

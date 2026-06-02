@@ -20,9 +20,9 @@ func TestLockAccountHandler_Handle(t *testing.T) {
 	repo.accounts[acc.ID().String()] = acc
 
 	cmd := LockAccountCommand{
-		UserID:   acc.ID().String(),
-		Reason:   "Policy violation",
-		AdminID:  "admin-123",
+		UserID:  acc.ID().String(),
+		Reason:  "Policy violation",
+		AdminID: "admin-123",
 	}
 
 	err := handler.Handle(context.Background(), cmd)

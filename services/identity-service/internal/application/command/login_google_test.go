@@ -10,8 +10,8 @@ import (
 	"github.com/rent-a-girlfriend/identity-service/internal/application/command"
 	"github.com/rent-a-girlfriend/identity-service/internal/application/port"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/aggregate"
-	"github.com/rent-a-girlfriend/identity-service/internal/domain/vo"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/event"
+	"github.com/rent-a-girlfriend/identity-service/internal/domain/vo"
 )
 
 // --- Mocks ---
