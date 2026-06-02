@@ -17,7 +17,7 @@ type UserRegistered struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-func (e UserRegistered) EventType() string    { return "com.rentagf.identity.UserRegistered.v1" }
+func (e UserRegistered) EventType() string     { return "com.rentagf.identity.UserRegistered.v1" }
 func (e UserRegistered) OccurredAt() time.Time { return e.Timestamp }
 
 // ViolationRecorded is raised when a violation is recorded against an account.
@@ -29,7 +29,7 @@ type ViolationRecorded struct {
 	Timestamp    time.Time `json:"timestamp"`
 }
 
-func (e ViolationRecorded) EventType() string    { return "com.rentagf.identity.ViolationRecorded.v1" }
+func (e ViolationRecorded) EventType() string     { return "com.rentagf.identity.ViolationRecorded.v1" }
 func (e ViolationRecorded) OccurredAt() time.Time { return e.Timestamp }
 
 // AccountLocked is raised when a user account is locked.
@@ -40,7 +40,7 @@ type AccountLocked struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-func (e AccountLocked) EventType() string    { return "com.rentagf.identity.AccountLocked.v1" }
+func (e AccountLocked) EventType() string     { return "com.rentagf.identity.AccountLocked.v1" }
 func (e AccountLocked) OccurredAt() time.Time { return e.Timestamp }
 
 // AccountUnlocked is raised when a user account is unlocked.
@@ -50,7 +50,7 @@ type AccountUnlocked struct {
 	Timestamp  time.Time `json:"timestamp"`
 }
 
-func (e AccountUnlocked) EventType() string    { return "com.rentagf.identity.AccountUnlocked.v1" }
+func (e AccountUnlocked) EventType() string     { return "com.rentagf.identity.AccountUnlocked.v1" }
 func (e AccountUnlocked) OccurredAt() time.Time { return e.Timestamp }
 
 // CompanionUpgradeRequested is raised when a client requests to become a companion.
@@ -101,5 +101,5 @@ type RoleUpgraded struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-func (e RoleUpgraded) EventType() string    { return "com.rentagf.identity.RoleUpgraded.v1" }
+func (e RoleUpgraded) EventType() string     { return "com.rentagf.identity.RoleUpgraded.v1" }
 func (e RoleUpgraded) OccurredAt() time.Time { return e.Timestamp }

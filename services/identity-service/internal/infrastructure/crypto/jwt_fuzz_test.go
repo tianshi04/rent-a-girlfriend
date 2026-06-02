@@ -13,7 +13,7 @@ import (
 func FuzzValidateRefreshToken(f *testing.F) {
 	// Setup in-memory DB
 	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	db.AutoMigrate(&persistence.RefreshTokenModel{})
+	_ = db.AutoMigrate(&persistence.RefreshTokenModel{})
 
 	svc := NewJWTTokenService(db, nil, time.Minute, time.Hour, "test")
 

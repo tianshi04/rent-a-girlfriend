@@ -44,12 +44,12 @@ func waitForService() {
 	for time.Now().Before(deadline) {
 		resp, err := http.Get(healthURL)
 		if err == nil && resp.StatusCode == http.StatusOK {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			fmt.Println("[testutil] Service is healthy, starting E2E tests...")
 			return
 		}
 		if resp != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 		fmt.Printf("[testutil] Waiting for service at %s...\n", healthURL)
 		time.Sleep(2 * time.Second)
@@ -68,7 +68,7 @@ func truncateAllTables() {
 		fmt.Fprintf(os.Stderr, "[testutil] WARNING: failed to call truncate endpoint: %v\n", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		fmt.Fprintf(os.Stderr, "[testutil] WARNING: truncate returned status %d\n", resp.StatusCode)
@@ -94,7 +94,7 @@ func mockLogin(t *testing.T, email, googleID, role string) (accessToken, refresh
 	if err != nil {
 		t.Fatalf("failed to call mock-login: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("mock-login returned status %d", resp.StatusCode)

@@ -120,7 +120,7 @@ func TestContract_ResponseSchemaValidation(t *testing.T) {
 			resp := httptest.NewRecorder()
 			resp.Header().Set("Content-Type", "application/json")
 			resp.WriteHeader(tt.expectedStatus)
-			resp.WriteString(tt.body)
+			_, _ = resp.WriteString(tt.body)
 
 			// Find route in OpenAPI
 			route, pathParams, err := router.FindRoute(req)

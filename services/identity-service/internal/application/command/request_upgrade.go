@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	domainerr "github.com/rent-a-girlfriend/identity-service/internal/domain/errors"
+	"github.com/rent-a-girlfriend/identity-service/internal/application/port"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/aggregate"
+	domainerr "github.com/rent-a-girlfriend/identity-service/internal/domain/errors"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/repository"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/vo"
-	"github.com/rent-a-girlfriend/identity-service/internal/application/port"
 )
 
 // RequestCompanionUpgradeCommand contains the upgrade request data.
@@ -19,9 +19,9 @@ type RequestCompanionUpgradeCommand struct {
 
 // RequestCompanionUpgradeHandler handles CLIENT → COMPANION upgrade requests.
 type RequestCompanionUpgradeHandler struct {
-	accountRepo  repository.UserAccountRepository
-	upgradeRepo  repository.UpgradeRequestRepository
-	publisher    port.EventPublisher
+	accountRepo repository.UserAccountRepository
+	upgradeRepo repository.UpgradeRequestRepository
+	publisher   port.EventPublisher
 }
 
 // NewRequestCompanionUpgradeHandler creates a new handler.

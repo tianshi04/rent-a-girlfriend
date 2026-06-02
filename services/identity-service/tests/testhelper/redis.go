@@ -23,7 +23,7 @@ func StartRedisContainer(t *testing.T) string {
 		ExposedPorts: []string{"6379/tcp"},
 		WaitingFor: wait.ForAll(
 			wait.ForLog("Ready to accept connections").
-				WithStartupTimeout(30 * time.Second),
+				WithStartupTimeout(30*time.Second),
 			wait.ForListeningPort("6379/tcp"),
 		),
 	}

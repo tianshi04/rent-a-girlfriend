@@ -23,8 +23,8 @@ import (
 
 // TestDB holds connection info for the ephemeral test database.
 type TestDB struct {
-	DB     *gorm.DB
-	DSN    string // postgres://... URL
+	DB  *gorm.DB
+	DSN string // postgres://... URL
 }
 
 // StartPostgresContainer khởi động một PostgreSQL ephemeral container,

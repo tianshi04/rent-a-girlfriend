@@ -109,13 +109,13 @@ func (r *UpgradeRequest) Reject(adminID, rejectReason string, now time.Time) err
 // --- Getters ---
 
 func (r *UpgradeRequest) ID() uuid.UUID            { return r.id }
-func (r *UpgradeRequest) UserID() vo.UserID         { return r.userID }
-func (r *UpgradeRequest) Status() vo.UpgradeStatus  { return r.status }
-func (r *UpgradeRequest) Reason() string            { return r.reason }
-func (r *UpgradeRequest) RejectReason() string      { return r.rejectReason }
-func (r *UpgradeRequest) ReviewedBy() string        { return r.reviewedBy }
-func (r *UpgradeRequest) ReviewedAt() *time.Time    { return r.reviewedAt }
-func (r *UpgradeRequest) CreatedAt() time.Time      { return r.createdAt }
+func (r *UpgradeRequest) UserID() vo.UserID        { return r.userID }
+func (r *UpgradeRequest) Status() vo.UpgradeStatus { return r.status }
+func (r *UpgradeRequest) Reason() string           { return r.reason }
+func (r *UpgradeRequest) RejectReason() string     { return r.rejectReason }
+func (r *UpgradeRequest) ReviewedBy() string       { return r.reviewedBy }
+func (r *UpgradeRequest) ReviewedAt() *time.Time   { return r.reviewedAt }
+func (r *UpgradeRequest) CreatedAt() time.Time     { return r.createdAt }
 
 // Events returns uncommitted domain events and clears the internal list.
 func (r *UpgradeRequest) Events() []event.DomainEvent {

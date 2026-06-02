@@ -19,11 +19,11 @@ import (
 
 // JWTTokenService implements TokenService using RS256 JWT.
 type JWTTokenService struct {
-	db               *gorm.DB
-	keyProvider      *RSAKeyProvider
-	accessTokenTTL   time.Duration
-	refreshTokenTTL  time.Duration
-	issuer           string
+	db              *gorm.DB
+	keyProvider     *RSAKeyProvider
+	accessTokenTTL  time.Duration
+	refreshTokenTTL time.Duration
+	issuer          string
 }
 
 // NewJWTTokenService creates a new JWT token service.
@@ -72,7 +72,7 @@ func (s *JWTTokenService) GenerateTokenPair(account *aggregate.UserAccount) (*po
 	// Refresh Token — signed JWT, stored in DB by TokenID
 	tokenID := uuid.New()
 	familyID := uuid.New()
-	
+
 	refreshClaims := jwt.MapClaims{
 		"sub": account.ID().String(),
 		"jti": tokenID.String(),
@@ -123,7 +123,7 @@ func (s *JWTTokenService) ValidateRefreshToken(token string) (*port.RefreshToken
 		if !ok {
 			return nil, fmt.Errorf("missing kid in token header")
 		}
-		
+
 		pubKey, err := s.keyProvider.GetPublicKey(kid)
 		if err != nil {
 			return nil, err

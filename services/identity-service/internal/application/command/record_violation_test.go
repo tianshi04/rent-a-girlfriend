@@ -15,7 +15,7 @@ func TestRecordViolationHandler_Handle(t *testing.T) {
 	configRepo := &mockConfigRepo{configs: make(map[string]string)}
 	policySvc := service.NewAccountLockPolicyService(configRepo)
 	pub := &mockPublisher{}
-	
+
 	handler := NewRecordViolationHandler(repo, policySvc, pub)
 
 	email, _ := vo.NewEmail("user@example.com")
