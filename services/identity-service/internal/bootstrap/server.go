@@ -11,19 +11,19 @@ import (
 	"google.golang.org/grpc"
 	"gorm.io/gorm"
 
+	identityv1 "github.com/rent-a-girlfriend/identity-service/gen/proto"
 	"github.com/rent-a-girlfriend/identity-service/internal/application/command"
 	"github.com/rent-a-girlfriend/identity-service/internal/application/query"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/service"
-	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/client"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/cache"
+	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/client"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/crypto"
+	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/messaging"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/persistence"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/store"
 	grpchandler "github.com/rent-a-girlfriend/identity-service/internal/interfaces/grpc/handler"
 	grpcinterceptor "github.com/rent-a-girlfriend/identity-service/internal/interfaces/grpc/interceptor"
 	gateway "github.com/rent-a-girlfriend/identity-service/internal/interfaces/http"
-	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/messaging"
-	identityv1 "github.com/rent-a-girlfriend/identity-service/gen/proto"
 )
 
 // Server holds all wired dependencies.

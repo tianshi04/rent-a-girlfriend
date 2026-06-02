@@ -1,7 +1,6 @@
 package bootstrap
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -30,24 +29,12 @@ type ServerConfig struct {
 }
 
 type DatabaseConfig struct {
-	Host        string
-	Port        int
-	User        string
-	Password    string
-	DBName      string
-	SSLMode     string
 	DatabaseURL string // Full connection string (e.g., from Neon)
 }
 
 // DSN returns the PostgreSQL connection string.
 func (d DatabaseConfig) DSN() string {
-	if d.DatabaseURL != "" {
-		return d.DatabaseURL
-	}
-	return fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		d.Host, d.Port, d.User, d.Password, d.DBName, d.SSLMode,
-	)
+	return d.DatabaseURL
 }
 
 type OAuthConfig struct {
@@ -96,7 +83,6 @@ func LoadConfig() *Config {
 	configFiles := loadConfigDir(configDir)
 	secretFiles := loadConfigDir(secretDir)
 
-	dbPort, _ := strconv.Atoi(getConfigValue(configFiles, secretFiles, "DB_PORT", "5432"))
 	accessTTL, _ := strconv.Atoi(getConfigValue(configFiles, secretFiles, "JWT_ACCESS_TTL_MINUTES", "30"))
 	refreshTTL, _ := strconv.Atoi(getConfigValue(configFiles, secretFiles, "JWT_REFRESH_TTL_DAYS", "7"))
 	outboxInterval, _ := strconv.Atoi(getConfigValue(configFiles, secretFiles, "OUTBOX_POLLING_INTERVAL_MS", "500"))
@@ -109,13 +95,7 @@ func LoadConfig() *Config {
 			Mode:     getConfigValue(configFiles, secretFiles, "GIN_MODE", "debug"),
 		},
 		Database: DatabaseConfig{
-			Host:        getConfigValue(configFiles, secretFiles, "DB_HOST", "localhost"),
-			Port:        dbPort,
-			User:        getConfigValue(configFiles, secretFiles, "DB_USER", "postgres"),
-			Password:    getConfigValue(configFiles, secretFiles, "DB_PASSWORD", "postgres"),
-			DBName:      getConfigValue(configFiles, secretFiles, "DB_NAME", "identity_db"),
-			SSLMode:     getConfigValue(configFiles, secretFiles, "DB_SSLMODE", "disable"),
-			DatabaseURL: getConfigValue(configFiles, secretFiles, "DATABASE_URL", ""),
+			DatabaseURL: getConfigValue(configFiles, secretFiles, "DB_URL", getConfigValue(configFiles, secretFiles, "DATABASE_URL", "")),
 		},
 		OAuth: OAuthConfig{
 			GoogleClientID:     getConfigValue(configFiles, secretFiles, "GOOGLE_CLIENT_ID", ""),
