@@ -20,7 +20,7 @@ func TestRedisCaching_Integration(t *testing.T) {
 
 	redisAdapter, err := cache.NewRedisAdapter(redisURL)
 	require.NoError(t, err)
-	defer redisAdapter.Close()
+	defer func() { _ = redisAdapter.Close() }()
 
 	testhelper.WithTx(t, db, func(tx *gorm.DB) {
 		ctx := context.Background()
@@ -31,7 +31,7 @@ func TestRedisCaching_Integration(t *testing.T) {
 		cacheKey := "config:" + testKey
 
 		// Đảm bảo cache sạch trước khi test
-		redisAdapter.Delete(ctx, cacheKey)
+		_ = redisAdapter.Delete(ctx, cacheKey)
 
 		// Seed dữ liệu trong transaction
 		err := tx.Exec(
@@ -64,7 +64,7 @@ func TestRedisCaching_Integration(t *testing.T) {
 		t.Logf("Cache miss (DB): %v | Cache hit: %v", duration1, duration2)
 
 		// Dọn cache (DB sẽ tự rollback)
-		redisAdapter.Delete(ctx, cacheKey)
+		_ = redisAdapter.Delete(ctx, cacheKey)
 	})
 	// TX rollback — system_configs không bị bẩn
 }

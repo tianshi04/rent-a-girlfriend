@@ -29,7 +29,7 @@ type KafkaAdapter struct {
 
 func NewKafkaAdapter(brokers string) *KafkaAdapter {
 	brokerList := strings.Split(brokers, ",")
-	
+
 	writer := &kafka.Writer{
 		Addr:                   kafka.TCP(brokerList...),
 		Balancer:               &kafka.LeastBytes{},
