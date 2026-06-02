@@ -26,14 +26,20 @@ test-unit:
 test-integration:
 	go test ./tests/integration/... -v -count=1 -timeout 120s
 
-# E2E tests — spin up full stack, chạy tests trong container, tear down
-# Cần Docker daemon đang chạy
+# E2E tests — build image local, spin up full stack, chạy tests trong container, tear down.
+# IDENTITY_IMAGE có thể được override từ bên ngoài (e.g., CI đã build sẵn image).
 test-e2e:
-	docker compose -f docker-compose.test.yml build --no-cache
-	docker compose -f docker-compose.test.yml up -d --wait
-	docker compose -f docker-compose.test.yml run --rm e2e-runner; \
+	@if [ -z "$$IDENTITY_IMAGE" ]; then \
+		echo "==> [test-e2e] Building local image identity-service-test:local..."; \
+		docker build --build-arg BUILD_TAGS="" -t identity-service-test:local .; \
+	fi
+	IDENTITY_IMAGE=$${IDENTITY_IMAGE:-identity-service-test:local} \
+		docker compose -f docker-compose.test.yml up -d --wait
+	IDENTITY_IMAGE=$${IDENTITY_IMAGE:-identity-service-test:local} \
+		docker compose -f docker-compose.test.yml run --rm e2e-runner; \
 	EXIT=$$?; \
-	docker compose -f docker-compose.test.yml down -v; \
+	IDENTITY_IMAGE=$${IDENTITY_IMAGE:-identity-service-test:local} \
+		docker compose -f docker-compose.test.yml down -v; \
 	exit $$EXIT
 
 # Run tất cả tests theo thứ tự

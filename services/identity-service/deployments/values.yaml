@@ -30,11 +30,6 @@ config:
   SERVER_PORT: "8080"
   GRPC_PORT: "50051"
   GIN_MODE: "release"
-  DB_HOST: "ep-crimson-darkness-aojztyoh-pooler.c-2.ap-southeast-1.aws.neon.tech"
-  DB_PORT: "5432"
-  DB_USER: "neondb_owner"
-  DB_NAME: "neondb"
-  DB_SSLMODE: "require"
   KAFKA_BROKERS: "kafka-1:9092,kafka-2:9092,kafka-3:9092"
   KAFKA_TOPIC_IDENTITY: "identity-events"
   JWT_ISSUER: "rent-a-girlfriend-identity"
@@ -42,7 +37,7 @@ config:
   OUTBOX_BATCH_SIZE: "50"
 
 secrets:
-  DB_PASSWORD: ""
+  DB_URL: ""
   GOOGLE_CLIENT_ID: ""
   GOOGLE_CLIENT_SECRET: ""
   GOOGLE_REDIRECT_URI: ""

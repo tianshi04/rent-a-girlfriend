@@ -1,0 +1,35 @@
+# Git
+.git
+.gitignore
+
+# Environment files (Very Important for Security)
+.env
+.env.*
+!.env.example
+
+# Go build and test outputs
+*.test
+*.out
+bin/
+dist/
+
+# IDE files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# CI/CD config (we don't need these inside the container)
+.github/
+
+# Docker files
+Dockerfile
+docker-compose*.yml
+docker-compose*.yaml
+
+# Local development files
+tmp/
+logs/

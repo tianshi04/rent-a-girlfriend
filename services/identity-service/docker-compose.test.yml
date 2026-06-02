@@ -29,11 +29,9 @@ services:
       retries: 5
 
   identity-service-test:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        BUILD_TAGS: ""
+    # CI sẽ inject image đã build sẵn qua IDENTITY_IMAGE.
+    # Khi chạy local (make test-e2e), Makefile sẽ build trước với tag identity-service-test:local.
+    image: ${IDENTITY_IMAGE:-identity-service-test:local}
     ports:
       - "8081:8080"
       - "50052:50051"
@@ -46,12 +44,7 @@ services:
       SERVER_PORT: "8080"
       GRPC_PORT: "50051"
       GIN_MODE: "test"
-      DB_HOST: "postgres-test"
-      DB_PORT: "5432"
-      DB_USER: "test"
-      DB_PASSWORD: "test"
-      DB_NAME: "identity_test"
-      DB_SSLMODE: "disable"
+      DB_URL: "postgres://test:test@postgres-test:5432/identity_test?sslmode=disable"
       REDIS_URL: "redis://redis-test:6379"
       JWT_ISSUER: "rent-a-girlfriend-identity"
       JWT_ACCESS_TTL_MINUTES: "15"
