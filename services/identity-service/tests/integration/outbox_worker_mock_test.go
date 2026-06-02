@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/messaging"
@@ -31,52 +30,50 @@ func (m *MockPublisher) PublishEvent(ctx context.Context, topic string, event me
 func TestOutboxWorker_WithMockKafka(t *testing.T) {
 	db := testhelper.StartPostgresContainer(t)
 
-	testhelper.WithTx(t, db, func(tx *gorm.DB) {
-		mockKafka := new(MockPublisher)
-		worker := messaging.NewOutboxWorker(
-			tx,
-			mockKafka,
-			100*time.Millisecond,
-			10,
-			"test-topic",
-		)
+	mockKafka := new(MockPublisher)
+	worker := messaging.NewOutboxWorker(
+		db,
+		mockKafka,
+		100*time.Millisecond,
+		10,
+		"test-topic",
+	)
 
-		// Insert event chưa publish vào DB (trong transaction)
-		eventID := uuid.New()
-		testPayload := `{"userId":"user-mock-123","email":"mock@test.com"}`
-		err := tx.Create(&persistence.OutboxModel{
-			ID:        eventID,
-			EventType: "test.event.v1",
-			Payload:   testPayload,
-			Published: false,
-			CreatedAt: time.Now(),
-		}).Error
-		require.NoError(t, err)
+	// Insert event chưa publish vào DB
+	eventID := uuid.New()
+	testPayload := `{"userId":"user-mock-123","email":"mock@test.com"}`
+	err := db.Create(&persistence.OutboxModel{
+		ID:        eventID,
+		EventType: "test.event.v1",
+		Payload:   testPayload,
+		Published: false,
+		CreatedAt: time.Now(),
+	}).Error
+	require.NoError(t, err)
 
-		// Setup mock expectation
-		mockKafka.On("PublishEvent",
-			mock.Anything,
-			"test-topic",
-			mock.MatchedBy(func(ev messaging.CloudEvent) bool {
-				return ev.ID == eventID.String() && ev.Type == "test.event.v1"
-			}),
-		).Return(nil)
+	// Setup mock expectation
+	mockKafka.On("PublishEvent",
+		mock.Anything,
+		"test-topic",
+		mock.MatchedBy(func(ev messaging.CloudEvent) bool {
+			return ev.ID == eventID.String() && ev.Type == "test.event.v1"
+		}),
+	).Return(nil)
 
-		// Chạy worker trong giới hạn thời gian
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		defer cancel()
-		go worker.Start(ctx)
+	// Chạy worker trong giới hạn thời gian
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	go worker.Start(ctx)
 
-		time.Sleep(500 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
-		// Assertions
-		mockKafka.AssertExpectations(t)
+	// Assertions
+	mockKafka.AssertExpectations(t)
 
-		var entry persistence.OutboxModel
-		err = tx.Where("id = ?", eventID).First(&entry).Error
-		require.NoError(t, err)
-		assert.True(t, entry.Published, "Worker phải đánh dấu sự kiện là đã gửi")
-	})
+	var entry persistence.OutboxModel
+	err = db.Where("id = ?", eventID).First(&entry).Error
+	require.NoError(t, err)
+	assert.True(t, entry.Published, "Worker phải đánh dấu sự kiện là đã gửi")
 }
 
 // TestKafkaOutbox_E2E kiểm tra luồng Outbox → Worker → MockPublisher end-to-end.
@@ -84,57 +81,55 @@ func TestOutboxWorker_WithMockKafka(t *testing.T) {
 func TestKafkaOutbox_WithMockBroker(t *testing.T) {
 	db := testhelper.StartPostgresContainer(t)
 
-	testhelper.WithTx(t, db, func(tx *gorm.DB) {
-		mockKafka := new(MockPublisher)
-		outboxPublisher := persistence.NewOutboxPublisher(tx)
-		worker := messaging.NewOutboxWorker(
-			tx,
-			mockKafka,
-			200*time.Millisecond,
-			10,
-			"identity-events",
-		)
+	mockKafka := new(MockPublisher)
+	outboxPublisher := persistence.NewOutboxPublisher(db)
+	worker := messaging.NewOutboxWorker(
+		db,
+		mockKafka,
+		200*time.Millisecond,
+		10,
+		"identity-events",
+	)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-		// Publish event qua outbox
-		testUserID := "e2e-user-" + uuid.New().String()
-		testEvent := event.UserRegistered{
-			UserID:    testUserID,
-			Email:     "e2e-mock@test.com",
-			Role:      "CLIENT",
-			GoogleID:  "google-" + uuid.New().String(),
-			Timestamp: time.Now().UTC().Truncate(time.Second),
-		}
-		err := outboxPublisher.Publish(ctx, testEvent)
-		require.NoError(t, err)
+	// Publish event qua outbox
+	testUserID := "e2e-user-" + uuid.New().String()
+	testEvent := event.UserRegistered{
+		UserID:    testUserID,
+		Email:     "e2e-mock@test.com",
+		Role:      "CLIENT",
+		GoogleID:  "google-" + uuid.New().String(),
+		Timestamp: time.Now().UTC().Truncate(time.Second),
+	}
+	err := outboxPublisher.Publish(ctx, testEvent)
+	require.NoError(t, err)
 
-		// Xác định eventID từ DB để setup mock expectation chính xác
-		var entry persistence.OutboxModel
-		err = tx.Where("CAST(payload AS TEXT) LIKE ?", "%"+testUserID+"%").First(&entry).Error
-		require.NoError(t, err)
+	// Xác định eventID từ DB để setup mock expectation chính xác
+	var entry persistence.OutboxModel
+	err = db.Where("CAST(payload AS TEXT) LIKE ?", "%"+testUserID+"%").First(&entry).Error
+	require.NoError(t, err)
 
-		mockKafka.On("PublishEvent",
-			mock.Anything,
-			"identity-events",
-			mock.MatchedBy(func(ev messaging.CloudEvent) bool {
-				return ev.ID == entry.ID.String() && ev.Type == testEvent.EventType()
-			}),
-		).Return(nil)
+	mockKafka.On("PublishEvent",
+		mock.Anything,
+		"identity-events",
+		mock.MatchedBy(func(ev messaging.CloudEvent) bool {
+			return ev.ID == entry.ID.String() && ev.Type == testEvent.EventType()
+		}),
+	).Return(nil)
 
-		// Chạy worker
-		workerCtx, workerCancel := context.WithTimeout(ctx, 3*time.Second)
-		defer workerCancel()
-		go worker.Start(workerCtx)
-		time.Sleep(1 * time.Second)
+	// Chạy worker
+	workerCtx, workerCancel := context.WithTimeout(ctx, 3*time.Second)
+	defer workerCancel()
+	go worker.Start(workerCtx)
+	time.Sleep(1 * time.Second)
 
-		// Xác nhận mock được gọi và DB được mark published
-		mockKafka.AssertExpectations(t)
+	// Xác nhận mock được gọi và DB được mark published
+	mockKafka.AssertExpectations(t)
 
-		var updated persistence.OutboxModel
-		err = tx.Where("id = ?", entry.ID).First(&updated).Error
-		require.NoError(t, err)
-		assert.True(t, updated.Published, "DB row phải được mark là published")
-	})
+	var updated persistence.OutboxModel
+	err = db.Where("id = ?", entry.ID).First(&updated).Error
+	require.NoError(t, err)
+	assert.True(t, updated.Published, "DB row phải được mark là published")
 }
