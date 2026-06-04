@@ -69,3 +69,8 @@ func (a *RedisAdapter) Delete(ctx context.Context, key string) error {
 func (a *RedisAdapter) Close() error {
 	return a.client.Close()
 }
+
+func (a *RedisAdapter) Ping(ctx context.Context) error {
+	return a.client.Ping(ctx).Err()
+}
+

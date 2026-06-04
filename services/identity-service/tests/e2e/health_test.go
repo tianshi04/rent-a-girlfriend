@@ -12,20 +12,24 @@ func TestHealthCheck(t *testing.T) {
 		t.Skip("skipping E2E test in short mode")
 	}
 
-	url := getBaseURL() + "/health"
 
-	// Create a client with timeout
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
 
-	resp, err := client.Get(url)
-	if err != nil {
-		t.Fatalf("failed to call health check: %v. Is the server running?", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
+	endpoints := []string{"/health", "/health/live", "/health/ready"}
+	for _, ep := range endpoints {
+		t.Run(ep, func(t *testing.T) {
+			url := getBaseURL() + ep
+			resp, err := client.Get(url)
+			if err != nil {
+				t.Fatalf("failed to call health check %s: %v", ep, err)
+			}
+			defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("expected status 200, got %d", resp.StatusCode)
+			if resp.StatusCode != http.StatusOK {
+				t.Errorf("expected status 200, got %d", resp.StatusCode)
+			}
+		})
 	}
 }

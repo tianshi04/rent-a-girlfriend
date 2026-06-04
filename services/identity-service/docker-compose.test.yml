@@ -33,6 +33,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: test
       args:
         BUILD_TAGS: ""
     ports:
@@ -60,7 +61,7 @@ services:
       GOOGLE_CLIENT_SECRET: "test-client-secret"
       GOOGLE_REDIRECT_URI: "http://localhost:8081/api/v1/auth/google/callback"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health/ready || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 12
