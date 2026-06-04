@@ -113,7 +113,7 @@ jobs:
       - name: Container Smoke Test
         run: |
           echo "==> Starting container..."
-          docker run -d --name smoke-test -p 8080:8080 -e TESTING=1 ${{ env.TEST_IMAGE }}
+          docker run -d --name smoke-test -p 8080:8080 ${{ env.TEST_IMAGE }}
           
           echo "==> Waiting 10 seconds for service to boot..."
           sleep 10
@@ -126,8 +126,8 @@ jobs:
           fi
           
           echo "==> Hitting health check endpoint..."
-          if ! curl -f http://localhost:8080/healthz; then
-            echo "⚠️ /healthz failed, trying /docs as fallback..."
+          if ! curl -f http://localhost:8080/health; then
+            echo "⚠️ /health failed, trying /docs as fallback..."
             if ! curl -f http://localhost:8080/docs; then
                 echo "❌ Health check failed!"
                 docker logs smoke-test
