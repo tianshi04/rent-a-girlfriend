@@ -47,5 +47,5 @@ pub trait EventPublisher: Send + Sync {
 pub trait ProcessedEventRepository: Send + Sync {
     /// Returns true if the event has already been processed, otherwise records it and returns false.
     async fn check_and_record(&self, event_id: &str, event_type: &str)
-        -> Result<bool, DomainError>;
+    -> Result<bool, DomainError>;
 }

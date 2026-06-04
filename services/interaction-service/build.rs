@@ -7,11 +7,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .join("bin")
         .join("protoc.exe");
     if local_protoc.exists() {
-        std::env::set_var("PROTOC", local_protoc);
+        unsafe {
+            std::env::set_var("PROTOC", local_protoc);
+        }
     }
 
     // Compile tonic gRPC proto files
-    tonic_build::configure().compile(
+    tonic_prost_build::configure().compile_protos(
         &["../../contracts/interaction/v1/service/interaction_service.proto"],
         &["../../contracts"],
     )?;
