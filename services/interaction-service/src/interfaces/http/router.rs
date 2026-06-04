@@ -71,11 +71,11 @@ fn get_user_id(headers: &HeaderMap) -> Result<String, Response> {
 pub fn create_router(state: AppState) -> Router {
     Router::new()
         .route(
-            "/api/v1/interaction/rooms/:room_id/messages",
+            "/api/v1/interaction/rooms/{room_id}/messages",
             post(send_message_handler).get(get_messages_handler),
         )
         .route(
-            "/api/v1/interaction/reviews/companion/:companion_id",
+            "/api/v1/interaction/reviews/companion/{companion_id}",
             get(get_companion_reviews_handler),
         )
         .with_state(state)

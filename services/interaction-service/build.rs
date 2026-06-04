@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Compile tonic gRPC proto files
-    tonic_build::configure().compile(
+    tonic_prost_build::configure().compile_protos(
         &["../../contracts/interaction/v1/service/interaction_service.proto"],
         &["../../contracts"],
     )?;
