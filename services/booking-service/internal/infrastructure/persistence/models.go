@@ -31,13 +31,13 @@ func (BookingModel) TableName() string {
 
 // OutboxModel is the GORM database model for the outbox table (prepared for Phase 2).
 type OutboxModel struct {
-	ID            string    `gorm:"column:id;type:uuid;primaryKey"`
-	AggregateType string    `gorm:"column:aggregate_type;type:varchar(50);not null"`
-	AggregateID   string    `gorm:"column:aggregate_id;type:uuid;not null"`
-	EventType     string    `gorm:"column:event_type;type:varchar(100);not null"`
-	Payload       string    `gorm:"column:payload;type:jsonb;not null"`
-	CreatedAt     time.Time `gorm:"column:created_at;type:timestamptz;not null;autoCreateTime"`
-	Published     bool      `gorm:"column:published;default:false;index:idx_outbox_unpublished"`
+	ID            string     `gorm:"column:id;type:uuid;primaryKey"`
+	AggregateType string     `gorm:"column:aggregate_type;type:varchar(50);not null"`
+	AggregateID   string     `gorm:"column:aggregate_id;type:uuid;not null"`
+	EventType     string     `gorm:"column:event_type;type:varchar(100);not null"`
+	Payload       string     `gorm:"column:payload;type:jsonb;not null"`
+	CreatedAt     time.Time  `gorm:"column:created_at;type:timestamptz;not null;autoCreateTime"`
+	Published     bool       `gorm:"column:published;default:false;index:idx_outbox_unpublished"`
 	PublishedAt   *time.Time `gorm:"column:published_at;type:timestamptz"`
 	LockedUntil   *time.Time `gorm:"column:locked_until;type:timestamptz"`
 }

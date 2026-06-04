@@ -297,7 +297,7 @@ func TestE2E_ListBookings_RoleFilters(t *testing.T) {
 
 func TestE2E_RequestBooking_SuccessAndFailure(t *testing.T) {
 	repo := &e2eMockBookingRepository{}
-	
+
 	// Mock Profile snapshot
 	price := vo.MustMoney(600)
 	snap, _ := vo.NewScenarioSnapshot(price, 90)
@@ -308,7 +308,7 @@ func TestE2E_RequestBooking_SuccessAndFailure(t *testing.T) {
 
 	// Setup application command handlers
 	requestBookingHandler := command.NewRequestBookingHandler(repo, profileSvc, financeSvc)
-	
+
 	// Wire-up gRPC Handler
 	grpcHandler := handler.NewBookingGRPCHandler(
 		requestBookingHandler, nil, nil, nil, nil, nil, nil,

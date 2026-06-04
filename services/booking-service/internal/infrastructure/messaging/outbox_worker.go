@@ -110,7 +110,7 @@ func (w *OutboxWorker) processBatch(ctx context.Context) {
 	for _, evt := range events {
 		if err := w.publishEvent(ctx, evt); err != nil {
 			log.Printf("[OUTBOX] Failed to publish event id=%s type=%s: %v. Releasing lock to retry...", evt.ID, evt.EventType, err)
-			
+
 			// Release lock immediately on failure so it can be retried in the next poll
 			_ = w.db.WithContext(ctx).
 				Model(&persistence.OutboxModel{}).

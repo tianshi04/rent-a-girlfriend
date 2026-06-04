@@ -31,7 +31,7 @@ type KafkaPublisher struct {
 func NewKafkaPublisher(cfg KafkaConnConfig, topic string) *KafkaPublisher {
 	brokerList := strings.Split(cfg.Brokers, ",")
 	dialer := cfg.GetDialer()
-	
+
 	transport := &kafka.Transport{
 		Dial: dialer.DialFunc,
 		TLS:  dialer.TLS,

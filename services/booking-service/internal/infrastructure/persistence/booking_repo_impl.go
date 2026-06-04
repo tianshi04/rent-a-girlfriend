@@ -93,11 +93,11 @@ func (r *BookingRepositoryImpl) update(db *gorm.DB, booking *aggregate.Booking) 
 		Where("id = ? AND version = ?", model.ID, oldVersion).
 		Clauses(clause.Returning{}).
 		Updates(map[string]interface{}{
-			"status":           model.Status,
+			"status":            model.Status,
 			"cancelled_by_role": model.CancelledByRole,
-			"is_late_cancel":   model.IsLateCancel,
-			"version":          model.Version,
-			"updated_at":       model.UpdatedAt,
+			"is_late_cancel":    model.IsLateCancel,
+			"version":           model.Version,
+			"updated_at":        model.UpdatedAt,
 		})
 
 	if result.Error != nil {
@@ -330,4 +330,3 @@ func (r *BookingRepositoryImpl) FindPendingBookingsEligibleForTimeout(
 
 	return bookings, nil
 }
-

@@ -23,7 +23,7 @@ func TestCancelBooking_SuccessClientEarly(t *testing.T) {
 	now := time.Now()
 	// Start in 48h (early cancellation)
 	tr, _ := vo.NewTimeRange(now.Add(48*time.Hour), now.Add(50*time.Hour))
-	
+
 	bid := vo.NewBookingID()
 	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusAccepted, "", false, 1, now, now)
 	_ = repo.Save(context.Background(), b)
@@ -58,7 +58,7 @@ func TestCancelBooking_SuccessClientLate(t *testing.T) {
 	now := time.Now()
 	// Start in 3h (late cancellation)
 	tr, _ := vo.NewTimeRange(now.Add(3*time.Hour), now.Add(5*time.Hour))
-	
+
 	bid := vo.NewBookingID()
 	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusAccepted, "", false, 1, now, now)
 	_ = repo.Save(context.Background(), b)
@@ -92,7 +92,7 @@ func TestCancelBooking_UnauthorizedClient(t *testing.T) {
 	snap, _ := vo.NewScenarioSnapshot(price, 120)
 	now := time.Now()
 	tr, _ := vo.NewTimeRange(now.Add(48*time.Hour), now.Add(50*time.Hour))
-	
+
 	bid := vo.NewBookingID()
 	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusAccepted, "", false, 1, now, now)
 	_ = repo.Save(context.Background(), b)
@@ -120,7 +120,7 @@ func TestCancelBooking_InvalidState(t *testing.T) {
 	snap, _ := vo.NewScenarioSnapshot(price, 120)
 	now := time.Now()
 	tr, _ := vo.NewTimeRange(now.Add(48*time.Hour), now.Add(50*time.Hour))
-	
+
 	bid := vo.NewBookingID()
 	// Reconstitute COMPLETED booking (should fail to cancel)
 	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusCompleted, "", false, 1, now, now)

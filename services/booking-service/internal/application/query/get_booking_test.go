@@ -20,7 +20,7 @@ func TestGetBooking_Success(t *testing.T) {
 	snap, _ := vo.NewScenarioSnapshot(price, 120)
 	now := time.Now()
 	tr, _ := vo.NewTimeRange(now.Add(3*time.Hour), now.Add(5*time.Hour))
-	
+
 	bid := vo.NewBookingID()
 	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusPending, "", false, 1, now, now)
 	_ = repo.Save(context.Background(), b)

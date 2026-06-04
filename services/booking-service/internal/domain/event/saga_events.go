@@ -11,7 +11,7 @@ type TransferToEscrowCommand struct {
 	Timestamp   time.Time `json:"timestamp"`
 }
 
-func (e TransferToEscrowCommand) EventType() string    { return "com.rentagf.finance.TransferToEscrow.v1" }
+func (e TransferToEscrowCommand) EventType() string     { return "com.rentagf.finance.TransferToEscrow.v1" }
 func (e TransferToEscrowCommand) OccurredAt() time.Time { return e.Timestamp }
 
 // CreateChatRoomCommand is raised by the SAGA coordinator to request chatroom creation.
@@ -22,7 +22,7 @@ type CreateChatRoomCommand struct {
 	Timestamp   time.Time `json:"timestamp"`
 }
 
-func (e CreateChatRoomCommand) EventType() string    { return "com.rentagf.interaction.CreateChatRoom.v1" }
+func (e CreateChatRoomCommand) EventType() string     { return "com.rentagf.interaction.CreateChatRoom.v1" }
 func (e CreateChatRoomCommand) OccurredAt() time.Time { return e.Timestamp }
 
 // RefundEscrowCommand is raised by the SAGA coordinator as a compensating action to refund escrowed coins.
@@ -34,5 +34,5 @@ type RefundEscrowCommand struct {
 	Timestamp   time.Time `json:"timestamp"`
 }
 
-func (e RefundEscrowCommand) EventType() string    { return "com.rentagf.finance.RefundEscrow.v1" }
+func (e RefundEscrowCommand) EventType() string     { return "com.rentagf.finance.RefundEscrow.v1" }
 func (e RefundEscrowCommand) OccurredAt() time.Time { return e.Timestamp }

@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/aggregate"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/repository"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // MockBookingRepository implements repository.BookingRepository using in-memory storage.
@@ -117,7 +117,7 @@ func (m *MockBookingRepository) HasOverlappingBooking(ctx context.Context, actor
 func (m *MockBookingRepository) FindByFilters(ctx context.Context, filters repository.BookingFilters) ([]*aggregate.Booking, int64, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	var result []*aggregate.Booking
 	for _, b := range m.bookings {
 		if filters.ClientID != nil && b.ClientID().String() != *filters.ClientID {
@@ -241,11 +241,11 @@ func (m *MockProfileService) GetScenarioSnapshot(ctx context.Context, scenarioID
 
 // MockFinanceService implements port.FinanceService.
 type MockFinanceService struct {
-	mu           sync.Mutex
-	FrozenCalls  []string
-	RefundCalls  []string
-	FreezeErr    error
-	UnfreezeErr  error
+	mu          sync.Mutex
+	FrozenCalls []string
+	RefundCalls []string
+	FreezeErr   error
+	UnfreezeErr error
 }
 
 func (m *MockFinanceService) FreezeCoin(ctx context.Context, clientID vo.ClientID, amount vo.Money) error {
@@ -290,7 +290,7 @@ func (c *mockConn) Begin() (driver.Tx, error) {
 
 type mockStmt struct{}
 
-func (s *mockStmt) Close() error { return nil }
+func (s *mockStmt) Close() error  { return nil }
 func (s *mockStmt) NumInput() int { return -1 }
 func (s *mockStmt) Exec(args []driver.Value) (driver.Result, error) {
 	return &mockResult{}, nil
@@ -335,4 +335,3 @@ func NewMockGormDB() *gorm.DB {
 	}
 	return db
 }
-
