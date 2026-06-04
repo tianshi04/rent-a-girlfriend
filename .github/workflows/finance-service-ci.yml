@@ -94,13 +94,16 @@ jobs:
             type=raw,value=latest,enable=${{ env.IS_MAIN == 'true' }}
             type=raw,value=sha-${{ steps.vars.outputs.sha_short }}
 
+      - name: Prepare build context
+        run: cp -r contracts services/finance-service/contracts
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build and load for Smoke Test
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./services/finance-service
           file: services/finance-service/Dockerfile
           load: true
           tags: ${{ env.TEST_IMAGE }}
@@ -147,7 +150,7 @@ jobs:
         id: push
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./services/finance-service
           file: services/finance-service/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
