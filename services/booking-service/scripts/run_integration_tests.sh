@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# run_tests.sh — Run Unit & Integration Tests on Unix
+# run_integration_tests.sh — Run Integration Tests on Unix
 # Starts isolated Docker dependencies, runs tests, and tears them down.
 
 set -e # Exit immediately on error
 
 scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 serviceRoot="$(cd "$scriptDir/.." && pwd)"
-dockerFile="$serviceRoot/tests/docker-compose.test.yml"
+dockerFile="$serviceRoot/docker-compose.test.yml"
 
 # Always execute cleanup on script exit
 cleanup() {
@@ -41,7 +41,7 @@ export KAFKA_TOPIC_DISPUTE="dispute-events-test"
 export PROFILE_SERVICE_ADDR="localhost:59991"
 export FINANCE_SERVICE_ADDR="localhost:59992"
 
-echo "==> [test-runner] Executing Unit & Integration tests..."
-go test -v ./internal/... ./tests/... -count=1
+echo "==> [test-runner] Executing Integration tests..."
+go test -v ./tests/integration/... -count=1
 
 echo "==> [test-runner] All tests passed!"
