@@ -2,7 +2,7 @@
 
 Tài liệu này ghi lại toàn bộ danh sách, cấu trúc và hướng dẫn thực hiện các bài kiểm thử (tests) đã được xây dựng và chạy thành công cho **Booking Service** (dịch vụ đặt lịch hẹn hò thuê bạn gái).
 
-Hệ thống kiểm thử được thiết kế theo mô hình kim tự tháp (Testing Pyramid), bao gồm Unit Test cho Domain/VOs, Service Layer Unit Test, Integration Test cho Repository/Kafka, và E2E Test cho luồng Saga phức tạp kết hợp gRPC-Gateway.
+Hệ thống kiểm thử được thiết kế theo mô hình kim tự tháp (Testing Pyramid), bao gồm Unit Test cho Domain/VOs, Service Layer Unit Test, Integration Test cho Repository/Kafka, và E2E Test cho luồng Saga phức tạp sử dụng mock HTTP/gRPC gateway.
 
 ---
 
@@ -12,15 +12,16 @@ Mã nguồn kiểm thử tuân thủ chặt chẽ **DDD (Domain-Driven Design) &
 
 ```mermaid
 graph TD
-    A[E2E Tests: Gateway, Security & Saga Flows] --> B[Integration Tests: Repository & Kafka Messaging]
+    A[E2E Tests: Gateway, Security & Mock HTTP Flows] --> B[Integration Tests: Repository & Kafka Messaging]
     B --> C[Application Tests: Command, Query & Saga Coordinators]
     C --> D[Domain Tests: Aggregates, Invariants & Value Objects]
 ```
 
 * **Domain layer (`vo`, `aggregate`)**: Kiểm thử logic nghiệp vụ thuần túy (Pure Business Logic), xác thực các ràng buộc nghiệp vụ (Invariants `[INV-XXXX]`) mà không phụ thuộc vào hạ tầng.
 * **Application layer (`query`, `command`)**: Sử dụng Mocking/In-memory repositories để kiểm thử luồng nghiệp vụ, sự phối hợp điều hành SAGA Coordinator.
-* **Infrastructure / Integration layer (`tests`)**: Kiểm thử sự tích hợp thực tế với Cơ sở dữ liệu (PostgreSQL) thông qua GORM và hệ thống truyền tin (Kafka) sử dụng `docker-compose.test.yml`.
-* **E2E / Security layer (`tests`)**: Kiểm thử bảo mật (Role-based Authorization), sự hợp lệ của API Gateway (REST/gRPC) và các luồng đi từ cổng kết nối đến khi cập nhật DB.
+* **Infrastructure / Integration layer (`tests/integration/`)**: Kiểm thử sự tích hợp thực tế với Cơ sở dữ liệu (PostgreSQL) thông qua GORM và hệ thống truyền tin (Kafka) sử dụng `docker-compose.test.yml`.
+* **E2E / Security layer (`tests/e2e/`)**: Kiểm thử bảo mật (Role-based Authorization), sự hợp lệ của API Gateway (REST/gRPC) thông qua máy chủ giả lập in-memory `httptest.NewServer`.
+* **Contract layer (`tests/contract/`)**: Kiểm thử tính nhất quán về tuần tự hóa dữ liệu và enum của Protobuf.
 
 ---
 
@@ -33,11 +34,26 @@ Mọi tác vụ kiểm thử đã được tích hợp đầy đủ vào `Makefi
 make test-unit
 ```
 
-### Khởi chạy E2E & Integration Tests (Khởi động Docker DB & Kafka, chạy test tích hợp và tự động dọn dẹp):
+### Khởi chạy Contract Tests (Kiểm tra tuần tự hóa dữ liệu mạng):
+```bash
+make test-contract
+```
+
+### Khởi chạy E2E Tests (Kiểm thử cổng API thông qua in-memory mock):
 ```bash
 make test-e2e
 ```
-*Lưu ý: Lệnh này tự động kéo các container Postgres và Kafka lên, đợi cho đến khi chúng Healthy (`healthcheck` đầy đủ), chạy toàn bộ các integration/E2E test suite và dọn dẹp (Tear down) sạch sẽ tài nguyên.*
+
+### Khởi chạy Integration Tests (Khởi động Docker DB & Kafka, chạy test tích hợp và tự động dọn dẹp):
+```bash
+make test-integration
+```
+*Lưu ý: Lệnh này tự động kéo các container Postgres và Kafka lên, đợi cho đến khi chúng Healthy (`healthcheck` đầy đủ), chạy toàn bộ các bài test tích hợp (gồm DB repository và Kafka Saga) và dọn dẹp (Tear down) sạch sẽ tài nguyên.*
+
+### Khởi chạy toàn bộ hệ thống test:
+```bash
+make test-all
+```
 
 ---
 
@@ -125,7 +141,7 @@ Kiểm tra sự điều phối nghiệp vụ phân tán thông qua SAGA Coordina
 | `TestResolveBooking_InvalidState` | Đảm bảo từ chối xử lý lệnh ResolveBooking nếu cuộc hẹn không ở trạng thái DISPUTED. |
 
 ### 3.5. Contracts & Serialization Tests
-Nằm tại: [tests/contracts_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/tests/contracts_test.go)
+Nằm tại: [tests/contract/contracts_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/tests/contract/contracts_test.go)
 
 Kiểm tra tính tương thích dữ liệu truyền tải qua mạng (Network Contracts):
 
@@ -135,7 +151,7 @@ Kiểm tra tính tương thích dữ liệu truyền tải qua mạng (Network C
 | `TestProtobufEnumMappping_Contracts` | Đảm bảo ánh xạ chính xác các Enum nghiệp vụ giữa Domain và các lớp định nghĩa Protobuf. |
 
 ### 3.6. Integration Tests (Database Repositories)
-Nằm tại: [tests/integration_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/tests/integration_test.go)
+Nằm tại: [tests/integration/integration_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/tests/integration/integration_test.go)
 
 Kiểm thử tích hợp thực tế với PostgreSQL (chạy trong Docker Container):
 
@@ -145,21 +161,19 @@ Kiểm thử tích hợp thực tế với PostgreSQL (chạy trong Docker Conta
 | `TestBookingSagaRepository_Integration` | Kiểm tra sự bền vững (Persistence) của các phiên Saga State trong DB để đảm bảo phục hồi giao dịch khi xảy ra crash. |
 
 ### 3.7. End-to-End (E2E) & Security Tests
-Nằm tại: [tests/e2e_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/tests/e2e_test.go)
+Nằm tại thư mục phân tách: [tests/e2e/](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/tests/e2e/)
 
-Kiểm thử xuyên suốt lớp mạng HTTP/gRPC-Gateway tích hợp ma trận phân quyền người dùng (Security Matrix):
+Kiểm thử xuyên suốt lớp mạng HTTP/gRPC-Gateway tích hợp ma trận phân quyền người dùng (Security Matrix). Các bài test được chia nhỏ thành các tệp tin mô-đun:
+*   `testutil.go`: Định nghĩa mocks tiện ích chung và helper khởi tạo server E2E test.
+*   `get_booking_test.go`: `TestE2E_GetBooking_SecurityMatrix` (Xác thực ma trận phân quyền: Chỉ Client đặt lịch, Companion được đặt, hoặc Admin mới có quyền truy cập thông tin).
+*   `list_bookings_test.go`: `TestE2E_ListBookings_RoleFilters` (Xác thực API lọc danh sách lịch hẹn tự động tiêm vai trò theo Header).
+*   `request_booking_test.go`: `TestE2E_RequestBooking_SuccessAndFailure` (Giả lập Client gửi yêu cầu tạo lịch mới qua HTTP REST và kiểm tra phản hồi thành công/thất bại).
+*   `accept_booking_test.go`: `TestE2E_AcceptBooking_Success` (Giả lập Companion chấp nhận đặt lịch hẹn).
+*   `reject_booking_test.go`: `TestE2E_RejectBooking_Success` (Giả lập Companion từ chối đặt lịch hẹn).
+*   `cancel_booking_test.go`: `TestE2E_CancelBooking_Success` (Giả lập Client/Companion hủy lịch hẹn).
 
-| Tên Hàm Test | Kịch Bản Kiểm Thử |
-| :--- | :--- |
-| `TestE2E_GetBooking_SecurityMatrix` | Xác thực ma trận phân quyền: Chỉ Client đặt lịch, Companion được đặt, hoặc Admin mới có quyền truy cập thông tin đặt lịch. Những người khác sẽ bị từ chối với mã lỗi thích hợp. |
-| `TestE2E_ListBookings_RoleFilters` | Xác thực API lọc danh sách lịch hẹn tự động tiêm vai trò theo Header (`user-id`, `user-role`). |
-| `TestE2E_RequestBooking_SuccessAndFailure` | Giả lập Client gửi yêu cầu tạo lịch mới qua HTTP REST (gRPC-Gateway) và kiểm tra phản hồi thành công/thất bại. |
-| `TestE2E_AcceptBooking_Success` | Giả lập Companion gửi yêu cầu chấp nhận đặt lịch hẹn qua HTTP REST. |
-| `TestE2E_RejectBooking_Success` | Giả lập Companion gửi yêu cầu từ chối đặt lịch hẹn qua HTTP REST. |
-| `TestE2E_CancelBooking_Success` | Giả lập Client/Companion gửi yêu cầu hủy lịch hẹn qua HTTP REST. |
-
-### 3.8. E2E Distributed Saga Tests (Kafka & DB Integration)
-Nằm tại: [tests/saga_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/tests/saga_test.go)
+### 3.8. SAGA Integration Tests (Kafka & DB Integration)
+Nằm tại: [tests/integration/saga_test.go](file:///e:/LEAN/SOA/rent-a-girlfriend/services/booking-service/tests/integration/saga_test.go)
 
 Mô phỏng toàn bộ hành trình giao dịch phân tán (Distributed Transaction) thực tế chạy qua Message Broker Kafka và PostgreSQL:
 
