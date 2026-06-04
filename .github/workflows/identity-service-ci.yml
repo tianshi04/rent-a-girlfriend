@@ -20,13 +20,21 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
+permissions:
+  contents: read
+
 jobs:
   # ─────────────────────────────────────────────────────────────
-  # Job 1: Quality Gates (Format, Lint, Unit, Integration Tests)
+  # Quality Gates — 4 jobs chạy SONG SONG
+  # build-image chỉ chạy khi TẤT CẢ 4 job đều pass.
   # ─────────────────────────────────────────────────────────────
-  lint-and-test:
-    name: "Format, Lint & Test"
+
+  # ── Gate 1: Format Check ─────────────────────────────────────
+  fmt-check:
+    name: "Format Check (gofmt)"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -56,7 +64,6 @@ jobs:
           chmod +x scripts/gen_proto.sh
           ./scripts/gen_proto.sh
 
-      # Gate 1: Code Formatting
       - name: Run gofmt check
         working-directory: services/identity-service
         run: |
@@ -66,7 +73,41 @@ jobs:
             exit 1
           fi
 
-      # Gate 2: Static Analysis
+  # ── Gate 2: Static Analysis ───────────────────────────────────
+  lint:
+    name: "Lint (golangci-lint)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+          cache-dependency-path: services/identity-service/go.sum
+
+      - name: Install Protoc Plugins
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+          go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.29.0
+
+      - name: Generate Proto
+        working-directory: services/identity-service
+        run: |
+          chmod +x scripts/gen_proto.sh
+          ./scripts/gen_proto.sh
+
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
@@ -74,13 +115,81 @@ jobs:
           working-directory: services/identity-service
           args: --timeout=5m
 
-      # Gate 3a: Unit Tests (no external deps, -short skips integration)
+  # ── Gate 3: Unit Tests ────────────────────────────────────────
+  unit-test:
+    name: "Unit Tests"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+          cache-dependency-path: services/identity-service/go.sum
+
+      - name: Install Protoc Plugins
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+          go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.29.0
+
+      - name: Generate Proto
+        working-directory: services/identity-service
+        run: |
+          chmod +x scripts/gen_proto.sh
+          ./scripts/gen_proto.sh
+
       - name: Run Unit Tests
         working-directory: services/identity-service
         run: |
           go test ./internal/... -short -v -count=1 -timeout=60s
 
-      # Gate 3b: Integration Tests (Testcontainers — spins up postgres & redis automatically)
+  # ── Gate 4: Integration Tests ─────────────────────────────────
+  integration-test:
+    name: "Integration Tests (Testcontainers)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+          cache-dependency-path: services/identity-service/go.sum
+
+      - name: Install Protoc Plugins
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+          go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.29.0
+
+      - name: Generate Proto
+        working-directory: services/identity-service
+        run: |
+          chmod +x scripts/gen_proto.sh
+          ./scripts/gen_proto.sh
+
       - name: Run Integration Tests
         working-directory: services/identity-service
         env:
@@ -88,13 +197,26 @@ jobs:
         run: |
           go test ./tests/integration/... -v -count=1 -timeout=120s
 
+
   # ─────────────────────────────────────────────────────────────
-  # Job 2: Build → E2E with built image → Smoke Test → Push
+  # Job 2: Build → E2E → Smoke Test → Push
+  #
+  # Dockerfile has 3 stages: builder | test (alpine) | production (distroless)
+  #
+  # Build 1 → target=test,  BUILD_TAGS=""         → E2E test  → discard
+  # Build 2 → target=test,  BUILD_TAGS=production → Smoke test (wget healthcheck works)
+  # Build 3 → target=production (distroless),      BUILD_TAGS=production → push to GHCR
+  #
+  # Go binary is compiled twice (once per BUILD_TAGS value).
+  # Build 3 reuses the cached builder layer from Build 2 → only assembles distroless layer (~30s).
   # ─────────────────────────────────────────────────────────────
   build-image:
     name: "Build, E2E & Smoke Test"
-    needs: lint-and-test
+    needs: [fmt-check, lint, unit-test, integration-test]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     outputs:
       image_digest: ${{ steps.push.outputs.digest }}
 
@@ -102,6 +224,8 @@ jobs:
       REGISTRY: ghcr.io
       IMAGE_NAME: ${{ github.repository }}/identity-service
       IS_MAIN: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+      # Production image tag — reused by Smoke Test and Push steps
+      PROD_IMAGE: identity-service:prod-${{ github.sha }}
 
     steps:
       - name: Checkout repository
@@ -139,48 +263,88 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Build image và load vào local Docker daemon để tái sử dụng ngay bên dưới
-      - name: Build Docker Image
+      # ── Build 1: E2E Image (target=test, BUILD_TAGS="") ─────────────────────
+      # Alpine runtime — mock-login endpoints compile in (//go:build !production).
+      # Discarded after E2E. Warms the GHA builder-layer cache for Build 2.
+      - name: Build E2E Docker Image
         uses: docker/build-push-action@v5
         with:
           context: ./services/identity-service
           file: ./services/identity-service/Dockerfile
+          target: test
           load: true
-          tags: identity-service:ci-${{ github.sha }}
+          tags: identity-service:e2e-${{ github.sha }}
           build-args: BUILD_TAGS=
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Chạy E2E tests bằng chính image vừa build — không build lại
+      # ── E2E TEST ──────────────────────────────────────────────────────────
+      - name: Start E2E Stack
+        working-directory: services/identity-service
+        env:
+          IDENTITY_IMAGE: identity-service:e2e-${{ github.sha }}
+        run: |
+          echo "==> Starting E2E stack with image: $IDENTITY_IMAGE"
+          docker compose -f docker-compose.test.yml up -d --wait
+
       - name: Run E2E Tests
         working-directory: services/identity-service
         env:
-          IDENTITY_IMAGE: identity-service:ci-${{ github.sha }}
+          IDENTITY_IMAGE: identity-service:e2e-${{ github.sha }}
         run: |
-          echo "==> Running E2E tests with image: $IDENTITY_IMAGE"
-          docker compose -f docker-compose.test.yml up -d --wait
           docker compose -f docker-compose.test.yml run --rm e2e-runner
-          EXIT=$?
-          docker compose -f docker-compose.test.yml down -v
-          exit $EXIT
 
-      # Container Smoke Test: xác nhận container khởi động không crash và /health phản hồi
-      - name: Container Smoke Test
+      # if: always() đảm bảo cleanup chạy dù step trước pass, fail, hay bị cancel/timeout.
+      # --remove-orphans: dọn container không thuộc compose file (edge case).
+      # || true: cleanup không được phép fail và che khuất exit code của test.
+      - name: Cleanup E2E Stack
+        if: always()
+        working-directory: services/identity-service
+        run: |
+          docker compose -f docker-compose.test.yml down -v --remove-orphans || true
+
+      # ── Build 2: Smoke Test Image (target=test, BUILD_TAGS=production) ────────
+      # Alpine runtime with BUILD_TAGS=production (test routes stripped).
+      # Uses target=test so wget is available for docker-compose CMD-SHELL healthcheck.
+      - name: Build Smoke Test Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/identity-service
+          file: ./services/identity-service/Dockerfile
+          target: test
+          load: true
+          tags: ${{ env.PROD_IMAGE }}
+          build-args: BUILD_TAGS=production
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── SMOKE TEST ────────────────────────────────────────────────────────
+      # Verifies the production binary starts correctly under production runtime
+      # config: GIN_MODE=release and ENABLE_TEST_ROUTES=false.
+      - name: Start Smoke Test Stack
         working-directory: services/identity-service
         env:
-          IDENTITY_IMAGE: identity-service:ci-${{ github.sha }}
+          IDENTITY_IMAGE: ${{ env.PROD_IMAGE }}
         run: |
-          echo "==> Starting Container Smoke Test using docker compose..."
-          if ! docker compose -f docker-compose.test.yml up -d identity-service-test --wait; then
-            echo "Smoke test FAILED!"
-            docker compose -f docker-compose.test.yml logs identity-service-test
-            docker compose -f docker-compose.test.yml down -v
-            exit 1
-          fi
-          echo "Smoke test PASSED!"
-          docker compose -f docker-compose.test.yml down -v
+          echo "==> Starting Smoke Test stack with Production image: $IDENTITY_IMAGE"
+          GIN_MODE=release ENABLE_TEST_ROUTES=false \
+            docker compose -f docker-compose.test.yml up -d postgres-test redis-test identity-service-test --wait
 
-      # Chỉ push lên GHCR khi merge vào main (sau khi E2E + Smoke Test đã pass)
+      - name: Verify Smoke Test
+        run: |
+          echo "Smoke test PASSED! Production image starts successfully under GIN_MODE=release."
+
+      # if: always() đảm bảo cleanup chạy kể cả khi service fail khởi động.
+      - name: Cleanup Smoke Test Stack
+        if: always()
+        working-directory: services/identity-service
+        run: |
+          docker compose -f docker-compose.test.yml down -v --remove-orphans || true
+
+      # ── Build 3: Distroless Image (target=production, BUILD_TAGS=production) ───
+      # Reuses the cached builder layer from Build 2 — Go code NOT recompiled.
+      # Only assembles the distroless runtime layer (~30s with warm GHA cache).
+      # This is the image pushed to GHCR.
       - name: Log in to GHCR
         if: env.IS_MAIN == 'true'
         uses: docker/login-action@v3
@@ -189,21 +353,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push to GHCR
+      - name: Build and Push Distroless Image to GHCR
         if: env.IS_MAIN == 'true'
         id: push
         uses: docker/build-push-action@v5
         with:
           context: ./services/identity-service
           file: ./services/identity-service/Dockerfile
+          target: production
           push: true
+          build-args: BUILD_TAGS=production
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ steps.vars.outputs.sha_short }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # In Image Digest ra log để GitOps đọc và cập nhật manifest
       - name: Output Image Digest for GitOps
         if: env.IS_MAIN == 'true'
         run: |
@@ -211,3 +376,4 @@ jobs:
           echo "DOCKER IMAGE DIGEST FOR GITOPS:"
           echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
           echo "============================================="
+
