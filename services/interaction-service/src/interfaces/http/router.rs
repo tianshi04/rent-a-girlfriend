@@ -1,9 +1,9 @@
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
-    Json, Router,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -52,10 +52,12 @@ impl IntoResponse for ApiError {
 
 #[allow(clippy::result_large_err)]
 fn get_user_id(headers: &HeaderMap) -> Result<String, Response> {
-    if let Some(user_id_val) = headers.get("user-id").or_else(|| headers.get("x-user-id")) {
-        if let Ok(user_id_str) = user_id_val.to_str() {
-            return Ok(user_id_str.to_string());
-        }
+    if let Some(user_id_str) = headers
+        .get("user-id")
+        .or_else(|| headers.get("x-user-id"))
+        .and_then(|val| val.to_str().ok())
+    {
+        return Ok(user_id_str.to_string());
     }
     Err((
         StatusCode::UNAUTHORIZED,
