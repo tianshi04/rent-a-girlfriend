@@ -43,68 +43,68 @@
   - Application (Use Cases/Handlers).
   - Infrastructure (DB/Broker Adapters).
   - Interfaces (HTTP/gRPC/PubSub).
-- **Contracts as SSOT**: Tất cả giao tiếp (gRPC, Async Events) phải được định nghĩa tại thư mục `/contracts` ở root. Đây là Single Source of Truth duy nhất. Không được phép định nghĩa lại message/event trong từng service. Các service phải generate code từ các file proto này.
+- **Contracts as SSOT**: All communications (gRPC, Async Events) must be defined in the `/contracts` directory at the root (the Single Source of Truth). Redefining messages/events in individual services is strictly forbidden; services must generate code from these proto files.
 - **Directory Structure**:
-  - `cmd/server/`: Điểm khởi chạy (Entry point).
+  - `cmd/server/`: Entry point.
   - `internal/domain/`: Aggregate, VO, Repository port, Events.
   - `internal/application/`: Commands, Queries, Saga.
   - `internal/infrastructure/`: DB/Broker/Client adapters.
   - `internal/interfaces/`: HTTP/gRPC/PubSub handlers.
-  - `deployments/`: K8s manifests và Istio policies riêng của service.
-  - `gen/`: Code được generated từ Protobuf/AsyncAPI.
-  - `docs/`: Tài liệu kỹ thuật riêng của service.
+  - `deployments/`: K8s manifests and Istio policies specific to the service.
+  - `gen/`: Generated code from Protobuf/AsyncAPI.
+  - `docs/`: Technical documentation specific to the service.
   - `tests/`: Integration & E2E tests.
 - **Principles**:
-  - Dependency Direction: Ngoài vào trong (Domain là lõi).
-  - Database Isolation: Không truy cập DB service khác.
-  - Service Autonomy: Mỗi service phải chứa đủ mọi thứ để có thể tách thành repo riêng và deploy độc lập (Independent Repo Ready).
+  - Dependency Direction: Outside-in (Domain is the core).
+  - Database Isolation: No cross-service database access.
+  - Service Autonomy: Each service must contain everything needed to run as an independent repository and deploy standalone (Independent Repo Ready).
 - **Deployment**:
-  - Standalone Dockerfile mỗi service đặt tại root của service. Multi-stage build.
-  - Config qua biến môi trường (.env.example). No hard-code.
-  - **Port Conventions**: Tất cả các Microservices phải sử dụng cổng kết nối chuẩn: HTTP chạy trên `8080` (`SERVER_PORT`), gRPC chạy trên `50051` (`GRPC_PORT`).
+  - Standalone Dockerfile for each service at its root. Multi-stage build.
+  - Configure via environment variables (.env.example). No hard-coded values.
+  - **Port Conventions**: All Microservices must use standard ports: HTTP runs on `8080` (`SERVER_PORT`), gRPC runs on `50051` (`GRPC_PORT`).
 - **Quality & Documentation**:
-  - **Self-Documenting**: Mỗi service phải tự quản lý `docs/` riêng. Cập nhật tài liệu ngay khi thay đổi logic nghiệp vụ.
-  - **Test-Driven**: Mọi tính năng/logic mới phải có Unit Test (cho Domain/Application) và Integration Test (cho Infrastructure).
+  - **Self-Documenting**: Each service must manage its own `docs/` directory. Update documentation immediately upon business logic changes.
+  - **Test-Driven**: Every new feature/logic must have Unit Tests (for Domain/Application) and Integration Tests (for Infrastructure).
 
 ## 6. Architecture Decision Records (ADR)
-- **Ghi nhận Quyết định (ADR)**: Chủ động tạo/cập nhật ADR khi thống nhất thiết kế kỹ thuật, kiến trúc, công nghệ (CSDL, thư viện, luồng chính...).
-- **Vị trí Lưu trữ**:
-  - **Cấp Service**: `services/<service-name>/docs/adr/` (ảnh hưởng cục bộ).
-  - **Cấp Toàn cục**: `docs/adr/` ở thư mục root (ảnh hưởng toàn hệ thống/liên dịch vụ).
-- **Quy tắc Đặt tên**: `XXXX-slug-ten-quyet-dinh.md` (Ví dụ: `0006-use-outbox-pattern.md`). Số `XXXX` tăng dần từ `0001`.
-- **Cấu trúc ADR Tiêu chuẩn**:
-  - `# ADR XXXX: [Tên quyết định]`
-  - `**Trạng thái:** Accepted | Proposed | Rejected`
-  - `**Ngày:** YYYY-MM-DD`
-  - `## Ngữ cảnh (Context)`: Bối cảnh, ràng buộc kỹ thuật và phương án cân nhắc.
-  - `## Quyết định (Decision)`: Giải pháp chọn và Rationale.
-  - `## Hệ quả (Consequences)`: Điểm tích cực (Positives) và Đánh đổi (Negatives).
-- **Quy trình Thực hiện**:
-  - Soạn bản nháp ngay sau khi chốt phương án và đề xuất ghi file.
-  - Không sửa ADR đã `Accepted`. Khi thay đổi, cập nhật ADR cũ sang `Superseded by ADR XXXX` và tạo ADR mới.
+- **Architecture Decision Records (ADRs)**: Proactively create/update ADRs when aligning on technical design, architecture, or technology stack (database, libraries, main flows, etc.).
+- **Storage Location**:
+  - **Service level**: `services/<service-name>/docs/adr/` (local impact).
+  - **Global level**: `docs/adr/` at the root directory (system-wide/cross-service impact).
+- **Naming Convention**: `XXXX-slug-decision-name.md` (e.g., `0006-use-outbox-pattern.md`). `XXXX` is a sequential number starting from `0001`.
+- **Standard ADR Structure**:
+  - `# ADR XXXX: [Decision Name]`
+  - `**Status:** Accepted | Proposed | Rejected`
+  - `**Date:** YYYY-MM-DD`
+  - `## Context`: Context, technical constraints, and considered alternatives.
+  - `## Decision`: Selected solution and rationale.
+  - `## Consequences`: Positive outcomes and trade-offs.
+- **Execution Process**:
+  - Draft the ADR immediately after finalizing the approach and propose saving the file.
+  - Never modify an `Accepted` ADR. When changes occur, mark the old ADR as `Superseded by ADR XXXX` and create a new ADR.
 
 ## 7. DDD & Business Logic Conventions
-- **Ubiquitous Language**: Luôn sử dụng thuật ngữ trong `docs/BRD.md` (Kano-Coin, Scenario, Companion, Client, Escrow).
-- **Snapshot Policy**: Lưu bản sao thông số (giá, cấu hình, điều khoản) tại thời điểm giao dịch. Không chỉ lưu ID tham chiếu.
+- **Ubiquitous Language**: Always use terms defined in `docs/BRD.md` (Kano-Coin, Scenario, Companion, Client, Escrow).
+- **Snapshot Policy**: Save a copy of parameters (price, configuration, terms) at transaction time instead of just referencing IDs.
 - **Naming Standards**:
-  - **Invariants**: Chú thích `[INV-XXXX]`.
+  - **Invariants**: Annotate with `[INV-XXXX]`.
   - **Commands**: `Verb + Noun` (AcceptBooking).
   - **Events**: `Noun + PastVerb` (BookingAccepted).
-- **Domain Errors**: Trả về lỗi nghiệp vụ rõ ràng để map sang HTTP/gRPC code.
+- **Domain Errors**: Return explicit business errors to map to HTTP/gRPC codes.
 
 ## 8. Distributed Communication Patterns
 - **Service Mesh**: Istio Ambient Mode (Sidecar-less).
-  - **L4 (ztunnel)**: Đảm nhận mTLS và Service Identity (SPIFFE).
-  - **L7 (Waypoint)**: Đảm nhận JWT Verification, Routing và Traffic Policies.
+  - **L4 (ztunnel)**: Handles mTLS and Service Identity (SPIFFE).
+  - **L7 (Waypoint)**: Handles JWT Verification, Routing, and Traffic Policies.
 - **Auth Offloading & Identity Propagation**: 
-  - Tuyệt đối **KHÔNG** tự cài đặt logic xác thực JWT bên trong code của từng Microservice. Trách nhiệm xác thực thuộc về Istio Waypoint.
-  - **Header Injection**: Sau khi verify, Istio sẽ inject thông tin từ JWT Claim vào Header để Application sử dụng:
-    - `user-id` (từ `sub`)
-    - `user-email` (từ `email`)
-    - `user-role` (từ `role`)
-    - `user-status` (từ `status`)
-- **Reliable Messaging**: Transactional Outbox khi gửi Event.
-- **Safe Consumption**: Kiểm tra Idempotency bằng `eventId`.
+  - NEVER implement JWT verification logic within microservice code. Verification is offloaded to Istio Waypoint.
+  - **Header Injection**: After verification, Istio injects JWT claim information into headers for application consumption:
+    - `user-id` (from `sub`)
+    - `user-email` (from `email`)
+    - `user-role` (from `role`)
+    - `user-status` (from `status`)
+- **Reliable Messaging**: Transactional Outbox when sending events.
+- **Safe Consumption**: Check idempotency using `eventId`.
 - **Contract Standards**: 
-  - **Đồng bộ**: gRPC cho Command, REST cho Query.
-  - **Bất đồng bộ**: CloudEvents JSON format (.v1, .v2).
+  - **Synchronous**: gRPC for commands, REST for queries.
+  - **Asynchronous**: CloudEvents JSON format (.v1, .v2).
