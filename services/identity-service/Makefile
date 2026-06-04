@@ -31,7 +31,7 @@ test-integration:
 test-e2e:
 	@if [ -z "$$IDENTITY_IMAGE" ]; then \
 		echo "==> [test-e2e] Building local image identity-service-test:local..."; \
-		docker build --build-arg BUILD_TAGS="" -t identity-service-test:local .; \
+		docker build --build-arg BUILD_TAGS="" --target test -t identity-service-test:local .; \
 	fi
 	IDENTITY_IMAGE=$${IDENTITY_IMAGE:-identity-service-test:local} \
 		docker compose -f docker-compose.test.yml up -d --wait

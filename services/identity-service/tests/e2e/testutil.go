@@ -38,7 +38,7 @@ func TestMain(m *testing.M) {
 
 // waitForService poll /health cho đến khi service trả về 200 hoặc timeout.
 func waitForService() {
-	healthURL := fmt.Sprintf("%s/health", getBaseURL())
+	healthURL := fmt.Sprintf("%s/health/ready", getBaseURL())
 	deadline := time.Now().Add(60 * time.Second)
 
 	for time.Now().Before(deadline) {

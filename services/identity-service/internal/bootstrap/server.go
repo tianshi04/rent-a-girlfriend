@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -33,6 +34,8 @@ type Server struct {
 	kafkaAdapter     *messaging.KafkaAdapter
 	getJWKSHandler   *query.GetJWKSHandler
 	mockLoginHandler *command.MockLoginHandler
+	db               *gorm.DB
+	redisAdapter     *cache.RedisAdapter
 }
 
 // NewServer wires all dependencies and returns a configured server.
@@ -131,6 +134,8 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 		kafkaAdapter:     kafkaAdapter,
 		getJWKSHandler:   getJWKSHandler,
 		mockLoginHandler: mockLoginHandler,
+		db:               db,
+		redisAdapter:     redisAdapter,
 	}
 }
 
@@ -162,6 +167,54 @@ func (s *Server) Run(ctx context.Context, httpAddr, grpcAddr string) error {
 
 	// Initialize HTTP Gateway
 	gatewayOpts := s.getTestGatewayOptions()
+
+	// Register health endpoints (/health/live and /health/ready) via GatewayOptions
+	gatewayOpts = append(gatewayOpts, gateway.WithAdditionalHandler("/health/live", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok","service":"identity-service"}`))
+	})))
+
+	gatewayOpts = append(gatewayOpts, gateway.WithAdditionalHandler("/health/ready", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		// 1. Ping DB
+		sqlDB, err := s.db.DB()
+		if err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"status": "error",
+				"reason": fmt.Sprintf("database client error: %v", err),
+			})
+			return
+		}
+
+		pingCtx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+
+		if err := sqlDB.PingContext(pingCtx); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"status": "error",
+				"reason": fmt.Sprintf("database connection error: %v", err),
+			})
+			return
+		}
+
+		// 2. Ping Redis
+		if err := s.redisAdapter.Ping(pingCtx); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"status": "error",
+				"reason": fmt.Sprintf("redis connection error: %v", err),
+			})
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok","service":"identity-service"}`))
+	})))
+
 	gwHandler, err := gateway.NewGateway(ctx, grpcAddr, s.getJWKSHandler, gatewayOpts...)
 	if err != nil {
 		return fmt.Errorf("failed to initialize HTTP Gateway: %w", err)
