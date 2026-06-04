@@ -73,4 +73,3 @@ func (a *RedisAdapter) Close() error {
 func (a *RedisAdapter) Ping(ctx context.Context) error {
 	return a.client.Ping(ctx).Err()
 }
-

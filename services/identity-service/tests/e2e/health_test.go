@@ -12,7 +12,6 @@ func TestHealthCheck(t *testing.T) {
 		t.Skip("skipping E2E test in short mode")
 	}
 
-
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
