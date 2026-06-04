@@ -133,7 +133,7 @@ func TestRequestBooking_FinanceFreezeFailure_Rollback(t *testing.T) {
 	price := vo.MustMoney(500)
 	snap, _ := vo.NewScenarioSnapshot(price, 120)
 	profile.Snapshot = &snap
-	
+
 	// Simulate coin freeze failure
 	finance := &MockFinanceService{
 		FreezeErr: errors.New("insufficient balance"),

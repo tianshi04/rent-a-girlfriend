@@ -22,7 +22,7 @@ func TestDisputeBooking_Success(t *testing.T) {
 	snap, _ := vo.NewScenarioSnapshot(price, 120)
 	now := time.Now()
 	tr, _ := vo.NewTimeRange(now.Add(3*time.Hour), now.Add(5*time.Hour))
-	
+
 	bid := vo.NewBookingID()
 	// Must be ACCEPTED (or similar) to dispute
 	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusAccepted, "", false, 1, now, now)
@@ -52,7 +52,7 @@ func TestDisputeBooking_InvalidState(t *testing.T) {
 	snap, _ := vo.NewScenarioSnapshot(price, 120)
 	now := time.Now()
 	tr, _ := vo.NewTimeRange(now.Add(3*time.Hour), now.Add(5*time.Hour))
-	
+
 	bid := vo.NewBookingID()
 	// PENDING status cannot be disputed directly
 	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusPending, "", false, 1, now, now)

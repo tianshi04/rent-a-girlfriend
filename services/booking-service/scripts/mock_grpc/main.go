@@ -45,7 +45,6 @@ func (s *mockProfileServer) GetScenarioSnapshot(ctx context.Context, req *profil
 	return resp, nil
 }
 
-
 // -----------------------------------------------------------------------------
 // FINANCE SERVICE MOCK
 // -----------------------------------------------------------------------------
@@ -74,7 +73,6 @@ func (s *mockFinanceServer) FreezeCoin(ctx context.Context, req *financev1.Freez
 	log.Printf("🚀 [gRPC Finance] Returning Status: %s (%s)", resp.Status, resp.Message)
 	return resp, nil
 }
-
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)

@@ -22,7 +22,7 @@ func TestCompleteBooking_Success(t *testing.T) {
 	snap, _ := vo.NewScenarioSnapshot(price, 120)
 	now := time.Now()
 	tr, _ := vo.NewTimeRange(now.Add(3*time.Hour), now.Add(5*time.Hour))
-	
+
 	bid := vo.NewBookingID()
 	// Must be ACCEPTED to complete
 	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusAccepted, "", false, 1, now, now)
@@ -53,7 +53,7 @@ func TestCompleteBooking_UnauthorizedClient(t *testing.T) {
 	snap, _ := vo.NewScenarioSnapshot(price, 120)
 	now := time.Now()
 	tr, _ := vo.NewTimeRange(now.Add(3*time.Hour), now.Add(5*time.Hour))
-	
+
 	bid := vo.NewBookingID()
 	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusAccepted, "", false, 1, now, now)
 	_ = repo.Save(context.Background(), b)
@@ -80,7 +80,7 @@ func TestSystemCompleteBooking_Success(t *testing.T) {
 	snap, _ := vo.NewScenarioSnapshot(price, 120)
 	now := time.Now()
 	tr, _ := vo.NewTimeRange(now.Add(3*time.Hour), now.Add(5*time.Hour))
-	
+
 	bid := vo.NewBookingID()
 	// Must be ACCEPTED to system complete
 	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusAccepted, "", false, 1, now, now)

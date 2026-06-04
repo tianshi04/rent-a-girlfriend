@@ -89,4 +89,3 @@ func (h *SystemCompleteBookingHandler) Handle(ctx context.Context, cmd SystemCom
 
 	return booking, nil
 }
-
