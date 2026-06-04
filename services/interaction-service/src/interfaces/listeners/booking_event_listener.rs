@@ -1,7 +1,7 @@
 use chrono::{DateTime, Duration, Utc};
+use rdkafka::Message as KafkaMessage;
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
-use rdkafka::Message as KafkaMessage;
 use serde::Deserialize;
 use std::sync::Arc;
 use tokio::time::sleep;
@@ -65,7 +65,10 @@ impl BookingEventListener {
         {
             Ok(c) => c,
             Err(e) => {
-                error!("Failed to create Kafka consumer for Booking Events: {}. Consumer loop disabled.", e);
+                error!(
+                    "Failed to create Kafka consumer for Booking Events: {}. Consumer loop disabled.",
+                    e
+                );
                 return;
             }
         };
@@ -202,11 +205,14 @@ impl BookingEventListener {
             "com.rentagf.booking.BookingCompleted.v1" => {
                 let mut lock_time = Utc::now() + Duration::hours(24); // default 24 hours from now
 
-                if let Some(end_time_str) = cloudevent.data.end_time {
-                    if let Ok(end_time) = DateTime::parse_from_rfc3339(&end_time_str) {
-                        let end_time_utc = end_time.with_timezone(&Utc);
-                        lock_time = end_time_utc + Duration::hours(24);
-                    }
+                if let Some(end_time_utc) = cloudevent
+                    .data
+                    .end_time
+                    .as_deref()
+                    .and_then(|t| DateTime::parse_from_rfc3339(t).ok())
+                    .map(|dt| dt.with_timezone(&Utc))
+                {
+                    lock_time = end_time_utc + Duration::hours(24);
                 }
 
                 info!(

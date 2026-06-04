@@ -56,7 +56,10 @@ impl OutboxWorker {
         {
             Ok(p) => p,
             Err(e) => {
-                error!("Failed to create Kafka producer for Outbox: {}. Background publishing disabled.", e);
+                error!(
+                    "Failed to create Kafka producer for Outbox: {}. Background publishing disabled.",
+                    e
+                );
                 return;
             }
         };
