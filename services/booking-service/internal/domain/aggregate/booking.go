@@ -150,13 +150,13 @@ func (b *Booking) Cancel(actorRole vo.ActorRole, now time.Time) error {
 	originalStatus := b.status
 	b.status = vo.StatusCancelled
 	b.cancelledByRole = actorRole
-	
+
 	if originalStatus == vo.StatusPending {
 		b.isLateCancel = false
 	} else {
 		b.isLateCancel = b.timeRange.IsLateCancel(now)
 	}
-	
+
 	b.updatedAt = now
 
 	if b.isLateCancel {
@@ -235,7 +235,6 @@ func (b *Booking) SystemTimeout(now time.Time) error {
 	return nil
 }
 
-
 // Dispute transitions the booking to DISPUTED state (locks it from auto-completion).
 func (b *Booking) Dispute(now time.Time) error {
 	if !b.status.CanDispute() {
@@ -268,20 +267,19 @@ func (b *Booking) FailTechnical(now time.Time) {
 	b.updatedAt = now
 }
 
-
 // --- Getters ---
 
 func (b *Booking) ID() vo.BookingID              { return b.id }
-func (b *Booking) ClientID() vo.ClientID          { return b.clientID }
-func (b *Booking) CompanionID() vo.CompanionID    { return b.companionID }
-func (b *Booking) Scenario() vo.ScenarioSnapshot  { return b.scenario }
-func (b *Booking) TimeRange() vo.TimeRange        { return b.timeRange }
-func (b *Booking) Status() vo.BookingStatus        { return b.status }
-func (b *Booking) CancelledByRole() vo.ActorRole   { return b.cancelledByRole }
-func (b *Booking) IsLateCancel() bool              { return b.isLateCancel }
-func (b *Booking) Version() int64                  { return b.version }
-func (b *Booking) CreatedAt() time.Time            { return b.createdAt }
-func (b *Booking) UpdatedAt() time.Time            { return b.updatedAt }
+func (b *Booking) ClientID() vo.ClientID         { return b.clientID }
+func (b *Booking) CompanionID() vo.CompanionID   { return b.companionID }
+func (b *Booking) Scenario() vo.ScenarioSnapshot { return b.scenario }
+func (b *Booking) TimeRange() vo.TimeRange       { return b.timeRange }
+func (b *Booking) Status() vo.BookingStatus      { return b.status }
+func (b *Booking) CancelledByRole() vo.ActorRole { return b.cancelledByRole }
+func (b *Booking) IsLateCancel() bool            { return b.isLateCancel }
+func (b *Booking) Version() int64                { return b.version }
+func (b *Booking) CreatedAt() time.Time          { return b.createdAt }
+func (b *Booking) UpdatedAt() time.Time          { return b.updatedAt }
 
 // Events returns uncommitted domain events and clears the internal list.
 func (b *Booking) Events() []event.DomainEvent {

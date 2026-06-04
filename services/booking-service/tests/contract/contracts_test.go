@@ -1,4 +1,4 @@
-package test
+package contract
 
 import (
 	"encoding/json"

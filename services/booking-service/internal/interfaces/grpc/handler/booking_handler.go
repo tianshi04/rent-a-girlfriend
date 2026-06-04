@@ -12,22 +12,22 @@ import (
 	bookingv1 "github.com/rent-a-girlfriend/booking-service/gen/proto"
 	"github.com/rent-a-girlfriend/booking-service/internal/application/command"
 	"github.com/rent-a-girlfriend/booking-service/internal/application/query"
-	"github.com/rent-a-girlfriend/booking-service/internal/interfaces/grpc/util"
+	"github.com/rent-a-girlfriend/booking-service/internal/domain/aggregate"
 	domainerr "github.com/rent-a-girlfriend/booking-service/internal/domain/errors"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
-	"github.com/rent-a-girlfriend/booking-service/internal/domain/aggregate"
+	"github.com/rent-a-girlfriend/booking-service/internal/interfaces/grpc/util"
 )
 
 // BookingGRPCHandler implements the gRPC BookingServiceServer interface.
 type BookingGRPCHandler struct {
 	bookingv1.UnimplementedBookingServiceServer
-	requestBooking *command.RequestBookingHandler
-	acceptBooking  *command.AcceptBookingHandler
-	rejectBooking  *command.RejectBookingHandler
-	cancelBooking  *command.CancelBookingHandler
+	requestBooking  *command.RequestBookingHandler
+	acceptBooking   *command.AcceptBookingHandler
+	rejectBooking   *command.RejectBookingHandler
+	cancelBooking   *command.CancelBookingHandler
 	completeBooking *command.CompleteBookingHandler
-	getBooking     *query.GetBookingHandler
-	listBookings   *query.ListBookingsHandler
+	getBooking      *query.GetBookingHandler
+	listBookings    *query.ListBookingsHandler
 }
 
 // NewBookingGRPCHandler creates a new BookingGRPCHandler instance.
@@ -41,13 +41,13 @@ func NewBookingGRPCHandler(
 	listBookings *query.ListBookingsHandler,
 ) *BookingGRPCHandler {
 	return &BookingGRPCHandler{
-		requestBooking: requestBooking,
-		acceptBooking:  acceptBooking,
-		rejectBooking:  rejectBooking,
-		cancelBooking:  cancelBooking,
+		requestBooking:  requestBooking,
+		acceptBooking:   acceptBooking,
+		rejectBooking:   rejectBooking,
+		cancelBooking:   cancelBooking,
 		completeBooking: completeBooking,
-		getBooking:     getBooking,
-		listBookings:   listBookings,
+		getBooking:      getBooking,
+		listBookings:    listBookings,
 	}
 }
 

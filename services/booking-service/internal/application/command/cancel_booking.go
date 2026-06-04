@@ -14,7 +14,7 @@ import (
 type CancelBookingCmd struct {
 	BookingID string
 	ActorID   string
-	ActorRole string // "CLIENT" or "COMPANION" sử dụng enum 
+	ActorRole string // "CLIENT" or "COMPANION" sử dụng enum
 }
 
 // CancelBookingHandler handles the CancelBooking command.
