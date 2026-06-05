@@ -24,8 +24,27 @@ permissions:
   contents: read
 
 jobs:
-  lint-and-test:
-    name: "Lint, Format Check & Test"
+  fmt-check:
+    name: "Format Check (cargo fmt)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Run cargo fmt check
+        working-directory: services/interaction-service
+        run: cargo fmt -- --check
+
+  clippy-check:
+    name: "Clippy Check (cargo clippy)"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -47,20 +66,44 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy, rustfmt
+          components: clippy
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: "services/interaction-service -> target"
 
-      - name: Run cargo fmt check
-        working-directory: services/interaction-service
-        run: cargo fmt -- --check
-
       - name: Run cargo clippy
         working-directory: services/interaction-service
         run: cargo clippy -- -D warnings
+
+  test:
+    name: "Unit Tests (cargo test)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev cmake build-essential pkg-config
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "services/interaction-service -> target"
 
       - name: Run cargo test
         working-directory: services/interaction-service
@@ -68,7 +111,7 @@ jobs:
 
   build-image:
     name: "Build & Smoke Test"
-    needs: lint-and-test
+    needs: [fmt-check, clippy-check, test]
     runs-on: ubuntu-latest
     permissions:
       contents: read
