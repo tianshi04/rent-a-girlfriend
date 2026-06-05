@@ -1,3 +1,3 @@
 pub mod servicer;
 
-pub use servicer::{InteractionServicer, proto};
+pub use servicer::{proto, InteractionServicer};
