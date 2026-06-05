@@ -16,7 +16,7 @@ cleanup() {
 trap cleanup EXIT
 
 echo "==> [test-runner] Starting Docker dependencies..."
-docker compose -f "$dockerFile" up -d --wait
+docker compose -f "$dockerFile" up -d postgres-test kafka-test --wait
 
 echo "==> [test-runner] Pre-creating Kafka topics..."
 docker exec booking-kafka-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic booking-events-test --partitions 1 --replication-factor 1

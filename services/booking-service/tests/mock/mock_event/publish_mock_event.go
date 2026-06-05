@@ -102,7 +102,7 @@ func runInteractiveDriver(brokers string, reader *bufio.Reader) {
 		MaxBytes:    10e6,
 		StartOffset: kafka.LastOffset, // Only listen to new events
 	})
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	fmt.Println("[DRIVER] 🟢 Active and listening! Accept a booking in your app to kick off Saga...")
 	fmt.Println("--------------------------------------------------------------------------------")
@@ -285,7 +285,7 @@ func publishResponseEvent(brokers string, topic string, eventType string, bookin
 		Topic:    topic,
 		Balancer: &kafka.LeastBytes{},
 	}
-	defer w.Close()
+	defer func() { _ = w.Close() }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -313,7 +313,7 @@ func getKafkaBrokers() string {
 	// 2. Try to read from .env in the current working directory
 	file, err := os.Open(".env")
 	if err == nil {
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
@@ -339,7 +339,7 @@ func getKafkaBrokers() string {
 			fmt.Printf("[INFO] Broker '%s' is not reachable (%v). Falling back to localhost Kafka brokers...\n", firstBroker, err)
 			return "localhost:29091,localhost:29092,localhost:29093"
 		}
-		conn.Close()
+		_ = conn.Close()
 	}
 
 	return brokers

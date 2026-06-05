@@ -104,7 +104,10 @@ func TestBookingRepository_Integration(t *testing.T) {
 	}
 
 	// Test Update
-	b.Accept(companionID, now)
+	err = b.Accept(companionID, now)
+	if err != nil {
+		t.Fatalf("failed to accept booking: %v", err)
+	}
 	err = repo.Update(context.Background(), b)
 	if err != nil {
 		t.Fatalf("failed to update booking: %v", err)
