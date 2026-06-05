@@ -16,9 +16,20 @@ test-unit:
 test-contract:
 	go test ./tests/contract/... -v -count=1
 
-# Run E2E tests (mock-based, in-memory)
+# Run E2E tests in Docker containers
 test-e2e:
-	go test ./tests/e2e/... -v -count=1
+	@if [ -z "$$BOOKING_IMAGE" ]; then \
+		echo "==> [test-e2e] Building local image booking-service-test:local..."; \
+		docker build --build-arg BUILD_TAGS="" --target test -t booking-service-test:local .; \
+	fi
+	BOOKING_IMAGE=$${BOOKING_IMAGE:-booking-service-test:local} \
+		docker compose -f docker-compose.test.yml up -d --wait
+	BOOKING_IMAGE=$${BOOKING_IMAGE:-booking-service-test:local} \
+		docker compose -f docker-compose.test.yml run --rm e2e-runner; \
+	EXIT=$$?; \
+	BOOKING_IMAGE=$${BOOKING_IMAGE:-booking-service-test:local} \
+		docker compose -f docker-compose.test.yml down -v; \
+	exit $$EXIT
 
 # Run integration tests (requires docker containers for DB & Kafka)
 test-integration:
