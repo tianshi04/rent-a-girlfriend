@@ -1,17 +1,23 @@
 # --- Builder Stage ---
-FROM rust:1.94-slim-bookworm AS builder
+FROM rust:alpine AS builder
 
 WORKDIR /usr/src/app
 
 # Install compilation dependencies
-RUN apt-get update && apt-get install -y \
-    protobuf-compiler \
+RUN apk add --no-cache \
+    protobuf-dev \
     cmake \
-    build-essential \
-    libssl-dev \
-    libcurl4-openssl-dev \
-    pkg-config \
-    && rm -rf /var/lib/apt/lists/*
+    make \
+    g++ \
+    gcc \
+    musl-dev \
+    openssl-dev \
+    openssl-libs-static \
+    git \
+    pkgconfig \
+    perl \
+    curl-dev \
+    zlib-static
 
 # Copy cargo manifest and lock file
 COPY services/interaction-service/Cargo.toml services/interaction-service/Cargo.lock ./
@@ -33,12 +39,7 @@ COPY contracts/ /usr/contracts/
 RUN touch src/main.rs && cargo build --release
 
 # --- Runner Stage ---
-FROM debian:bookworm-slim AS runner
-
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    libssl3 \
-    && rm -rf /var/lib/apt/lists/*
+FROM gcr.io/distroless/static-debian12 AS runner
 
 WORKDIR /app
 
