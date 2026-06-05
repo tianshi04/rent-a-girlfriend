@@ -1,20 +1,25 @@
 package e2e
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"testing"
 	"time"
 
-	"github.com/rent-a-girlfriend/booking-service/internal/application/query"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/aggregate"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
-	handler "github.com/rent-a-girlfriend/booking-service/internal/interfaces/grpc/handler"
+	"github.com/rent-a-girlfriend/booking-service/internal/infrastructure/persistence"
 )
 
 func TestE2E_ListBookings_RoleFilters(t *testing.T) {
-	repo := &e2eMockBookingRepository{}
+	db := getTestDB(t)
+	truncateTables(db)
+	defer truncateTables(db)
+
+	repo := persistence.NewBookingRepository(db)
 
 	// Setup a sample booking
 	clientID, _ := vo.NewClientID("00000000-0000-0000-0000-000000000111")
@@ -25,20 +30,15 @@ func TestE2E_ListBookings_RoleFilters(t *testing.T) {
 	tr, _ := vo.NewTimeRange(now.Add(3*time.Hour), now.Add(5*time.Hour))
 	bid := vo.NewBookingID()
 	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusPending, "", false, 1, now, now)
-	repo.booking = b
 
-	listBookingsHandler := query.NewListBookingsHandler(repo)
-	grpcHandler := handler.NewBookingGRPCHandler(
-		nil, nil, nil, nil, nil,
-		nil,
-		listBookingsHandler,
-	)
-
-	ts, cleanup := startE2ETestServer(t, grpcHandler)
-	defer cleanup()
+	err := repo.Save(context.Background(), b)
+	if err != nil {
+		t.Fatalf("failed to save booking: %v", err)
+	}
 
 	// 1. Client views list -> Should map callerID to clientID parameter
-	req, _ := http.NewRequest("GET", ts.URL+"/api/v1/bookings?view=pending", nil)
+	url := fmt.Sprintf("%s/api/v1/bookings?view=pending", getBaseURL())
+	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("user-id", "00000000-0000-0000-0000-000000000111")
 	req.Header.Set("user-role", "CLIENT")
 
@@ -46,12 +46,13 @@ func TestE2E_ListBookings_RoleFilters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed HTTP request: %v", err)
 	}
+	defer func() { _ = resp.Body.Close() }()
+
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected 200 OK, got %d", resp.StatusCode)
 	}
 
 	body, _ := io.ReadAll(resp.Body)
-	resp.Body.Close()
 
 	var listResp struct {
 		Bookings []struct {

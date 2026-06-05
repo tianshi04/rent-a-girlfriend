@@ -25,7 +25,7 @@ func publishTestKafkaEvent(t *testing.T, brokers []string, topic string, eventID
 	if err != nil {
 		t.Fatalf("failed to dial kafka leader: %v", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	ce := map[string]interface{}{
 		"specversion": "1.0",

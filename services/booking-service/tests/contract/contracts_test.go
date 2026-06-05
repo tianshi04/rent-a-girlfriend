@@ -36,7 +36,7 @@ func TestProtobufSerialization_Contracts(t *testing.T) {
 	}
 
 	if unmarshaledReq.CompanionId != req.CompanionId || unmarshaledReq.ScenarioId != req.ScenarioId {
-		t.Errorf("mismatched unmarshaled fields: got %+v, expected %+v", unmarshaledReq, req)
+		t.Errorf("mismatched unmarshaled fields: got %+v, expected %+v", &unmarshaledReq, req)
 	}
 
 	// JSON Marshal Compatibility
