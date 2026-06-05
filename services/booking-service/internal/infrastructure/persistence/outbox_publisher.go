@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/event"
+	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
 )
 
 type OutboxPublisher struct {
@@ -38,7 +39,7 @@ func (p *OutboxPublisher) Publish(ctx context.Context, evt event.DomainEvent) er
 
 	// Use transaction from context if available
 	db := p.db
-	if tx, ok := ctx.Value("tx").(*gorm.DB); ok {
+	if tx, ok := ctx.Value(vo.TxKey).(*gorm.DB); ok {
 		db = tx
 	}
 

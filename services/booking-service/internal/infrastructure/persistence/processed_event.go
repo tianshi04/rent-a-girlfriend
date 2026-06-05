@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
 	"gorm.io/gorm"
 )
 
@@ -22,7 +23,7 @@ func (ProcessedEventModel) TableName() string {
 // Returns (alreadyProcessed, error).
 func CheckAndRecordEvent(ctx context.Context, db *gorm.DB, eventID string, eventType string) (bool, error) {
 	tx := db.WithContext(ctx)
-	if ctxTx, ok := ctx.Value("tx").(*gorm.DB); ok {
+	if ctxTx, ok := ctx.Value(vo.TxKey).(*gorm.DB); ok {
 		tx = ctxTx.WithContext(ctx)
 	}
 

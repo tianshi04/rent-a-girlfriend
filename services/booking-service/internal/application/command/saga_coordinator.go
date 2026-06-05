@@ -286,7 +286,7 @@ func (c *SagaCoordinator) withTx(ctx context.Context, fn func(txCtx context.Cont
 	if tx.Error != nil {
 		return tx.Error
 	}
-	txCtx := context.WithValue(ctx, "tx", tx)
+	txCtx := context.WithValue(ctx, vo.TxKey, tx)
 	if err := fn(txCtx); err != nil {
 		tx.Rollback()
 		return err

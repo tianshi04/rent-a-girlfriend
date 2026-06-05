@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/aggregate"
+	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
 )
 
 type BookingSagaRepoImpl struct {
@@ -17,7 +18,7 @@ func NewBookingSagaRepo(db *gorm.DB) *BookingSagaRepoImpl {
 }
 
 func (r *BookingSagaRepoImpl) txDB(ctx context.Context) *gorm.DB {
-	if tx, ok := ctx.Value("tx").(*gorm.DB); ok {
+	if tx, ok := ctx.Value(vo.TxKey).(*gorm.DB); ok {
 		return tx.WithContext(ctx)
 	}
 	return r.db.WithContext(ctx)

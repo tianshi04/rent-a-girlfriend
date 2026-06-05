@@ -26,14 +26,14 @@ func NewBookingRepository(db *gorm.DB) *BookingRepositoryImpl {
 }
 
 func (r *BookingRepositoryImpl) getDB(ctx context.Context) *gorm.DB {
-	if tx, ok := ctx.Value("tx").(*gorm.DB); ok {
+	if tx, ok := ctx.Value(vo.TxKey).(*gorm.DB); ok {
 		return tx.WithContext(ctx)
 	}
 	return r.db.WithContext(ctx)
 }
 
 func (r *BookingRepositoryImpl) Save(ctx context.Context, booking *aggregate.Booking) error {
-	tx, ok := ctx.Value("tx").(*gorm.DB)
+	tx, ok := ctx.Value(vo.TxKey).(*gorm.DB)
 	if ok {
 		return r.save(tx.WithContext(ctx), booking)
 	}
@@ -72,7 +72,7 @@ func (r *BookingRepositoryImpl) save(db *gorm.DB, booking *aggregate.Booking) er
 }
 
 func (r *BookingRepositoryImpl) Update(ctx context.Context, booking *aggregate.Booking) error {
-	tx, ok := ctx.Value("tx").(*gorm.DB)
+	tx, ok := ctx.Value(vo.TxKey).(*gorm.DB)
 	if ok {
 		return r.update(tx.WithContext(ctx), booking)
 	}
