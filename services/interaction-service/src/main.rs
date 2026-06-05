@@ -14,9 +14,9 @@ use interaction_service::infrastructure::chat_lock_worker::ChatLockWorker;
 use interaction_service::infrastructure::persistence::{
     SqlxChatRoomRepository, SqlxProcessedEventRepository, SqlxReviewRepository,
 };
-use interaction_service::interfaces::grpc::servicer::proto::interaction_service_server::InteractionServiceServer;
 use interaction_service::interfaces::grpc::servicer::InteractionServicer;
-use interaction_service::interfaces::http::{create_router, AppState};
+use interaction_service::interfaces::grpc::servicer::proto::interaction_service_server::InteractionServiceServer;
+use interaction_service::interfaces::http::{AppState, create_router};
 use interaction_service::interfaces::listeners::BookingEventListener;
 
 #[tokio::main]

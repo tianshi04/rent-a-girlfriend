@@ -1,7 +1,7 @@
 use chrono::{DateTime, Duration, Utc};
+use rdkafka::Message as KafkaMessage;
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
-use rdkafka::Message as KafkaMessage;
 use serde::Deserialize;
 use std::sync::Arc;
 use tokio::time::sleep;
