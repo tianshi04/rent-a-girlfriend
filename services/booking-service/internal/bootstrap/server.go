@@ -2,10 +2,12 @@ package bootstrap
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -120,9 +122,66 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 	getBookingHandler := query.NewGetBookingHandler(bookingRepo)
 	listBookingsHandler := query.NewListBookingsHandler(bookingRepo)
 
+	// --- Health check endpoints options ---
+	var gatewayOpts []router.GatewayOption
+
+	// 1. /health/live
+	gatewayOpts = append(gatewayOpts, router.WithAdditionalHandler("/health/live", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok","service":"booking-service"}`))
+	})))
+
+	// 2. /health/ready
+	gatewayOpts = append(gatewayOpts, router.WithAdditionalHandler("/health/ready", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		// 1. Ping DB Postgres
+		sqlDB, err := db.DB()
+		if err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"status": "error",
+				"reason": fmt.Sprintf("database client error: %v", err),
+			})
+			return
+		}
+
+		pingCtx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+
+		if err := sqlDB.PingContext(pingCtx); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"status": "error",
+				"reason": fmt.Sprintf("database connection error: %v", err),
+			})
+			return
+		}
+
+		// 2. Ping Kafka Broker
+		brokerList := strings.Split(cfg.Kafka.Brokers, ",")
+		if len(brokerList) > 0 && brokerList[0] != "" {
+			var dialer net.Dialer
+			conn, err := dialer.DialContext(pingCtx, "tcp", strings.TrimSpace(brokerList[0]))
+			if err != nil {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				_ = json.NewEncoder(w).Encode(map[string]string{
+					"status": "error",
+					"reason": fmt.Sprintf("kafka broker connection error: %v", err),
+				})
+				return
+			}
+			_ = conn.Close()
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok","service":"booking-service"}`))
+	})))
+
 	// --- Router (gRPC Gateway) ---
 	grpcTargetAddr := "localhost:" + cfg.Server.GRPCPort
-	r, err := router.NewGateway(context.Background(), grpcTargetAddr)
+	r, err := router.NewGateway(context.Background(), grpcTargetAddr, gatewayOpts...)
 	if err != nil {
 		log.Fatalf("failed to initialize HTTP Gateway: %v", err)
 	}
