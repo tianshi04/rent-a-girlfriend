@@ -101,7 +101,7 @@ func (h *AcceptBookingHandler) Handle(ctx context.Context, cmd AcceptBookingCmd)
 		if tx.Error != nil {
 			return nil, tx.Error
 		}
-		txCtx := context.WithValue(ctx, "tx", tx)
+		txCtx := context.WithValue(ctx, vo.TxKey, tx)
 
 		if err := h.sagaRepo.Save(txCtx, saga); err != nil {
 			tx.Rollback()

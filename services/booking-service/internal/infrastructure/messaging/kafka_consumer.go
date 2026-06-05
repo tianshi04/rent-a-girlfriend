@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/rent-a-girlfriend/booking-service/internal/application/command"
+	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
 	"github.com/rent-a-girlfriend/booking-service/internal/infrastructure/persistence"
 )
 
@@ -171,7 +172,7 @@ func (c *KafkaConsumer) dispatch(ctx context.Context, msg kafka.Message) error {
 	// Dispute events
 	case "com.rentagf.dispute.DisputeCreated.v1":
 		err := c.db.Transaction(func(tx *gorm.DB) error {
-			txCtx := context.WithValue(ctx, "tx", tx)
+			txCtx := context.WithValue(ctx, vo.TxKey, tx)
 			alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, tx, ce.ID, ce.Type)
 			if err != nil {
 				return err
@@ -186,7 +187,7 @@ func (c *KafkaConsumer) dispatch(ctx context.Context, msg kafka.Message) error {
 		return err
 	case "com.rentagf.dispute.DisputeResolved.v1":
 		err := c.db.Transaction(func(tx *gorm.DB) error {
-			txCtx := context.WithValue(ctx, "tx", tx)
+			txCtx := context.WithValue(ctx, vo.TxKey, tx)
 			alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, tx, ce.ID, ce.Type)
 			if err != nil {
 				return err

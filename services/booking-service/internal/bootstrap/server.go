@@ -45,12 +45,12 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 	outboxPublisher := persistence.NewOutboxPublisher(db)
 
 	// --- Dial gRPC Clients ---
-	profileConn, err := grpc.Dial(cfg.Clients.ProfileServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	profileConn, err := grpc.NewClient(cfg.Clients.ProfileServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("failed to dial profile service at %s: %v", cfg.Clients.ProfileServiceAddr, err)
 	}
 
-	financeConn, err := grpc.Dial(cfg.Clients.FinanceServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	financeConn, err := grpc.NewClient(cfg.Clients.FinanceServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("failed to dial finance service at %s: %v", cfg.Clients.FinanceServiceAddr, err)
 	}

@@ -42,7 +42,8 @@ func (h *CancelBookingHandler) Handle(ctx context.Context, cmd CancelBookingCmd)
 	}
 
 	// [INV-CANCEL-AUTH] Verify if the actor belongs to the booking they are trying to cancel
-	if actorRole == vo.RoleClient {
+	switch actorRole {
+	case vo.RoleClient:
 		clientID, err := vo.NewClientID(cmd.ActorID)
 		if err != nil {
 			return nil, err
@@ -50,7 +51,7 @@ func (h *CancelBookingHandler) Handle(ctx context.Context, cmd CancelBookingCmd)
 		if !booking.ClientID().Equals(clientID) {
 			return nil, domainerr.ErrUnauthorized
 		}
-	} else if actorRole == vo.RoleCompanion {
+	case vo.RoleCompanion:
 		companionID, err := vo.NewCompanionID(cmd.ActorID)
 		if err != nil {
 			return nil, err
@@ -58,7 +59,7 @@ func (h *CancelBookingHandler) Handle(ctx context.Context, cmd CancelBookingCmd)
 		if !booking.CompanionID().Equals(companionID) {
 			return nil, domainerr.ErrUnauthorized
 		}
-	} else {
+	default:
 		return nil, domainerr.ErrUnauthorized
 	}
 
