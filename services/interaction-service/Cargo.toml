@@ -1,24 +1,26 @@
 [package]
 name = "interaction-service"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 # Async Runtime
-tokio = { version = "1.38", features = ["full"] }
+tokio = { version = "1.52.3", features = ["full"] }
 
 # Web Framework (Axum)
-axum = "0.7.5"
-tower = { version = "0.4", features = ["util"] }
-tower-http = { version = "0.5", features = ["cors", "trace"] }
+axum = "0.8.9"
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
 
 # gRPC Framework (Tonic)
-tonic = "0.11.0"
-prost = "0.12.0"
+tonic = "0.14.6"
+tonic-prost = "0.14.6"
+prost = "0.14.3"
 
 # Database (SQLx Postgres)
-sqlx = { version = "0.7.3", features = [
+sqlx = { version = "0.9.0", features = [
     "runtime-tokio",
+    "tls-rustls",
     "postgres",
     "chrono",
     "uuid",
@@ -27,7 +29,7 @@ sqlx = { version = "0.7.3", features = [
 ] }
 
 # Message Broker (Kafka)
-rdkafka = { version = "0.36.2", features = ["tokio", "cmake-build", "ssl-vendored"] }
+rdkafka = { version = "0.37.0", features = ["tokio", "cmake-build", "ssl-vendored"] }
 
 # Serialization & Utilities
 async-trait = "0.1.80"
@@ -40,7 +42,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [build-dependencies]
-tonic-build = "0.11.0"
+tonic-prost-build = "0.14.6"
 
 [dev-dependencies]
 # Standard testing support
