@@ -91,7 +91,7 @@ Sắp xếp các Domain Event theo trình tự thời gian kết hợp với cá
 - **[Actor: Admin]** → `Yêu cầu nâng cấp Companion đã được duyệt` (hoặc `bị từ chối`)
 - **[Actor: Companion]** → `Profile Companion đã được cập nhật` (Cập nhật Scenario, upload ảnh/Voice Intro qua **[External: Storage/File Service]**)
   - **[Policy: Voice Intro Validation]** System tự động kiểm tra file upload (MP3, ≤30s, ≤5MB — BR-11). Nếu không hợp lệ → `Voice Intro bị từ chối bởi System`.
-  - **[Policy: Voice Intro Access]** Chỉ Client đã đăng nhập mới nghe được Voice Intro; không cho phép tải xuống (BR-11).
+  - **[Policy: Voice Intro Access]** Bất kỳ người dùng nào (kể cả chưa đăng nhập) đều có quyền nghe Voice Intro; không cho phép tải xuống (BR-11).
 
 ### Flow 2: Nạp tiền vào Ví
 - **[Actor: Client]** thực hiện giao dịch qua **[External: VNPay]**
@@ -179,7 +179,7 @@ Sắp xếp các Domain Event theo trình tự thời gian kết hợp với cá
 | P-12 | Companion hủy muộn → ghi vi phạm | BR-07a | Flow 3 |
 | P-13 | Freeze Escrow khi có Report/Dispute | BR-18 | Flow 4 |
 | P-14 | Review bị hidden khi Admin refund | BR-08a | Flow 4 |
-| P-15 | Chỉ Client đăng nhập mới nghe được Voice Intro | BR-11 | Flow 1 |
+| P-15 | Bất kỳ người dùng nào (kể cả chưa đăng nhập) đều có quyền nghe Voice Intro | BR-11 | Flow 1 |
 | P-16 | Từ chối Freeze khi số dư không đủ → hủy Booking Request | FR-06 | Flow 3 |
 | P-17 | Companion đạt ngưỡng vi phạm (mặc định 3 lần) → tạm khóa tài khoản + thông báo Admin | BR-07a | Flow 3, Flow 5 |
 | P-18 | Gửi thông báo real-time (SSE) cho các sự kiện booking | FR-12 | Flow 6 |
