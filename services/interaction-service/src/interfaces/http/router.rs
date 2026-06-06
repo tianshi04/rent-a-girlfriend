@@ -52,11 +52,7 @@ impl IntoResponse for ApiError {
 
 #[allow(clippy::result_large_err)]
 fn get_user_id(headers: &HeaderMap) -> Result<String, Response> {
-    if let Some(user_id_str) = headers
-        .get("user-id")
-        .or_else(|| headers.get("x-user-id"))
-        .and_then(|val| val.to_str().ok())
-    {
+    if let Some(user_id_str) = headers.get("user-id").and_then(|val| val.to_str().ok()) {
         return Ok(user_id_str.to_string());
     }
     Err((
