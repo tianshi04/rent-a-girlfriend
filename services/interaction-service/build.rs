@@ -12,10 +12,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    // If we're building in a chef-cook/skeleton stage where contracts are not yet present,
+    // skip proto compilation to avoid failing the cache build.
+    let proto_path = "../../contracts/interaction/v1/service/interaction_service.proto";
+    if !std::path::Path::new(proto_path).exists() {
+        println!(
+            "cargo:warning=Proto file not found: {}. Skipping compilation.",
+            proto_path
+        );
+        return Ok(());
+    }
+
     // Compile tonic gRPC proto files
-    tonic_prost_build::configure().compile_protos(
-        &["../../contracts/interaction/v1/service/interaction_service.proto"],
-        &["../../contracts"],
-    )?;
+    tonic_prost_build::configure().compile_protos(&[proto_path], &["../../contracts"])?;
     Ok(())
 }

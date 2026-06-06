@@ -20,24 +20,25 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
+permissions:
+  contents: read
+
 jobs:
-  check-and-test:
+  lint-and-test:
     name: "Lint, Format Check & Test"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install C dependencies
+      - name: Install system dependencies & Protoc
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libssl-dev libcurl4-openssl-dev pkg-config
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          hash sudo 2>/dev/null && sudo="sudo" || sudo=""
+          $sudo apt-get update
+          $sudo apt-get install -y libcurl4-openssl-dev cmake build-essential pkg-config protobuf-compiler
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -60,3 +61,143 @@ jobs:
       - name: Run cargo test
         working-directory: services/interaction-service
         run: cargo test
+
+  build-image:
+    name: "Build & Smoke Test"
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_digest: ${{ steps.digest.outputs.digest }}
+
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}/interaction-service
+      IS_MAIN: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Lowercase image name
+        run: |
+          echo "IMAGE_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/interaction-service" >> $GITHUB_ENV
+
+      - name: Get short SHA
+        id: vars
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image (Local Load)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./services/interaction-service/Dockerfile
+          load: true
+          tags: |
+            interaction-service:smoke-${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ steps.vars.outputs.sha_short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── SMOKE TEST ──
+      - name: Start Postgres for Smoke Test
+        run: |
+          docker network create smoke-net
+          docker run -d \
+            --name postgres-smoke \
+            --network smoke-net \
+            -e POSTGRES_DB=interaction_test \
+            -e POSTGRES_USER=test \
+            -e POSTGRES_PASSWORD=test \
+            postgres:16-alpine
+
+      - name: Wait for Postgres to be ready
+        run: |
+          echo "Waiting for Postgres..."
+          for i in {1..20}; do
+            if docker exec postgres-smoke pg_isready -U test -d interaction_test; then
+              echo "Postgres is ready!"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Postgres failed to start"
+          exit 1
+
+      - name: Start Interaction Service for Smoke Test
+        run: |
+          # Pointing KAFKA_BROKERS to localhost since Kafka is not run in this test environment.
+          # The service's background threads will log connection failures but will not crash.
+          docker run -d \
+            --name interaction-smoke \
+            --network smoke-net \
+            -e DATABASE_URL=postgres://test:test@postgres-smoke:5432/interaction_test?sslmode=disable \
+            -e SERVER_PORT=8080 \
+            -e GRPC_PORT=50051 \
+            -e KAFKA_BROKERS=localhost:9092 \
+            interaction-service:smoke-${{ github.sha }}
+
+      - name: Verify Service Health
+        run: |
+          echo "Polling health check endpoint..."
+          for i in {1..30}; do
+            # Exit early if the container crashed
+            if [ "$(docker inspect -f '{{.State.Running}}' interaction-smoke 2>/dev/null)" != "true" ]; then
+              echo "Interaction service container crashed on startup!"
+              docker logs interaction-smoke
+              exit 1
+            fi
+            if docker run --rm --network smoke-net alpine:3.19 wget -qO- http://interaction-smoke:8080/api/v1/interaction/reviews/companion/smoke-check > /dev/null; then
+              echo "Smoke test PASSED!"
+              exit 0
+            fi
+            echo "Service not ready yet, retrying in 2s..."
+            sleep 2
+          done
+          echo "Smoke test FAILED! Interaction service failed to start or connect to DB."
+          docker logs interaction-smoke
+          exit 1
+
+      - name: Cleanup Smoke Test Stack
+        if: always()
+        run: |
+          docker rm -f interaction-smoke postgres-smoke || true
+          docker network rm smoke-net || true
+
+      - name: Log in to GHCR
+        if: env.IS_MAIN == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Image to GHCR
+        if: env.IS_MAIN == 'true'
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ steps.vars.outputs.sha_short }}
+
+      - name: Capture Image Digest for GitOps
+        if: env.IS_MAIN == 'true'
+        id: digest
+        run: |
+          # Extract the digest from the pushed image on registry
+          DIGEST=$(docker inspect --format='{{join .RepoDigests "\n"}}' ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ steps.vars.outputs.sha_short }} | grep -m 1 '@' | cut -d'@' -f2 || true)
+          if [ -z "$DIGEST" ] || [ "$DIGEST" = "<none>" ]; then
+            echo "Error: Could not retrieve image digest from docker inspect!"
+            exit 1
+          fi
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "============================================="
+          echo "DOCKER IMAGE DIGEST FOR GITOPS:"
+          echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@$DIGEST"
+          echo "============================================="
+
