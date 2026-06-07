@@ -21,6 +21,10 @@ build:
 test-unit:
 	go test ./internal/... -v -count=1 -short
 
+# Contract tests
+test-contract:
+	go test ./tests/contract/... -v -count=1
+
 # Integration tests — dùng testcontainers (postgres + redis ephemeral)
 # Cần Docker daemon đang chạy
 test-integration:
