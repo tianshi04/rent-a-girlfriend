@@ -252,5 +252,5 @@ async def test_resolve_dispute_payout_saga(integration_deps):
 
     # Verify snapshot fields are persisted
     assert saga_db.companion_wallet_id is not None
-    assert saga_db.companion_wallet_id.startswith("wallet_")
+    assert saga_db.companion_wallet_id.startswith("wallet-")
     assert saga_db.commission_rate == 0.15
