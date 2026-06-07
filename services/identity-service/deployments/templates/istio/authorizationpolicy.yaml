@@ -1,4 +1,4 @@
-{{- if .Values.istio.authorizationPolicy.enabled }}
+{{- if .Values.authorizationPolicy.enabled }}
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
@@ -14,5 +14,5 @@ spec:
     - from:
         - source:
             principals:
-              - "cluster.local/ns/*/sa/*"
+              {{- toYaml .Values.authorizationPolicy.principals | nindent 14 }}
 {{- end }}
