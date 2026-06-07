@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple, Union
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from internal.domain.aggregate import Dispute, DisputeRefundSaga, DisputePayoutSaga
@@ -72,7 +72,9 @@ class DisputeRepository(IDisputeRepository):
         total = count_result.scalar() or 0
 
         # Pagination & sorting by creation time descending (or ID if no creation time available)
-        query = query.order_by(DisputeModel.created_at.desc()).offset(offset).limit(limit)
+        query = (
+            query.order_by(DisputeModel.created_at.desc()).offset(offset).limit(limit)
+        )
         result = await self.session.execute(query)
         models = result.scalars().all()
 

@@ -1,9 +1,12 @@
 import pytest
 import uuid
-from internal.domain.errors import DuplicateOpenDisputeError, DisputeNotFoundError
-from internal.domain.vo.dispute_reason import VALID_RESOLUTIONS
-from internal.domain.errors import InvalidResolutionError
-from internal.infrastructure.persistence.models import DisputeModel, DisputeEvidenceModel, OutboxModel, SagaStateModel
+from internal.domain.errors import DuplicateOpenDisputeError
+from internal.infrastructure.persistence.models import (
+    DisputeModel,
+    DisputeEvidenceModel,
+    OutboxModel,
+    SagaStateModel,
+)
 from sqlalchemy import select
 
 pytestmark = pytest.mark.asyncio
@@ -30,7 +33,7 @@ async def test_create_report_success(integration_deps):
         reason=reason,
         evidences=evidences,
     )
-    
+
     assert dispute_id is not None
     await session.commit()
 
@@ -71,7 +74,7 @@ async def test_create_report_duplicate(integration_deps):
     session = integration_deps["session"]
 
     booking_id = str(uuid.uuid4())
-    
+
     # First report
     await cmd_service.create_report(
         booking_id=booking_id,
@@ -97,7 +100,7 @@ async def test_assign_admin_success(integration_deps):
     session = integration_deps["session"]
 
     booking_id = str(uuid.uuid4())
-    
+
     dispute_id = await cmd_service.create_report(
         booking_id=booking_id,
         reporter_id="client-1",
@@ -148,9 +151,9 @@ async def test_resolve_dispute_reject(integration_deps):
     await session.commit()
 
     # Verify Dispute Model
-    dispute_db = (await session.execute(
-        select(DisputeModel).filter_by(dispute_id=dispute_id)
-    )).scalar_one()
+    dispute_db = (
+        await session.execute(select(DisputeModel).filter_by(dispute_id=dispute_id))
+    ).scalar_one()
     assert dispute_db.status == "REJECTED"
     assert dispute_db.resolution == "REJECT"
     assert dispute_db.notes == notes
@@ -188,9 +191,9 @@ async def test_resolve_dispute_refund_saga(integration_deps):
     await session.commit()
 
     # Verify Dispute Model status is REFUNDED
-    dispute_db = (await session.execute(
-        select(DisputeModel).filter_by(dispute_id=dispute_id)
-    )).scalar_one()
+    dispute_db = (
+        await session.execute(select(DisputeModel).filter_by(dispute_id=dispute_id))
+    ).scalar_one()
     assert dispute_db.status == "REFUNDED"
     assert dispute_db.resolution == "REFUND_CLIENT"
 
@@ -232,9 +235,9 @@ async def test_resolve_dispute_payout_saga(integration_deps):
     await session.commit()
 
     # Verify Dispute Model status is PAID_OUT
-    dispute_db = (await session.execute(
-        select(DisputeModel).filter_by(dispute_id=dispute_id)
-    )).scalar_one()
+    dispute_db = (
+        await session.execute(select(DisputeModel).filter_by(dispute_id=dispute_id))
+    ).scalar_one()
     assert dispute_db.status == "PAID_OUT"
     assert dispute_db.resolution == "PAYOUT_COMPANION"
 
@@ -246,8 +249,8 @@ async def test_resolve_dispute_payout_saga(integration_deps):
     assert saga_db is not None
     assert saga_db.saga_type == "PAYOUT"
     assert saga_db.current_state == "DISPUTE_RESOLVED_PAID_OUT"
-    
+
     # Verify snapshot fields are persisted
     assert saga_db.companion_wallet_id is not None
-    assert saga_db.companion_wallet_id.startswith("wallet_")
+    assert saga_db.companion_wallet_id.startswith("wallet-")
     assert saga_db.commission_rate == 0.15

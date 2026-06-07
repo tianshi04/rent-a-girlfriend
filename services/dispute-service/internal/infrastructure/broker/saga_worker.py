@@ -3,7 +3,6 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from internal.domain.aggregate import DisputeRefundSaga, DisputePayoutSaga
 from internal.infrastructure.persistence.repositories import SagaStateRepository
-from internal.application.saga import DisputeRefundSagaOrchestrator, DisputePayoutSagaOrchestrator
 
 logger = logging.getLogger("saga_retry_worker")
 
@@ -60,7 +59,9 @@ class SagaRetryWorker:
                 return
 
             pending_tasks = [(s.saga_id, type(s)) for s in pending]
-            logger.info(f"Saga Retry Worker found {len(pending_tasks)} pending sagas to retry")
+            logger.info(
+                f"Saga Retry Worker found {len(pending_tasks)} pending sagas to retry"
+            )
 
         # 2. Process each saga in isolated session
         for saga_id, saga_type in pending_tasks:
@@ -68,21 +69,27 @@ class SagaRetryWorker:
                 try:
                     saga_repo = SagaStateRepository(session)
                     cmd_service, _ = bootstrap_services(session)
-                    
+
                     # Reload saga entity in the new isolated session
                     saga = await saga_repo.find_by_id(saga_id)
                     if not saga:
                         continue
-                        
+
                     if saga_type == DisputeRefundSaga:
-                        logger.info(f"Retrying DisputeRefundSaga {saga_id} (retry_count={saga.retry_count})")
+                        logger.info(
+                            f"Retrying DisputeRefundSaga {saga_id} (retry_count={saga.retry_count})"
+                        )
                         await cmd_service.refund_saga_orchestrator.process_saga(saga)
                     elif saga_type == DisputePayoutSaga:
-                        logger.info(f"Retrying DisputePayoutSaga {saga_id} (retry_count={saga.retry_count})")
+                        logger.info(
+                            f"Retrying DisputePayoutSaga {saga_id} (retry_count={saga.retry_count})"
+                        )
                         await cmd_service.payout_saga_orchestrator.process_saga(saga)
-                    
+
                     await session.commit()
                 except Exception as e:
                     await session.rollback()
-                    logger.error(f"Failed to retry saga {saga_id} in isolated session: {e}", exc_info=True)
-
+                    logger.error(
+                        f"Failed to retry saga {saga_id} in isolated session: {e}",
+                        exc_info=True,
+                    )

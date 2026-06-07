@@ -5,7 +5,9 @@ from internal.domain.errors import DisputeNotFoundError
 
 
 class DisputeQueryService:
-    def __init__(self, dispute_repo: IDisputeRepository, saga_repo: ISagaStateRepository):
+    def __init__(
+        self, dispute_repo: IDisputeRepository, saga_repo: ISagaStateRepository
+    ):
         self.dispute_repo = dispute_repo
         self.saga_repo = saga_repo
 

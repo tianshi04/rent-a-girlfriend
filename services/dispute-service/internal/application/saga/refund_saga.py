@@ -26,8 +26,10 @@ class DisputeRefundSagaOrchestrator:
         await self.process_saga(saga)
 
     async def process_saga(self, saga: DisputeRefundSaga):
-        logger.info(f"Processing DisputeRefundSaga {saga.saga_id} at state {saga.current_state}")
-        
+        logger.info(
+            f"Processing DisputeRefundSaga {saga.saga_id} at state {saga.current_state}"
+        )
+
         if saga.current_state == "REFUNDING":
             try:
                 res = await self.finance_port.refund_escrow_to_wallet(saga.booking_id)
@@ -46,12 +48,16 @@ class DisputeRefundSagaOrchestrator:
 
         elif saga.current_state == "HIDING_REVIEW":
             try:
-                success = await self.interaction_port.hide_review_and_lock_chat(saga.booking_id)
+                success = await self.interaction_port.hide_review_and_lock_chat(
+                    saga.booking_id
+                )
                 if success:
                     saga.on_hide_review_success()
                     await self.saga_repo.save(saga)
                 else:
-                    saga.on_hide_review_failed("Interaction service failed to lock/hide")
+                    saga.on_hide_review_failed(
+                        "Interaction service failed to lock/hide"
+                    )
                     await self.saga_repo.save(saga)
             except Exception as e:
                 logger.error(f"Error in HIDING_REVIEW step of saga {saga.saga_id}: {e}")

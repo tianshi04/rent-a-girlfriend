@@ -8,7 +8,9 @@ class DisputeRoutingService:
     Initially implements simple assignment logic (e.g., manual routing or round-robin if online list provided).
     """
 
-    def route_dispute(self, dispute: Dispute, available_admins: List[str]) -> Optional[str]:
+    def route_dispute(
+        self, dispute: Dispute, available_admins: List[str]
+    ) -> Optional[str]:
         """
         Assign an admin to the dispute.
         If a list of available admins is provided, returns the first one (simple mock routing).

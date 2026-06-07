@@ -21,7 +21,9 @@ class DisputePayoutSagaOrchestrator:
 
     async def start(self, saga_id: str, dispute_id: str, booking_id: str):
         logger.info(f"Starting DisputePayoutSaga {saga_id} for dispute {dispute_id}")
-        wallet_id, commission_rate = await self.finance_port.get_payout_snapshot(booking_id)
+        wallet_id, commission_rate = await self.finance_port.get_payout_snapshot(
+            booking_id
+        )
         saga = DisputePayoutSaga.create(
             saga_id=saga_id,
             dispute_id=dispute_id,
@@ -33,8 +35,10 @@ class DisputePayoutSagaOrchestrator:
         await self.process_saga(saga)
 
     async def process_saga(self, saga: DisputePayoutSaga):
-        logger.info(f"Processing DisputePayoutSaga {saga.saga_id} at state {saga.current_state}")
-        
+        logger.info(
+            f"Processing DisputePayoutSaga {saga.saga_id} at state {saga.current_state}"
+        )
+
         if saga.current_state == "PAYING_OUT":
             try:
                 # Use snapshot from saga state instead of hardcoding
@@ -61,7 +65,9 @@ class DisputePayoutSagaOrchestrator:
                     saga.on_lock_chat_success()
                     await self.saga_repo.save(saga)
                 else:
-                    saga.on_lock_chat_failed("Interaction service failed to lock chat room")
+                    saga.on_lock_chat_failed(
+                        "Interaction service failed to lock chat room"
+                    )
                     await self.saga_repo.save(saga)
             except Exception as e:
                 logger.error(f"Error in LOCKING_CHAT step of saga {saga.saga_id}: {e}")

@@ -10,7 +10,9 @@ logger = logging.getLogger("grpc_servicer")
 
 
 class DisputeServiceServicer(dispute_service_pb2_grpc.DisputeServiceServicer):
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession], container: any = None):
+    def __init__(
+        self, session_factory: async_sessionmaker[AsyncSession], container: any = None
+    ):
         self.session_factory = session_factory
         # container will be used to resolve the command service if bootstrap is already configured
         self.container = container

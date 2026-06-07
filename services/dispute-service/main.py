@@ -33,27 +33,29 @@ async def run_grpc_server(shutdown_event: asyncio.Event):
     server.add_insecure_port(listen_addr)
     logger.info(f"Starting gRPC server on {listen_addr}...")
     await server.start()
-    
+
     # Wait for the shutdown signal
     await shutdown_event.wait()
-    logger.info("Gracefully stopping gRPC server (waiting for active RPCs to finish)...")
+    logger.info(
+        "Gracefully stopping gRPC server (waiting for active RPCs to finish)..."
+    )
     await server.stop(grace=5)
 
 
 async def run_http_server(shutdown_event: asyncio.Event):
     config = uvicorn.Config(
-        app=app, 
-        host="0.0.0.0", 
-        port=settings.SERVER_PORT, 
+        app=app,
+        host="0.0.0.0",
+        port=settings.SERVER_PORT,
         log_level="info",
-        handle_signals=False  # Disable Uvicorn's default signal handlers
+        handle_signals=False,  # Disable Uvicorn's default signal handlers
     )
     server = uvicorn.Server(config)
     logger.info(f"Starting HTTP/REST server on port {settings.SERVER_PORT}...")
-    
+
     # Start the server as a background task
     server_task = asyncio.create_task(server.serve())
-    
+
     # Wait for the shutdown signal
     await shutdown_event.wait()
     logger.info("Gracefully stopping HTTP/REST server...")
@@ -97,7 +99,9 @@ async def main():
 
     # Concurrently execute gRPC Server and FastAPI Server
     try:
-        await asyncio.gather(run_grpc_server(shutdown_event), run_http_server(shutdown_event))
+        await asyncio.gather(
+            run_grpc_server(shutdown_event), run_http_server(shutdown_event)
+        )
     finally:
         logger.info("Stopping background workers...")
         await outbox_worker.stop()
