@@ -42,7 +42,7 @@ async def run_http_server(server):
 
 async def run_identity_event_listener():
     """
-    Background worker listening to Kafka identity-events.
+    Background worker listening to Kafka identity.events.
     Automatically onboards wallet for newly registered users (Option B).
     """
     logger.info(

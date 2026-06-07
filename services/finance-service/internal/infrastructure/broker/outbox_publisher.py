@@ -13,6 +13,13 @@ from internal.infrastructure.persistence.models import OutboxModel
 logger = logging.getLogger("outbox_publisher")
 
 
+
+def _to_kebab_case(name: str) -> str:
+    import re
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1-\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1-\2', s1).lower()
+
+
 class DatabaseEventPublisher(IEventPublisher):
     """
     Saves events directly to the Outbox table in the database as part of active transaction.
@@ -38,7 +45,7 @@ class DatabaseEventPublisher(IEventPublisher):
 
         outbox = OutboxModel(
             event_id=event_id,
-            event_type=f"com.rentagf.finance.{proto_msg.DESCRIPTOR.name}.v1",
+            event_type=f"finance.{_to_kebab_case(proto_msg.DESCRIPTOR.name)}.v1",
             payload=json.dumps(payload_dict),
         )
         self.session.add(outbox)

@@ -36,8 +36,8 @@ class Settings(BaseSettings):
     VNPAY_RETURN_URL: str = "http://localhost:8080/api/v1/finance/vnpay-return"
 
     KAFKA_BROKERS: str = "localhost:9092"
-    KAFKA_TOPIC_FINANCE: str = "finance-events"
-    KAFKA_TOPIC_IDENTITY: str = "identity-events"  # Lắng nghe UserRegistered từ đây
+    KAFKA_TOPIC_FINANCE: str = "finance.events"
+    KAFKA_TOPIC_IDENTITY: str = "identity.events"  # Lắng nghe UserRegistered từ đây
 
     OUTBOX_POLLING_INTERVAL_MS: int = 500
     OUTBOX_BATCH_SIZE: int = 50

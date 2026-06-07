@@ -56,8 +56,8 @@ make run
 Service khởi động đồng thời:
 - **FastAPI REST** trên cổng `8080`
 - **gRPC Server** trên cổng `50051`
-- **Outbox Worker** (background polling → Kafka `finance-events`)
-- **Identity Event Listener** (Kafka consumer `identity-events` → auto onboard wallet)
+- **Outbox Worker** (background polling → Kafka `finance.events`)
+- **Identity Event Listener** (Kafka consumer `identity.events` → auto onboard wallet)
 
 ---
 
