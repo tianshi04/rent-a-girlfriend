@@ -233,4 +233,3 @@ async fn test_review_repository_integration() {
             .expect("Failed to fetch review hidden outbox event");
     assert_eq!(hide_event.0, "interaction.review-hidden.v1");
 }
-

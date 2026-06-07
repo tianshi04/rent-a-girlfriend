@@ -147,7 +147,9 @@ impl BookingEventListener {
         let chat_cases = self.chat_cases.clone();
 
         match cloudevent.event_type.as_str() {
-            "com.rentagf.interaction.CreateChatRoom.v1" | "interaction.create-chat-room.v1" | "booking.create-chat-room.v1" => {
+            "com.rentagf.interaction.CreateChatRoom.v1"
+            | "interaction.create-chat-room.v1"
+            | "booking.create-chat-room.v1" => {
                 info!(
                     "CreateChatRoom command received for Booking ID: {}",
                     booking_id
@@ -185,9 +187,12 @@ impl BookingEventListener {
                     );
                 }
             }
-            "com.rentagf.booking.BookingCancelled.v1" | "booking.booking-cancelled.v1"
-            | "com.rentagf.booking.BookingCancelledEarly.v1" | "booking.booking-cancelled-early.v1"
-            | "com.rentagf.booking.BookingCancelledLate.v1" | "booking.booking-cancelled-late.v1" => {
+            "com.rentagf.booking.BookingCancelled.v1"
+            | "booking.booking-cancelled.v1"
+            | "com.rentagf.booking.BookingCancelledEarly.v1"
+            | "booking.booking-cancelled-early.v1"
+            | "com.rentagf.booking.BookingCancelledLate.v1"
+            | "booking.booking-cancelled-late.v1" => {
                 info!(
                     "Booking {} cancelled. Locking chat room immediately.",
                     booking_id
@@ -244,4 +249,3 @@ impl BookingEventListener {
         Ok(())
     }
 }
-

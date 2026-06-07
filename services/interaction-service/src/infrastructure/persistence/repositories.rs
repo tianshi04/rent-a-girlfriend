@@ -557,4 +557,3 @@ impl ProcessedEventRepository for SqlxProcessedEventRepository {
         Ok(result.rows_affected() == 0)
     }
 }
-
