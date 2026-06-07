@@ -250,7 +250,7 @@ Trong thiết kế Microservices/DDD, các Aggregates ở trên (Write Model) đ
   "specversion": "1.0",
   "id": "evt_abc123", 
   "source": "/rent-a-gf/booking-context/booking/bk_999",
-  "type": "com.rentagf.booking.BookingAccepted.v1",
+  "type": "booking.booking-accepted.v1",
   "datacontenttype": "application/json",
   "time": "2023-10-27T10:00:00Z",
   "data": {

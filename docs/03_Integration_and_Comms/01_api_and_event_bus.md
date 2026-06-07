@@ -39,7 +39,7 @@ Tất cả các consumer đều áp dụng cơ chế chủ động **kéo (Pull)
 
 ## 4. CHUẨN ĐỊNH DẠNG SỰ KIỆN (CLOUDEVENTS FORMAT)
 
-Để các Bounded Context giao tiếp an toàn, mọi Event đẩy lên Kafka/RabbitMQ phải tuân thủ chuẩn "Envelope" của **CloudEvents**.
+Để các Bounded Context giao tiếp an toàn, mọi Event đẩy lên Kafka phải tuân thủ chuẩn "Envelope" của **CloudEvents**.
 
 **Cấu trúc ví dụ cho `BookingAccepted`:**
 ```json
@@ -47,7 +47,7 @@ Tất cả các consumer đều áp dụng cơ chế chủ động **kéo (Pull)
   "specversion": "1.0",
   "id": "evt_abc123", 
   "source": "/rent-a-gf/booking-context/booking/bk_999",
-  "type": "com.rentagf.booking.BookingAccepted.v1",
+  "type": "booking.booking-accepted.v1",
   "datacontenttype": "application/json",
   "time": "2023-10-27T10:00:00Z",
   "data": {
@@ -64,7 +64,7 @@ Tất cả các consumer đều áp dụng cơ chế chủ động **kéo (Pull)
 
 **Chi tiết các trường bắt buộc:**
 *   `id`: UUID duy nhất cho từng event. Dùng để làm Idempotency Key ở Consumer.
-*   `type`: Có định dạng `[domain].[context].[EventName].[version]`. Versioning (`.v1`) hỗ trợ nâng cấp cấu trúc payload mà không làm gãy các Consumer cũ.
+*   `type`: Có định dạng `<domain>.<event-name>.v<version>` (trong đó `<domain>` là chữ thường, `<event-name>` viết ở dạng `kebab-case`, và `v<version>` là phiên bản, ví dụ: `booking.booking-accepted.v1`). Versioning (`v1`) hỗ trợ nâng cấp cấu trúc payload mà không làm gãy các Consumer cũ.
 *   `data`: Payload nghiệp vụ thực tế chứa các thông tin cần thiết.
 *   `correlationId` (Extensions): Truyền xuyên suốt từ API Gateway đến tất cả các Context để Debug/Trace log trên hệ thống (Kibana/Datadog).
 *   `sagaId` (Trong data hoặc extensions): Định danh của phiên giao dịch phân tán nếu event thuộc một phần của luồng SAGA.
