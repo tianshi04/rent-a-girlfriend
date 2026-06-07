@@ -1,6 +1,5 @@
 import os
 import logging
-import asyncio
 from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -88,7 +87,6 @@ async def init_db():
         )
 
 
-
 # --- Dependency Assembly (DI) ---
 def bootstrap_services(db_session: AsyncSession):
     # Repositories
@@ -103,7 +101,11 @@ def bootstrap_services(db_session: AsyncSession):
         finance_port = MockFinanceAdapter()
         interaction_port = MockInteractionAdapter()
     else:
-        from internal.infrastructure.adapters import gRPCFinanceAdapter, gRPCInteractionAdapter
+        from internal.infrastructure.adapters import (
+            gRPCFinanceAdapter,
+            gRPCInteractionAdapter,
+        )
+
         finance_port = gRPCFinanceAdapter(settings.FINANCE_SERVICE_ADDR)
         interaction_port = gRPCInteractionAdapter(settings.INTERACTION_SERVICE_ADDR)
 
@@ -183,4 +185,5 @@ app = FastAPI(
 )
 
 from internal.interfaces.http.router import router as http_router  # noqa: E402
+
 app.include_router(http_router)

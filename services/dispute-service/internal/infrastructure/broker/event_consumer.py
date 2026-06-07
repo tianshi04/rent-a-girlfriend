@@ -41,7 +41,9 @@ class DisputeEventConsumer:
         try:
             await self.consumer.start()
         except Exception as e:
-            logger.warning(f"Could not connect/start Kafka consumer (brokers {self.kafka_brokers}): {e}. SAGA will still work via gRPC sync client.")
+            logger.warning(
+                f"Could not connect/start Kafka consumer (brokers {self.kafka_brokers}): {e}. SAGA will still work via gRPC sync client."
+            )
             return
 
         self._running = True

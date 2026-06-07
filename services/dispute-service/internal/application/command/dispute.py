@@ -1,6 +1,9 @@
 import uuid
 from typing import List, Optional, Dict, Any
-from internal.domain.aggregate import Dispute, DisputeEvidence, DisputeRefundSaga, DisputePayoutSaga
+from internal.domain.aggregate import (
+    Dispute,
+    DisputeEvidence,
+)
 from internal.domain.repository import IDisputeRepository, ISagaStateRepository
 from internal.domain.errors import DuplicateOpenDisputeError, DisputeNotFoundError
 from internal.domain.service import DisputeRoutingService
@@ -96,7 +99,7 @@ class DisputeCommandService:
         if resolution == "REFUND_CLIENT":
             dispute.resolve_refund(admin_id, notes)
             await self.dispute_repo.save(dispute)
-            
+
             # Start DisputeRefundSaga
             saga_id = str(uuid.uuid4())
             await self.refund_saga_orchestrator.start(
@@ -108,7 +111,7 @@ class DisputeCommandService:
         elif resolution == "PAYOUT_COMPANION":
             dispute.resolve_payout(admin_id, notes)
             await self.dispute_repo.save(dispute)
-            
+
             # Start DisputePayoutSaga
             saga_id = str(uuid.uuid4())
             await self.payout_saga_orchestrator.start(
@@ -125,6 +128,7 @@ class DisputeCommandService:
         else:
             from internal.domain.errors import InvalidResolutionError
             from internal.domain.vo.dispute_reason import VALID_RESOLUTIONS
+
             raise InvalidResolutionError(resolution, VALID_RESOLUTIONS)
 
         # Publish the domain events from Dispute

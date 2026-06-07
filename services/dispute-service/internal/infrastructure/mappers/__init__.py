@@ -1,7 +1,16 @@
 from typing import Union
-from internal.domain.aggregate import Dispute, DisputeEvidence, DisputeRefundSaga, DisputePayoutSaga
+from internal.domain.aggregate import (
+    Dispute,
+    DisputeEvidence,
+    DisputeRefundSaga,
+    DisputePayoutSaga,
+)
 from internal.domain.vo import DisputeReason
-from internal.infrastructure.persistence.models import DisputeModel, DisputeEvidenceModel, SagaStateModel
+from internal.infrastructure.persistence.models import (
+    DisputeModel,
+    DisputeEvidenceModel,
+    SagaStateModel,
+)
 
 
 class DisputeMapper:
@@ -59,13 +68,13 @@ class SagaStateMapper:
     @staticmethod
     def to_model(domain: Union[DisputeRefundSaga, DisputePayoutSaga]) -> SagaStateModel:
         saga_type = "REFUND" if isinstance(domain, DisputeRefundSaga) else "PAYOUT"
-        
+
         companion_wallet_id = None
         commission_rate = None
         if saga_type == "PAYOUT":
             companion_wallet_id = getattr(domain, "companion_wallet_id", None)
             commission_rate = getattr(domain, "commission_rate", None)
-            
+
         return SagaStateModel(
             saga_id=domain.saga_id,
             dispute_id=domain.dispute_id,
