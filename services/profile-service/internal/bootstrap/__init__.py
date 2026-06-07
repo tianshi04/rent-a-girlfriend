@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     S3_BUCKET_NAME: str = "rentgf-media"
 
     KAFKA_BROKERS: str = "localhost:9092"
-    KAFKA_TOPIC_PROFILE: str = "profile-events"
+    KAFKA_TOPIC_PROFILE: str = "profile.events"
 
     OUTBOX_POLLING_INTERVAL_MS: int = 500
     OUTBOX_BATCH_SIZE: int = 50
@@ -163,3 +163,4 @@ app.include_router(router)
 @app.get("/health", tags=["System"])
 async def health_check():
     return {"status": "ok", "service": "profile-service"}
+
