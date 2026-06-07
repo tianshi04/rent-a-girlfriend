@@ -66,7 +66,7 @@ async def test_create_report_success(integration_deps):
     )
     outbox_events = outbox_result.scalars().all()
     assert len(outbox_events) >= 1
-    assert any("DisputeCreated" in e.event_type for e in outbox_events)
+    assert any("dispute-created" in e.event_type for e in outbox_events)
 
 
 async def test_create_report_duplicate(integration_deps):
@@ -160,7 +160,7 @@ async def test_resolve_dispute_reject(integration_deps):
 
     # Verify Outbox contains DisputeResolved event
     outbox_events = (await session.execute(select(OutboxModel))).scalars().all()
-    assert any("DisputeResolved" in e.event_type for e in outbox_events)
+    assert any("dispute-resolved" in e.event_type for e in outbox_events)
 
 
 async def test_resolve_dispute_refund_saga(integration_deps):

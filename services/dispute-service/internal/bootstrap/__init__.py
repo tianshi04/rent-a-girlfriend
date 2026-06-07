@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     DB_SSLMODE: str = "disable"
 
     KAFKA_BROKERS: str = "localhost:9092"
-    KAFKA_TOPIC_DISPUTE: str = "dispute-events"
+    KAFKA_TOPIC_DISPUTE: str = "dispute.events"
 
     OUTBOX_POLLING_INTERVAL_MS: int = 500
     OUTBOX_BATCH_SIZE: int = 50
