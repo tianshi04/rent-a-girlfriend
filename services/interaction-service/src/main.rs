@@ -44,9 +44,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let kafka_brokers =
         std::env::var("KAFKA_BROKERS").unwrap_or_else(|_| "localhost:9092".to_string());
     let kafka_topic_interaction = std::env::var("KAFKA_TOPIC_INTERACTION")
-        .unwrap_or_else(|_| "interaction-events".to_string());
+        .unwrap_or_else(|_| "interaction.events".to_string());
     let kafka_topic_booking =
-        std::env::var("KAFKA_TOPIC_BOOKING").unwrap_or_else(|_| "booking-events".to_string());
+        std::env::var("KAFKA_TOPIC_BOOKING").unwrap_or_else(|_| "booking.events".to_string());
     let kafka_group_id =
         std::env::var("KAFKA_GROUP_ID").unwrap_or_else(|_| "interaction-service-group".to_string());
 
@@ -250,3 +250,4 @@ async fn shutdown_signal() {
         }
     }
 }
+
