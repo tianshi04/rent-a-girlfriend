@@ -14,5 +14,5 @@ spec:
     - from:
         - source:
             principals:
-              - "cluster.local/ns/*/sa/*"
+              {{- toYaml .Values.authorizationPolicy.principals | nindent 14 }}
 {{- end }}
