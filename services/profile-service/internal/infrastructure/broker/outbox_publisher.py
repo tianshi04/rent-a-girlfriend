@@ -37,9 +37,16 @@ class DatabaseEventPublisher(IEventPublisher):
 
         event_id = str(uuid.uuid4())
 
+        import re
+        # Convert PascalCase/CamelCase to kebab-case
+        # e.g., ProfileCreated -> profile-created
+        name = proto_msg.DESCRIPTOR.name
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1-\2', name)
+        kebab_name = re.sub('([a-z0-9])([A-Z])', r'\1-\2', s1).lower()
+
         outbox = OutboxModel(
             event_id=event_id,
-            event_type=f"com.rentagf.profile.{proto_msg.DESCRIPTOR.name}.v1",
+            event_type=f"profile.{kebab_name}.v1",
             payload=json.dumps(payload_dict),
         )
         self.session.add(outbox)
