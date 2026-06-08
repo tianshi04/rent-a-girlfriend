@@ -34,11 +34,11 @@ class FinanceCommandService:
         self.event_publisher = event_publisher
         self.vnpay_adapter = vnpay_adapter
 
-    async def get_or_create_wallet(self, user_id: str) -> Wallet:
+    async def get_or_create_wallet(self, user_id: str, lock: bool = False) -> Wallet:
         """
         Lazy initialization fallback logic.
         """
-        wallet = await self.wallet_repo.find_by_user_id(user_id)
+        wallet = await self.wallet_repo.find_by_user_id(user_id, lock=lock)
         if not wallet:
             wallet_id = str(uuid.uuid4())
             wallet = Wallet.create(wallet_id, user_id)
@@ -61,7 +61,7 @@ class FinanceCommandService:
         """
         Freezes coins in Client's wallet for booking request reservation.
         """
-        wallet = await self.get_or_create_wallet(user_id)
+        wallet = await self.get_or_create_wallet(user_id, lock=True)
         money = Money(amount)
 
         # Freeze coin and append domain event
@@ -93,7 +93,7 @@ class FinanceCommandService:
         """
         Transfers frozen coins from Client's wallet to Escrow fund when Companion accepts booking.
         """
-        wallet = await self.wallet_repo.find_by_user_id(user_id)
+        wallet = await self.wallet_repo.find_by_user_id(user_id, lock=True)
         if not wallet:
             raise WalletNotFoundError(user_id)
 
@@ -144,7 +144,7 @@ class FinanceCommandService:
         """
         Releases Escrow fund, deducts system commission, and pays net amount to Companion.
         """
-        escrow = await self.escrow_repo.find_by_booking_id(booking_id)
+        escrow = await self.escrow_repo.find_by_booking_id(booking_id, lock=True)
         if not escrow:
             raise EscrowNotFoundError(booking_id)
 
@@ -152,7 +152,7 @@ class FinanceCommandService:
         commission, net_amount = escrow.payout(companion_id, commission_rate)
 
         # Credit Companion's wallet
-        companion_wallet = await self.get_or_create_wallet(companion_id)
+        companion_wallet = await self.get_or_create_wallet(companion_id, lock=True)
         companion_wallet.deposit(Money(net_amount))
 
         # Log release transaction
@@ -182,7 +182,7 @@ class FinanceCommandService:
         """
         Refunds the Escrow fund back to Client's wallet.
         """
-        escrow = await self.escrow_repo.find_by_booking_id(booking_id)
+        escrow = await self.escrow_repo.find_by_booking_id(booking_id, lock=True)
         if not escrow:
             raise EscrowNotFoundError(booking_id)
 
@@ -192,7 +192,7 @@ class FinanceCommandService:
         escrow.refund(client_id, money_refund)
 
         # Refund Client's wallet
-        client_wallet = await self.get_or_create_wallet(client_id)
+        client_wallet = await self.get_or_create_wallet(client_id, lock=True)
         client_wallet.deposit(money_refund)
 
         # Log refund transaction
@@ -259,7 +259,7 @@ class FinanceCommandService:
             return {"RspCode": "01", "Message": "Order not found"}
 
         # 3. Retrieve local transaction
-        txn = await self.transaction_repo.find_by_id(txn_id)
+        txn = await self.transaction_repo.find_by_id(txn_id, lock=True)
         if not txn:
             return {"RspCode": "01", "Message": "Order not found"}
 
@@ -281,7 +281,7 @@ class FinanceCommandService:
         if vnp_response_code == "00":
             # SUCCESS payment
             txn.success()
-            wallet = await self.get_or_create_wallet(txn.user_id)
+            wallet = await self.get_or_create_wallet(txn.user_id, lock=True)
 
             # Credit wallet
             wallet.topup(
