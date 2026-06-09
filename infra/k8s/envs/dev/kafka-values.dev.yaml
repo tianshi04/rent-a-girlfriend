@@ -1,0 +1,58 @@
+global:
+  imageRegistry: public.ecr.aws
+  image:
+    registry: public.ecr.aws
+  security:
+    allowInsecureImages: true
+
+image:
+  registry: public.ecr.aws
+
+provisioning:
+  image:
+    registry: public.ecr.aws
+
+kraft:
+  enabled: true
+
+# Minimal replicas for local development to save resource
+broker:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  persistence:
+    enabled: true
+    size: 4Gi
+
+controller:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  persistence:
+    enabled: true
+    size: 2Gi
+
+extraEnvVars:
+  - name: KAFKA_CFG_NUM_PARTITIONS
+    value: "1"
+  - name: KAFKA_CFG_DEFAULT_REPLICATION_FACTOR
+    value: "1"
+  - name: KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR
+    value: "1"
+  - name: KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+    value: "1"
+  - name: KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR
+    value: "1"
+
+provisioning:
+  enabled: false
