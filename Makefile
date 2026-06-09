@@ -3,7 +3,7 @@ setup:
 	bash infra/scripts/setup.sh
 
 deploy:
-	kubectl apply -f infra/k8s/base/
+	bash infra/scripts/deploy.sh dev
 
 mesh:
 	bash infra/scripts/istio-install.sh
