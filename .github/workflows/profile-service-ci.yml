@@ -54,7 +54,10 @@ jobs:
 
       - name: Run Format Check
         working-directory: services/profile-service
-        run: uv run ruff format --check .
+        run: |
+          uv run ruff format .
+          git diff
+          uv run ruff format --check .
 
       - name: Run Lint Check
         working-directory: services/profile-service
