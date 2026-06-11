@@ -1,0 +1,164 @@
+name: Notification Service CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/notification-service/**'
+      - 'contracts/**'
+      - '.github/workflows/notification-service-ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'services/notification-service/**'
+      - 'contracts/**'
+      - '.github/workflows/notification-service-ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # Job 1: Lint & Test
+  # ─────────────────────────────────────────────────────────────
+  lint-and-test:
+    name: "Lint, Format Check & Test"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Run Format & Lint Checks (Spotless)
+        working-directory: services/notification-service
+        run: ./gradlew spotlessCheck --no-daemon
+
+      - name: Run Automated Tests
+        working-directory: services/notification-service
+        run: ./gradlew test --no-daemon
+
+  # ─────────────────────────────────────────────────────────────
+  # Job 2: Build & Push (incorporating Container Smoke Test)
+  # ─────────────────────────────────────────────────────────────
+  build-image:
+    name: "Build, Smoke Test & Push"
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_digest: ${{ steps.push.outputs.digest }}
+
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}/notification-service
+      IS_MAIN: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+      PROD_IMAGE: notification-service:prod-${{ github.sha }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get short SHA
+        id: vars
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── Build Local Image for Smoke Test ───────────────────────────────────
+      - name: Build Local Docker Image for Smoke Test
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/notification-service
+          file: ./services/notification-service/Dockerfile
+          load: true
+          tags: ${{ env.PROD_IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── Container Smoke Test ───────────────────────────────────────────────
+      - name: Start Smoke Test Stack
+        working-directory: services/notification-service/tests/smoke
+        env:
+          NOTIFICATION_IMAGE: ${{ env.PROD_IMAGE }}
+        run: |
+          echo "==> Starting Smoke Test stack with image: $NOTIFICATION_IMAGE"
+          docker compose -f docker-compose.smoke.yml up -d
+
+      - name: Verify Smoke Test (Poll Actuator Health)
+        run: |
+          echo "Waiting for Actuator health endpoint..."
+          url="http://localhost:8084/actuator/health"
+          success=false
+          for i in {1..30}; do
+            response=$(curl -s $url || true)
+            if echo "$response" | grep -q '"status":"UP"'; then
+              echo "SUCCESS: Notification Service started successfully!"
+              echo "Response: $response"
+              success=true
+              break
+            fi
+            echo -n "."
+            sleep 2
+          done
+          if [ "$success" = false ]; then
+            echo "FAILED: Service did not start successfully or report UP status within timeout."
+            echo "Checking container logs:"
+            docker logs notification-service-smoke
+            exit 1
+          fi
+
+      - name: Cleanup Smoke Test Stack
+        if: always()
+        working-directory: services/notification-service/tests/smoke
+        run: |
+          docker compose -f docker-compose.smoke.yml down -v --remove-orphans || true
+
+      # ── Build & Push to GHCR (if merged to main) ───────────────────────────
+      - name: Log in to GHCR
+        if: env.IS_MAIN == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Image to GHCR
+        if: env.IS_MAIN == 'true'
+        id: push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/notification-service
+          file: ./services/notification-service/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ steps.vars.outputs.sha_short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Output Image Digest for GitOps
+        if: env.IS_MAIN == 'true'
+        run: |
+          echo "============================================="
+          echo "DOCKER IMAGE DIGEST FOR GITOPS:"
+          echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
+          echo "============================================="
