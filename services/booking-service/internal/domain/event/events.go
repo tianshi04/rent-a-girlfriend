@@ -18,7 +18,7 @@ type BookingRequested struct {
 	OccurredAtTime time.Time `json:"occurredAt"`
 }
 
-func (e BookingRequested) EventType() string     { return "com.rentagf.booking.BookingRequested.v1" }
+func (e BookingRequested) EventType() string     { return "booking.booking-requested.v1" }
 func (e BookingRequested) OccurredAt() time.Time { return e.OccurredAtTime }
 
 // BookingAccepted is raised when a Companion accepts a booking.
@@ -28,7 +28,7 @@ type BookingAccepted struct {
 	OccurredAtTime time.Time `json:"occurredAt"`
 }
 
-func (e BookingAccepted) EventType() string     { return "com.rentagf.booking.BookingAccepted.v1" }
+func (e BookingAccepted) EventType() string     { return "booking.booking-accepted.v1" }
 func (e BookingAccepted) OccurredAt() time.Time { return e.OccurredAtTime }
 
 // BookingRejected is raised when a Companion rejects a booking.
@@ -40,7 +40,7 @@ type BookingRejected struct {
 	OccurredAtTime time.Time `json:"occurredAt"`
 }
 
-func (e BookingRejected) EventType() string     { return "com.rentagf.booking.BookingRejected.v1" }
+func (e BookingRejected) EventType() string     { return "booking.booking-rejected.v1" }
 func (e BookingRejected) OccurredAt() time.Time { return e.OccurredAtTime }
 
 // BookingCancelledEarly is raised when booking is cancelled >24h before start.
@@ -52,7 +52,7 @@ type BookingCancelledEarly struct {
 }
 
 func (e BookingCancelledEarly) EventType() string {
-	return "com.rentagf.booking.BookingCancelledEarly.v1"
+	return "booking.booking-cancelled-early.v1"
 }
 func (e BookingCancelledEarly) OccurredAt() time.Time { return e.OccurredAtTime }
 
@@ -65,7 +65,7 @@ type BookingCancelledLate struct {
 }
 
 func (e BookingCancelledLate) EventType() string {
-	return "com.rentagf.booking.BookingCancelledLate.v1"
+	return "booking.booking-cancelled-late.v1"
 }
 func (e BookingCancelledLate) OccurredAt() time.Time { return e.OccurredAtTime }
 
@@ -76,7 +76,7 @@ type BookingTimedOut struct {
 	OccurredAtTime time.Time `json:"occurredAt"`
 }
 
-func (e BookingTimedOut) EventType() string     { return "com.rentagf.booking.BookingTimedOut.v1" }
+func (e BookingTimedOut) EventType() string     { return "booking.booking-timed-out.v1" }
 func (e BookingTimedOut) OccurredAt() time.Time { return e.OccurredAtTime }
 
 // BookingCompleted is raised when an ACCEPTED booking completes without dispute.
@@ -88,5 +88,5 @@ type BookingCompleted struct {
 	OccurredAtTime time.Time `json:"occurredAt"`
 }
 
-func (e BookingCompleted) EventType() string     { return "com.rentagf.booking.BookingCompleted.v1" }
+func (e BookingCompleted) EventType() string     { return "booking.booking-completed.v1" }
 func (e BookingCompleted) OccurredAt() time.Time { return e.OccurredAtTime }
