@@ -156,21 +156,21 @@ func (c *KafkaConsumer) dispatch(ctx context.Context, msg kafka.Message) error {
 
 	switch ce.Type {
 	// Finance events
-	case "com.rentagf.finance.CoinEscrowed.v1":
+	case "finance.coin-escrowed.v1":
 		return c.coordinators.HandleEscrowSuccess(ctx, bookingID, ce.ID)
-	case "com.rentagf.finance.EscrowFailed.v1":
+	case "finance.escrow-failed.v1":
 		return c.coordinators.HandleEscrowFailed(ctx, bookingID, ce.ID)
-	case "com.rentagf.finance.RefundSuccess.v1":
+	case "finance.refund-success.v1":
 		return c.coordinators.HandleRefundSuccess(ctx, bookingID, ce.ID)
-	case "com.rentagf.finance.RefundFailed.v1":
+	case "finance.refund-failed.v1":
 		return c.coordinators.HandleRefundFailed(ctx, bookingID, ce.ID)
 	// Interaction events
-	case "com.rentagf.interaction.ChatRoomCreated.v1":
+	case "interaction.chat-room-created.v1":
 		return c.coordinators.HandleChatRoomCreated(ctx, bookingID, ce.ID)
-	case "com.rentagf.interaction.ChatRoomCreationFailed.v1":
+	case "interaction.chat-room-creation-failed.v1":
 		return c.coordinators.HandleChatRoomFailed(ctx, bookingID, ce.ID)
 	// Dispute events
-	case "com.rentagf.dispute.DisputeCreated.v1":
+	case "dispute.dispute-created.v1":
 		err := c.db.Transaction(func(tx *gorm.DB) error {
 			txCtx := context.WithValue(ctx, vo.TxKey, tx)
 			alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, tx, ce.ID, ce.Type)
@@ -185,7 +185,7 @@ func (c *KafkaConsumer) dispatch(ctx context.Context, msg kafka.Message) error {
 			return err
 		})
 		return err
-	case "com.rentagf.dispute.DisputeResolved.v1":
+	case "dispute.dispute-resolved.v1":
 		err := c.db.Transaction(func(tx *gorm.DB) error {
 			txCtx := context.WithValue(ctx, vo.TxKey, tx)
 			alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, tx, ce.ID, ce.Type)
