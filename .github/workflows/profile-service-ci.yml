@@ -1,0 +1,68 @@
+name: Profile Service CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/profile-service/**'
+      - 'contracts/**'
+      - '.github/workflows/profile-service-ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'services/profile-service/**'
+      - 'contracts/**'
+      - '.github/workflows/profile-service-ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  lint-and-test:
+    name: "Lint, Format Check & Test"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "services/profile-service/.python-version"
+
+      - name: Install dependencies
+        working-directory: services/profile-service
+        run: uv sync
+
+      - name: Generate Proto
+        working-directory: services/profile-service
+        run: make generate-proto
+
+      - name: Run Format Check
+        working-directory: services/profile-service
+        run: |
+          uv run ruff format .
+          git diff
+          uv run ruff format --check .
+
+      - name: Run Lint Check
+        working-directory: services/profile-service
+        run: uv run ruff check .
+
+      - name: Run Unit Tests
+        working-directory: services/profile-service
+        run: make test
