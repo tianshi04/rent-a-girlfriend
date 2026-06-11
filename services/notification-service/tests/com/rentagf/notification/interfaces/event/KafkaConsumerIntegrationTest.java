@@ -40,12 +40,12 @@ import static org.mockito.Mockito.when;
     partitions = 1,
     bootstrapServersProperty = "spring.kafka.bootstrap-servers",
     topics = {
-        "booking-events",
-        "finance-events",
-        "interaction-events",
-        "profile-events",
-        "identity-events",
-        "dispute-events"
+        "booking.events",
+        "finance.events",
+        "interaction.events",
+        "profile.events",
+        "identity.events",
+        "dispute.events"
     }
 )
 @ActiveProfiles("test")
@@ -82,7 +82,7 @@ public class KafkaConsumerIntegrationTest {
         // 1. Tạo JSON CloudEvent thô giả lập từ Finance Service gửi lên Kafka
         String rawEventJson = "{"
                 + "\"specversion\":\"1.0\","
-                + "\"type\":\"com.rentagf.finance.KanoCoinDeposited.v1\","
+                + "\"type\":\"finance.kano-coin-deposited.v1\","
                 + "\"source\":\"/services/finance\","
                 + "\"id\":\"" + eventId + "\","
                 + "\"time\":\"2026-05-23T12:00:00Z\","
@@ -95,7 +95,7 @@ public class KafkaConsumerIntegrationTest {
                 + "}";
 
         // 2. Publish lên Embedded Kafka Topic
-        kafkaTemplate.send("finance-events", rawEventJson).get();
+        kafkaTemplate.send("finance.events", rawEventJson).get();
 
         // 3. Đợi luồng tiêu thụ bất đồng bộ chạy trên Virtual Threads hoàn thành việc xử lý và lưu DB
         CountDownLatch latch = new CountDownLatch(1);

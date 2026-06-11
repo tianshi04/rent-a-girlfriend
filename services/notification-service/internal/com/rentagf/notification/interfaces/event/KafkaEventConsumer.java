@@ -42,12 +42,12 @@ public class KafkaEventConsumer {
      */
     @KafkaListener(
             topics = {
-                "booking-events",
-                "finance-events",
-                "interaction-events",
-                "profile-events",
-                "identity-events",
-                "dispute-events"
+                "booking.events",
+                "finance.events",
+                "interaction.events",
+                "profile.events",
+                "identity.events",
+                "dispute.events"
             },
             groupId = "notification-service"
     )

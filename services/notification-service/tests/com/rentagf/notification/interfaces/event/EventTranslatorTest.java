@@ -54,7 +54,7 @@ public class EventTranslatorTest {
         
         CloudEvent event = new CloudEvent(
             "1.0",
-            "com.rentagf.finance.KanoCoinDeposited.v1",
+            "finance.kano-coin-deposited.v1",
             "/services/finance",
             eventId,
             Instant.now(),
@@ -90,7 +90,7 @@ public class EventTranslatorTest {
         
         CloudEvent event = new CloudEvent(
             "1.0",
-            "com.rentagf.booking.BookingCancelled.v1",
+            "booking.booking-cancelled.v1",
             "/services/booking",
             eventId,
             Instant.now(),
@@ -122,7 +122,7 @@ public class EventTranslatorTest {
         
         CloudEvent event = new CloudEvent(
             "1.0",
-            "com.rentagf.dispute.DisputeResolved.v1",
+            "dispute.dispute-resolved.v1",
             "/services/dispute",
             eventId,
             Instant.now(),
@@ -164,7 +164,7 @@ public class EventTranslatorTest {
     public void testTranslateUnknownEventTypeThrowsIllegalArgumentException() {
         CloudEvent unknownEvent = new CloudEvent(
             "1.0",
-            "com.rentagf.unknown.Event.v1",
+            "unknown.event.v1",
             "/services/unknown",
             UUID.randomUUID().toString(),
             Instant.now(),
