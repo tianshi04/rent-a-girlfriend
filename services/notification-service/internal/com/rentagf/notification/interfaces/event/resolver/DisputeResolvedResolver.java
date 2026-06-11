@@ -48,6 +48,6 @@ public class DisputeResolvedResolver implements RecipientResolver {
 
     @Override
     public boolean supports(String eventType) {
-        return "com.rentagf.dispute.DisputeResolved.v1".equals(eventType);
+        return "com.rentagf.dispute.DisputeResolved.v1".equals(eventType) || "dispute.dispute-resolved.v1".equals(eventType);
     }
 }

@@ -3,6 +3,8 @@ package com.rentagf.notification.interfaces.http;
 import com.rentagf.notification.application.port.inbound.FetchInboxUseCase;
 import com.rentagf.notification.application.port.inbound.MarkAllAsReadUseCase;
 import com.rentagf.notification.application.port.inbound.MarkAsReadUseCase;
+import com.rentagf.notification.application.port.inbound.SendNotificationUseCase;
+import com.rentagf.notification.application.port.inbound.TriggerNotificationUseCase;
 import com.rentagf.notification.domain.aggregate.Notification;
 import com.rentagf.notification.domain.errors.NotificationNotFoundException;
 import com.rentagf.notification.domain.vo.enums.NotificationPriority;
@@ -47,6 +49,12 @@ class NotificationControllerTest {
 
     @MockitoBean
     private MarkAllAsReadUseCase markAllAsReadUseCase;
+
+    @MockitoBean
+    private TriggerNotificationUseCase triggerNotificationUseCase;
+
+    @MockitoBean
+    private SendNotificationUseCase sendNotificationUseCase;
 
     @Test
     void testFetchInboxSuccessfully() throws Exception {

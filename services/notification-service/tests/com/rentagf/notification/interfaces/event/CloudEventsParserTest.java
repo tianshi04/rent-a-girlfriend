@@ -16,7 +16,7 @@ public class CloudEventsParserTest {
         String json = """
             {
               "specversion": "1.0",
-              "type": "com.rentagf.booking.BookingRequested.v1",
+              "type": "booking.booking-requested.v1",
               "source": "/services/booking",
               "id": "a5d89f81-81f1-4db5-9e67-d86161726a45",
               "time": "2026-05-23T10:00:00Z",
@@ -33,7 +33,7 @@ public class CloudEventsParserTest {
 
         assertNotNull(event);
         assertEquals("1.0", event.getSpecversion());
-        assertEquals("com.rentagf.booking.BookingRequested.v1", event.getType());
+        assertEquals("booking.booking-requested.v1", event.getType());
         assertEquals("/services/booking", event.getSource());
         assertEquals("a5d89f81-81f1-4db5-9e67-d86161726a45", event.getId());
         assertEquals(Instant.parse("2026-05-23T10:00:00Z"), event.getTime());
@@ -57,7 +57,7 @@ public class CloudEventsParserTest {
         String missingFieldsJson = """
             {
               "specversion": "1.0",
-              "type": "com.rentagf.booking.BookingRequested.v1"
+              "type": "booking.booking-requested.v1"
             }
             """;
         assertThrows(IllegalArgumentException.class, () -> parser.parse(missingFieldsJson));
