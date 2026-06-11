@@ -1,0 +1,17 @@
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+config:
+  APP_ENV: "development"
+  RUST_LOG: "debug,interaction_service=trace,tower_http=debug"
+  OUTBOX_POLLING_INTERVAL_MS: "1000"
+
+hpa:
+  enabled: false

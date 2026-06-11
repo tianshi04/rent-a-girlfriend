@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "interaction-service.fullname" . }}
+  labels:
+    {{- include "interaction-service.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: {{ include "interaction-service.fullname" . }}
+  ports:
+    - name: http
+      port: {{ .Values.service.ports.http }}
+      targetPort: http
+    - name: grpc
+      port: {{ .Values.service.ports.grpc }}
+      targetPort: grpc
