@@ -19,10 +19,10 @@ echo "==> [test-runner] Starting Docker dependencies..."
 docker compose -f "$dockerFile" up -d postgres-test kafka-test --wait
 
 echo "==> [test-runner] Pre-creating Kafka topics..."
-docker exec booking-kafka-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic booking-events-test --partitions 1 --replication-factor 1
-docker exec booking-kafka-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic finance-events-test --partitions 1 --replication-factor 1
-docker exec booking-kafka-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic interaction-events-test --partitions 1 --replication-factor 1
-docker exec booking-kafka-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic dispute-events-test --partitions 1 --replication-factor 1
+docker exec booking-kafka-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic booking.events.test --partitions 1 --replication-factor 1
+docker exec booking-kafka-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic finance.events.test --partitions 1 --replication-factor 1
+docker exec booking-kafka-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic interaction.events.test --partitions 1 --replication-factor 1
+docker exec booking-kafka-test /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic dispute.events.test --partitions 1 --replication-factor 1
 
 # Inject Environment Variables pointing to isolated test ports
 export GIN_MODE="test"
@@ -34,10 +34,10 @@ export DB_PASSWORD="postgres"
 export DB_NAME="booking_test_db"
 export DB_SSLMODE="disable"
 export KAFKA_BROKERS="localhost:9094"
-export KAFKA_TOPIC_BOOKING="booking-events-test"
-export KAFKA_TOPIC_FINANCE="finance-events-test"
-export KAFKA_TOPIC_INTERACTION="interaction-events-test"
-export KAFKA_TOPIC_DISPUTE="dispute-events-test"
+export KAFKA_TOPIC_BOOKING="booking.events.test"
+export KAFKA_TOPIC_FINANCE="finance.events.test"
+export KAFKA_TOPIC_INTERACTION="interaction.events.test"
+export KAFKA_TOPIC_DISPUTE="dispute.events.test"
 export PROFILE_SERVICE_ADDR="localhost:59991"
 export FINANCE_SERVICE_ADDR="localhost:59992"
 

@@ -42,7 +42,7 @@ func NewSagaCoordinator(
 // Saga: WAITING_FOR_ESCROW -> WAITING_FOR_CHAT. Writes CreateChatRoomCommand to outbox.
 func (c *SagaCoordinator) HandleEscrowSuccess(ctx context.Context, bookingID string, eventID string) error {
 	return c.withTx(ctx, func(txCtx context.Context) error {
-		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "com.rentagf.finance.CoinEscrowed.v1")
+		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "finance.coin-escrowed.v1")
 		if err != nil {
 			return err
 		}
@@ -77,7 +77,7 @@ func (c *SagaCoordinator) HandleEscrowSuccess(ctx context.Context, bookingID str
 // Saga: WAITING_FOR_ESCROW -> FAILED_TECHNICAL. Booking -> CANCELLED.
 func (c *SagaCoordinator) HandleEscrowFailed(ctx context.Context, bookingID string, eventID string) error {
 	return c.withTx(ctx, func(txCtx context.Context) error {
-		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "com.rentagf.finance.EscrowFailed.v1")
+		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "finance.escrow-failed.v1")
 		if err != nil {
 			return err
 		}
@@ -108,7 +108,7 @@ func (c *SagaCoordinator) HandleEscrowFailed(ctx context.Context, bookingID stri
 // Saga: WAITING_FOR_CHAT -> COMPLETED. Booking -> ACCEPTED.
 func (c *SagaCoordinator) HandleChatRoomCreated(ctx context.Context, bookingID string, eventID string) error {
 	return c.withTx(ctx, func(txCtx context.Context) error {
-		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "com.rentagf.interaction.ChatRoomCreated.v1")
+		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "interaction.chat-room-created.v1")
 		if err != nil {
 			return err
 		}
@@ -183,7 +183,7 @@ func (c *SagaCoordinator) HandleChatRoomCreated(ctx context.Context, bookingID s
 // Saga: WAITING_FOR_CHAT -> REVERTING_ESCROW. Writes RefundEscrowCommand to outbox.
 func (c *SagaCoordinator) HandleChatRoomFailed(ctx context.Context, bookingID string, eventID string) error {
 	return c.withTx(ctx, func(txCtx context.Context) error {
-		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "com.rentagf.interaction.ChatRoomCreationFailed.v1")
+		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "interaction.chat-room-creation-failed.v1")
 		if err != nil {
 			return err
 		}
@@ -219,7 +219,7 @@ func (c *SagaCoordinator) HandleChatRoomFailed(ctx context.Context, bookingID st
 // Saga: REVERTING_ESCROW -> FAILED_TECHNICAL. Booking -> CANCELLED.
 func (c *SagaCoordinator) HandleRefundSuccess(ctx context.Context, bookingID string, eventID string) error {
 	return c.withTx(ctx, func(txCtx context.Context) error {
-		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "com.rentagf.finance.RefundSuccess.v1")
+		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "finance.refund-success.v1")
 		if err != nil {
 			return err
 		}
@@ -251,7 +251,7 @@ func (c *SagaCoordinator) HandleRefundSuccess(ctx context.Context, bookingID str
 // Requires manual admin intervention to reconcile the escrow.
 func (c *SagaCoordinator) HandleRefundFailed(ctx context.Context, bookingID string, eventID string) error {
 	return c.withTx(ctx, func(txCtx context.Context) error {
-		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "com.rentagf.finance.RefundFailed.v1")
+		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "finance.refund-failed.v1")
 		if err != nil {
 			return err
 		}
