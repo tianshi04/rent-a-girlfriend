@@ -48,9 +48,9 @@ async def run_http_server(shutdown_event: asyncio.Event):
         host="0.0.0.0",
         port=settings.SERVER_PORT,
         log_level="info",
-        handle_signals=False,  # Disable Uvicorn's default signal handlers
     )
     server = uvicorn.Server(config)
+    server.install_signal_handlers = lambda: None
     logger.info(f"Starting HTTP/REST server on port {settings.SERVER_PORT}...")
 
     # Start the server as a background task
