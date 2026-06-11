@@ -66,3 +66,74 @@ jobs:
       - name: Run Unit Tests
         working-directory: services/finance-service
         run: make test
+
+  build-image:
+    name: "Build and Push Docker Image"
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare build context
+        run: |
+          cp -r contracts services/finance-service/contracts
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/tianshi04/rent-a-girlfriend/finance-service
+          tags: |
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build Docker Image (Local Test)
+        uses: docker/build-push-action@v5
+        with:
+          context: services/finance-service
+          load: true
+          tags: finance-service:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Container Smoke Test
+        run: |
+          docker run -d --name smoke-test -e DB_HOST=localhost -e KAFKA_BROKERS=localhost:9092 finance-service:test
+          sleep 5
+          if [ "$(docker inspect -f '{{.State.Running}}' smoke-test)" = "true" ]; then
+            echo "Smoke test passed. Container is running."
+            docker stop smoke-test
+          else
+            echo "Smoke test failed. Container crashed."
+            docker logs smoke-test
+            exit 1
+          fi
+
+      - name: Build and Push Docker Image
+        id: build-and-push
+        uses: docker/build-push-action@v5
+        with:
+          context: services/finance-service
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+      - name: Output Image Digest
+        run: echo "Image digest is ${{ steps.build-and-push.outputs.digest }}"
