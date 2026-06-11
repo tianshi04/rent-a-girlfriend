@@ -52,6 +52,6 @@ public class BookingCancelledResolver implements RecipientResolver {
 
     @Override
     public boolean supports(String eventType) {
-        return "com.rentagf.booking.BookingCancelled.v1".equals(eventType) || "booking.booking-cancelled.v1".equals(eventType);
+        return "booking.booking-cancelled.v1".equals(eventType);
     }
 }
