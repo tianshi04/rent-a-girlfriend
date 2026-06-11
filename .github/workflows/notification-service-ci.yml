@@ -44,6 +44,10 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Make gradlew executable
+        working-directory: services/notification-service
+        run: chmod +x gradlew
+
       - name: Run Format & Lint Checks (Spotless)
         working-directory: services/notification-service
         run: ./gradlew spotlessCheck --no-daemon
