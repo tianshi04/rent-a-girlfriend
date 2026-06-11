@@ -33,7 +33,7 @@ func TestNewUserAccount_DefaultsToClient(t *testing.T) {
 	if len(events) != 1 {
 		t.Fatalf("expected 1 event, got %d", len(events))
 	}
-	if events[0].EventType() != "com.rentagf.identity.UserRegistered.v1" {
+	if events[0].EventType() != "identity.user-registered.v1" {
 		t.Errorf("unexpected event type: %s", events[0].EventType())
 	}
 }
@@ -93,7 +93,7 @@ func TestUserAccount_Lock_Success(t *testing.T) {
 	}
 
 	events := acc.Events()
-	if len(events) != 1 || events[0].EventType() != "com.rentagf.identity.AccountLocked.v1" {
+	if len(events) != 1 || events[0].EventType() != "identity.account-locked.v1" {
 		t.Error("expected AccountLocked event")
 	}
 }
@@ -148,7 +148,7 @@ func TestUserAccount_UpgradeToCompanion_Success(t *testing.T) {
 	}
 
 	events := acc.Events()
-	if len(events) != 1 || events[0].EventType() != "com.rentagf.identity.RoleUpgraded.v1" {
+	if len(events) != 1 || events[0].EventType() != "identity.role-upgraded.v1" {
 		t.Error("expected RoleUpgraded event")
 	}
 }

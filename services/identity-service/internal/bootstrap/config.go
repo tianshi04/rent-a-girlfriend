@@ -109,7 +109,7 @@ func LoadConfig() *Config {
 		},
 		Kafka: KafkaConfig{
 			Brokers:       getConfigValue(configFiles, secretFiles, "KAFKA_BROKERS", "localhost:9092"),
-			TopicIdentity: getConfigValue(configFiles, secretFiles, "KAFKA_TOPIC_IDENTITY", "identity-events"),
+			TopicIdentity: getConfigValue(configFiles, secretFiles, "KAFKA_TOPIC_IDENTITY", "identity.events"),
 		},
 		Outbox: OutboxConfig{
 			PollingInterval: time.Duration(outboxInterval) * time.Millisecond,

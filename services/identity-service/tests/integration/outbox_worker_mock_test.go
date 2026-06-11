@@ -88,7 +88,7 @@ func TestKafkaOutbox_WithMockBroker(t *testing.T) {
 		mockKafka,
 		200*time.Millisecond,
 		10,
-		"identity-events",
+		"identity.events",
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -113,7 +113,7 @@ func TestKafkaOutbox_WithMockBroker(t *testing.T) {
 
 	mockKafka.On("PublishEvent",
 		mock.Anything,
-		"identity-events",
+		"identity.events",
 		mock.MatchedBy(func(ev messaging.CloudEvent) bool {
 			return ev.ID == entry.ID.String() && ev.Type == testEvent.EventType()
 		}),

@@ -38,10 +38,10 @@ type CloudEvent struct {
 
 // BuildAccountLocked tạo CloudEvent cho domain event AccountLocked.
 // Phát ra khi Admin khóa tài khoản hoặc hệ thống tự động khóa do vi phạm quá ngưỡng.
-// Kafka topic: com.rentagf.identity.AccountLocked.v1
+// Kafka topic: identity.account-locked.v1
 func BuildAccountLocked(userID, reason string) (*CloudEvent, error) {
 	return build(
-		"com.rentagf.identity.AccountLocked.v1",
+		"identity.account-locked.v1",
 		fmt.Sprintf("/rent-a-gf/identity-context/account/%s", userID),
 		&pb.AccountLockedPayload{UserId: userID, Reason: reason},
 	)
@@ -49,10 +49,10 @@ func BuildAccountLocked(userID, reason string) (*CloudEvent, error) {
 
 // BuildViolationRecorded tạo CloudEvent cho domain event ViolationRecorded.
 // Phát ra sau mỗi lần ghi nhận vi phạm.
-// Kafka topic: com.rentagf.identity.ViolationRecorded.v1
+// Kafka topic: identity.violation-recorded.v1
 func BuildViolationRecorded(userID string, currentCount int32) (*CloudEvent, error) {
 	return build(
-		"com.rentagf.identity.ViolationRecorded.v1",
+		"identity.violation-recorded.v1",
 		fmt.Sprintf("/rent-a-gf/identity-context/account/%s", userID),
 		&pb.ViolationRecordedPayload{UserId: userID, CurrentCount: currentCount},
 	)
@@ -60,10 +60,10 @@ func BuildViolationRecorded(userID string, currentCount int32) (*CloudEvent, err
 
 // BuildUpgradeRequested tạo CloudEvent cho domain event UpgradeRequested.
 // Phát ra khi Client gửi yêu cầu nâng cấp thành Companion.
-// Kafka topic: com.rentagf.identity.UpgradeRequested.v1
+// Kafka topic: identity.upgrade-requested.v1
 func BuildUpgradeRequested(userID, requestID, reason string) (*CloudEvent, error) {
 	return build(
-		"com.rentagf.identity.UpgradeRequested.v1",
+		"identity.upgrade-requested.v1",
 		fmt.Sprintf("/rent-a-gf/identity-context/upgrade/%s", requestID),
 		&pb.UpgradeRequestedPayload{UserId: userID, RequestId: requestID, Reason: reason},
 	)
@@ -71,10 +71,10 @@ func BuildUpgradeRequested(userID, requestID, reason string) (*CloudEvent, error
 
 // BuildUpgradeApproved tạo CloudEvent cho domain event UpgradeApproved.
 // Phát ra khi Admin duyệt yêu cầu → profile-service sẽ tạo Companion profile.
-// Kafka topic: com.rentagf.identity.UpgradeApproved.v1
+// Kafka topic: identity.upgrade-approved.v1
 func BuildUpgradeApproved(userID, requestID, approvedBy string) (*CloudEvent, error) {
 	return build(
-		"com.rentagf.identity.UpgradeApproved.v1",
+		"identity.upgrade-approved.v1",
 		fmt.Sprintf("/rent-a-gf/identity-context/upgrade/%s", requestID),
 		&pb.UpgradeApprovedPayload{UserId: userID, RequestId: requestID, ApprovedBy: approvedBy},
 	)
@@ -82,10 +82,10 @@ func BuildUpgradeApproved(userID, requestID, approvedBy string) (*CloudEvent, er
 
 // BuildUpgradeRejected tạo CloudEvent cho domain event UpgradeRejected.
 // Phát ra khi Admin từ chối yêu cầu nâng cấp.
-// Kafka topic: com.rentagf.identity.UpgradeRejected.v1
+// Kafka topic: identity.upgrade-rejected.v1
 func BuildUpgradeRejected(userID, requestID, rejectedBy, reason string) (*CloudEvent, error) {
 	return build(
-		"com.rentagf.identity.UpgradeRejected.v1",
+		"identity.upgrade-rejected.v1",
 		fmt.Sprintf("/rent-a-gf/identity-context/upgrade/%s", requestID),
 		&pb.UpgradeRejectedPayload{
 			UserId:     userID,
