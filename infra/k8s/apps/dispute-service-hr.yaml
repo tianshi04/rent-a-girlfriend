@@ -1,0 +1,14 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: dispute-service
+  namespace: dispute-namespace
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: ./services/dispute-service/deployments
+      sourceRef:
+        kind: GitRepository
+        name: backend-gitops
+        namespace: flux-system
