@@ -6,7 +6,7 @@ option go_package = "github.com/rent-a-girlfriend/identity-service/gen/proto;ide
 
 // UpgradeRequestedPayload — payload của domain event UpgradeRequested.
 // Phát ra khi Client gửi yêu cầu nâng cấp thành Companion.
-// CloudEvent type: com.rentagf.identity.UpgradeRequested.v1
+// CloudEvent type: identity.upgrade-requested.v1
 message UpgradeRequestedPayload {
   string user_id    = 1;
   string request_id = 2;

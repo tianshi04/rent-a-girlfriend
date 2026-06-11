@@ -6,7 +6,7 @@ option go_package = "github.com/rent-a-girlfriend/identity-service/gen/proto;ide
 
 // UpgradeRejectedPayload — payload của domain event UpgradeRejected.
 // Phát ra khi Admin từ chối yêu cầu nâng cấp.
-// CloudEvent type: com.rentagf.identity.UpgradeRejected.v1
+// CloudEvent type: identity.upgrade-rejected.v1
 message UpgradeRejectedPayload {
   string user_id     = 1;
   string request_id  = 2;

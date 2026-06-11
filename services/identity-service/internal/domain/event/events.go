@@ -17,7 +17,7 @@ type UserRegistered struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-func (e UserRegistered) EventType() string     { return "com.rentagf.identity.UserRegistered.v1" }
+func (e UserRegistered) EventType() string     { return "identity.user-registered.v1" }
 func (e UserRegistered) OccurredAt() time.Time { return e.Timestamp }
 
 // ViolationRecorded is raised when a violation is recorded against an account.
@@ -29,7 +29,7 @@ type ViolationRecorded struct {
 	Timestamp    time.Time `json:"timestamp"`
 }
 
-func (e ViolationRecorded) EventType() string     { return "com.rentagf.identity.ViolationRecorded.v1" }
+func (e ViolationRecorded) EventType() string     { return "identity.violation-recorded.v1" }
 func (e ViolationRecorded) OccurredAt() time.Time { return e.Timestamp }
 
 // AccountLocked is raised when a user account is locked.
@@ -40,7 +40,7 @@ type AccountLocked struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-func (e AccountLocked) EventType() string     { return "com.rentagf.identity.AccountLocked.v1" }
+func (e AccountLocked) EventType() string     { return "identity.account-locked.v1" }
 func (e AccountLocked) OccurredAt() time.Time { return e.Timestamp }
 
 // AccountUnlocked is raised when a user account is unlocked.
@@ -50,7 +50,7 @@ type AccountUnlocked struct {
 	Timestamp  time.Time `json:"timestamp"`
 }
 
-func (e AccountUnlocked) EventType() string     { return "com.rentagf.identity.AccountUnlocked.v1" }
+func (e AccountUnlocked) EventType() string     { return "identity.account-unlocked.v1" }
 func (e AccountUnlocked) OccurredAt() time.Time { return e.Timestamp }
 
 // CompanionUpgradeRequested is raised when a client requests to become a companion.
@@ -62,7 +62,7 @@ type CompanionUpgradeRequested struct {
 }
 
 func (e CompanionUpgradeRequested) EventType() string {
-	return "com.rentagf.identity.CompanionUpgradeRequested.v1"
+	return "identity.companion-upgrade-requested.v1"
 }
 func (e CompanionUpgradeRequested) OccurredAt() time.Time { return e.Timestamp }
 
@@ -75,7 +75,7 @@ type CompanionUpgradeApproved struct {
 }
 
 func (e CompanionUpgradeApproved) EventType() string {
-	return "com.rentagf.identity.CompanionUpgradeApproved.v1"
+	return "identity.companion-upgrade-approved.v1"
 }
 func (e CompanionUpgradeApproved) OccurredAt() time.Time { return e.Timestamp }
 
@@ -89,7 +89,7 @@ type CompanionUpgradeRejected struct {
 }
 
 func (e CompanionUpgradeRejected) EventType() string {
-	return "com.rentagf.identity.CompanionUpgradeRejected.v1"
+	return "identity.companion-upgrade-rejected.v1"
 }
 func (e CompanionUpgradeRejected) OccurredAt() time.Time { return e.Timestamp }
 
@@ -101,5 +101,5 @@ type RoleUpgraded struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-func (e RoleUpgraded) EventType() string     { return "com.rentagf.identity.RoleUpgraded.v1" }
+func (e RoleUpgraded) EventType() string     { return "identity.role-upgraded.v1" }
 func (e RoleUpgraded) OccurredAt() time.Time { return e.Timestamp }
