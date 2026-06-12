@@ -22,10 +22,10 @@ import (
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/messaging"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/persistence"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/store"
+	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/worker"
 	grpchandler "github.com/rent-a-girlfriend/identity-service/internal/interfaces/grpc/handler"
 	grpcinterceptor "github.com/rent-a-girlfriend/identity-service/internal/interfaces/grpc/interceptor"
 	gateway "github.com/rent-a-girlfriend/identity-service/internal/interfaces/http"
-	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/worker"
 )
 
 // Server holds all wired dependencies.
