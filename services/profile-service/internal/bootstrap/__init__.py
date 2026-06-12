@@ -12,6 +12,7 @@ from internal.infrastructure.persistence import (
 )
 from internal.infrastructure.storage import S3Storage
 from internal.infrastructure.broker import DatabaseEventPublisher, OutboxPublisherWorker
+from internal.infrastructure.persistence.db_cleanup_worker import DbCleanupWorker
 from internal.application.command import (
     ProfileCommandService,
     ScenarioCommandService,
@@ -46,6 +47,9 @@ class Settings(BaseSettings):
 
     OUTBOX_POLLING_INTERVAL_MS: int = 500
     OUTBOX_BATCH_SIZE: int = 50
+
+    DB_CLEANUP_INTERVAL_MINUTES: int = 30
+    OUTBOX_RETENTION_DAYS: int = 1
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -138,7 +142,13 @@ async def get_media_cmd(services=Depends(get_services)) -> MediaCommandService:
     return services[2]
 
 
-# --- Outbox Worker Setup ---
+# --- Outbox & Cleanup Workers Setup ---
+db_cleanup_worker = DbCleanupWorker(
+    session_factory=SessionLocal,
+    cleanup_interval_minutes=settings.DB_CLEANUP_INTERVAL_MINUTES,
+    outbox_retention_days=settings.OUTBOX_RETENTION_DAYS,
+)
+
 outbox_worker = OutboxPublisherWorker(
     session_factory=SessionLocal,
     kafka_brokers=settings.KAFKA_BROKERS,
@@ -163,4 +173,3 @@ app.include_router(router)
 @app.get("/health", tags=["System"])
 async def health_check():
     return {"status": "ok", "service": "profile-service"}
-
