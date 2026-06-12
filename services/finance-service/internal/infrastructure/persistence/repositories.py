@@ -31,16 +31,20 @@ class WalletRepository(IWalletRepository):
         await self.session.merge(model)
         await self.session.flush()
 
-    async def find_by_id(self, wallet_id: str) -> Optional[Wallet]:
+    async def find_by_id(self, wallet_id: str, lock: bool = False) -> Optional[Wallet]:
         stmt = select(WalletModel).filter_by(wallet_id=wallet_id)
+        if lock:
+            stmt = stmt.with_for_update()
         result = await self.session.execute(stmt)
         model = result.scalars().first()
         if not model:
             return None
         return self._to_domain(model)
 
-    async def find_by_user_id(self, user_id: str) -> Optional[Wallet]:
+    async def find_by_user_id(self, user_id: str, lock: bool = False) -> Optional[Wallet]:
         stmt = select(WalletModel).filter_by(user_id=user_id)
+        if lock:
+            stmt = stmt.with_for_update()
         result = await self.session.execute(stmt)
         model = result.scalars().first()
         if not model:
@@ -70,16 +74,20 @@ class EscrowRepository(IEscrowRepository):
         await self.session.merge(model)
         await self.session.flush()
 
-    async def find_by_id(self, escrow_id: str) -> Optional[Escrow]:
+    async def find_by_id(self, escrow_id: str, lock: bool = False) -> Optional[Escrow]:
         stmt = select(EscrowModel).filter_by(escrow_id=escrow_id)
+        if lock:
+            stmt = stmt.with_for_update()
         result = await self.session.execute(stmt)
         model = result.scalars().first()
         if not model:
             return None
         return self._to_domain(model)
 
-    async def find_by_booking_id(self, booking_id: str) -> Optional[Escrow]:
+    async def find_by_booking_id(self, booking_id: str, lock: bool = False) -> Optional[Escrow]:
         stmt = select(EscrowModel).filter_by(booking_id=booking_id)
+        if lock:
+            stmt = stmt.with_for_update()
         result = await self.session.execute(stmt)
         model = result.scalars().first()
         if not model:
@@ -111,8 +119,10 @@ class TransactionRepository(ITransactionRepository):
         await self.session.merge(model)
         await self.session.flush()
 
-    async def find_by_id(self, transaction_id: str) -> Optional[Transaction]:
+    async def find_by_id(self, transaction_id: str, lock: bool = False) -> Optional[Transaction]:
         stmt = select(TransactionModel).filter_by(transaction_id=transaction_id)
+        if lock:
+            stmt = stmt.with_for_update()
         result = await self.session.execute(stmt)
         model = result.scalars().first()
         if not model:
@@ -120,9 +130,11 @@ class TransactionRepository(ITransactionRepository):
         return self._to_domain(model)
 
     async def find_by_reference_id(
-        self, reference_id: str, type: str
+        self, reference_id: str, type: str, lock: bool = False
     ) -> Optional[Transaction]:
         stmt = select(TransactionModel).filter_by(reference_id=reference_id, type=type)
+        if lock:
+            stmt = stmt.with_for_update()
         result = await self.session.execute(stmt)
         model = result.scalars().first()
         if not model:

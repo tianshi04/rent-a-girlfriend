@@ -65,9 +65,9 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// waitForService thăm dò endpoint /health cho đến khi ứng dụng khởi chạy thành công.
+// waitForService thăm dò endpoint /health/ready cho đến khi ứng dụng khởi chạy thành công.
 func waitForService() {
-	healthURL := fmt.Sprintf("%s/health", getBaseURL())
+	healthURL := fmt.Sprintf("%s/health/ready", getBaseURL())
 	deadline := time.Now().Add(60 * time.Second)
 
 	for time.Now().Before(deadline) {

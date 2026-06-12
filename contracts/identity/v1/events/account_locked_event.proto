@@ -6,7 +6,7 @@ option go_package = "github.com/rent-a-girlfriend/identity-service/gen/proto;ide
 
 // AccountLockedPayload — payload của domain event AccountLocked.
 // Phát ra khi Admin khóa tài khoản hoặc hệ thống tự động khóa do vi phạm.
-// CloudEvent type: com.rentagf.identity.AccountLocked.v1
+// CloudEvent type: identity.account-locked.v1
 message AccountLockedPayload {
   string user_id = 1;
   string reason  = 2;

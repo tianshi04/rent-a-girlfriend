@@ -1,24 +1,22 @@
 import pytest
 import pytest_asyncio
 import uuid
-import asyncio
-from datetime import datetime
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy import text
 
 from internal.infrastructure.persistence.models import Base
 from internal.infrastructure.persistence.repositories import DisputeRepository
 from internal.domain.aggregate import Dispute, DisputeEvidence
-from internal.domain.vo import DisputeReason
 
 # Determine if testcontainers is installed
 try:
     from testcontainers.postgres import PostgresContainer
+
     HAS_TESTCONTAINERS = True
 except ImportError:
     HAS_TESTCONTAINERS = False
 
 pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture(scope="module")
 def postgres_url():
@@ -27,7 +25,9 @@ def postgres_url():
     Yields the asyncpg connection string.
     """
     if not HAS_TESTCONTAINERS:
-        pytest.skip("testcontainers[postgres] is not installed. Please run `uv add --group dev testcontainers[postgres]`")
+        pytest.skip(
+            "testcontainers[postgres] is not installed. Please run `uv add --group dev testcontainers[postgres]`"
+        )
         return
 
     # Use a lightweight Postgres 16 alpine image
@@ -38,23 +38,25 @@ def postgres_url():
         async_db_url = db_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
         yield async_db_url
 
+
 @pytest_asyncio.fixture
 async def postgres_engine(postgres_url):
     if not postgres_url:
         return
 
     engine = create_async_engine(postgres_url, echo=False)
-    
+
     # Initialize the database schema
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        
+
     yield engine
-    
+
     # Teardown
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
+
 
 @pytest_asyncio.fixture
 async def pg_session(postgres_engine):
@@ -68,6 +70,7 @@ async def pg_session(postgres_engine):
     async with session_factory() as session:
         yield session
         await session.rollback()
+
 
 async def test_postgres_dispute_repository_integration(pg_session):
     """
@@ -86,16 +89,16 @@ async def test_postgres_dispute_repository_integration(pg_session):
     evidence = DisputeEvidence(
         evidence_id=str(uuid.uuid4()),
         evidence_type="IMAGE",
-        content="https://storage.example.com/evidence1.jpg"
+        content="https://storage.example.com/evidence1.jpg",
     )
-    
+
     dispute = Dispute.create_report(
         dispute_id=dispute_id,
         booking_id=booking_id,
         reporter_id="client-123",
         accused_id="companion-456",
         reason="NO_SHOW",
-        evidences=[evidence]
+        evidences=[evidence],
     )
 
     # 2. Act: Save to real PostgreSQL
@@ -104,14 +107,14 @@ async def test_postgres_dispute_repository_integration(pg_session):
 
     # 3. Assert: Fetch back and verify mapping
     fetched_dispute = await repo.find_by_id(dispute_id)
-    
+
     assert fetched_dispute is not None
     assert fetched_dispute.dispute_id == dispute_id
     assert fetched_dispute.booking_id == booking_id
     assert fetched_dispute.reporter_id == "client-123"
     assert str(fetched_dispute.reason) == "NO_SHOW"
     assert fetched_dispute.status == "OPEN"
-    
+
     assert len(fetched_dispute.evidences) == 1
     fetched_evidence = fetched_dispute.evidences[0]
     assert fetched_evidence.evidence_type == "IMAGE"
@@ -126,8 +129,9 @@ async def test_postgres_dispute_repository_integration(pg_session):
         accused_id="companion-456",
         reason="FRAUD",
     )
-    
+
     import sqlalchemy.exc
+
     with pytest.raises(sqlalchemy.exc.IntegrityError):
         await repo.save(duplicate_dispute)
         await pg_session.commit()

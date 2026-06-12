@@ -96,6 +96,7 @@ class SagaStateDTO(BaseModel):
     @classmethod
     def from_domain(cls, domain) -> "SagaStateDTO":
         from internal.domain.aggregate import DisputeRefundSaga
+
         saga_type = "REFUND" if isinstance(domain, DisputeRefundSaga) else "PAYOUT"
         return cls(
             saga_id=domain.saga_id,
@@ -143,7 +144,11 @@ async def list_disputes(
         )
 
 
-@router.get("/disputes/{dispute_id}", response_model=DisputeDTO, tags=["Admin Dispute Management"])
+@router.get(
+    "/disputes/{dispute_id}",
+    response_model=DisputeDTO,
+    tags=["Admin Dispute Management"],
+)
 async def get_dispute_detail(
     dispute_id: str,
     auth_info: AuthInfo = Depends(get_admin_auth_info),
@@ -160,7 +165,11 @@ async def get_dispute_detail(
         )
 
 
-@router.get("/disputes/{dispute_id}/saga", response_model=Optional[SagaStateDTO], tags=["Admin Dispute Management"])
+@router.get(
+    "/disputes/{dispute_id}/saga",
+    response_model=Optional[SagaStateDTO],
+    tags=["Admin Dispute Management"],
+)
 async def get_saga_state(
     dispute_id: str,
     auth_info: AuthInfo = Depends(get_admin_auth_info),

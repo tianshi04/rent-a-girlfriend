@@ -119,7 +119,7 @@ Hệ thống tập trung vào các cơ chế bảo vệ cơ bản cho giao dịc
 - **BR-10:** Không cho phép sửa/xóa đánh giá sau khi đã gửi. Companion không có tính năng phản hồi lại đánh giá của Client.
 
 ### 6.4. Voice Intro
-- **BR-11:** File upload phải là định dạng MP3, tối đa 30 giây, dung lượng tối đa 5MB. Hệ thống từ chối nếu vượt quá giới hạn. Chỉ Client đã đăng nhập mới có quyền nghe Voice Intro; không cho phép tải xuống.
+- **BR-11:** File upload phải là định dạng MP3, tối đa 30 giây, dung lượng tối đa 5MB. Hệ thống từ chối nếu vượt quá giới hạn. Bất kỳ người dùng nào (kể cả chưa đăng nhập) đều có quyền nghe Voice Intro; không cho phép tải xuống.
 
 ### 6.5. Ảnh Profile
 - **BR-12:** Companion được upload 1 ảnh đại diện + tối đa 4 ảnh album (tổng cộng 5 ảnh). Định dạng JPG/PNG, tối đa 2MB/ảnh.

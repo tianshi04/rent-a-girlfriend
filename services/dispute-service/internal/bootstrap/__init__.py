@@ -1,6 +1,5 @@
 import os
 import logging
-import asyncio
 from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -45,7 +44,7 @@ class Settings(BaseSettings):
     DB_SSLMODE: str = "disable"
 
     KAFKA_BROKERS: str = "localhost:9092"
-    KAFKA_TOPIC_DISPUTE: str = "dispute-events"
+    KAFKA_TOPIC_DISPUTE: str = "dispute.events"
 
     OUTBOX_POLLING_INTERVAL_MS: int = 500
     OUTBOX_BATCH_SIZE: int = 50
@@ -88,7 +87,6 @@ async def init_db():
         )
 
 
-
 # --- Dependency Assembly (DI) ---
 def bootstrap_services(db_session: AsyncSession):
     # Repositories
@@ -103,7 +101,11 @@ def bootstrap_services(db_session: AsyncSession):
         finance_port = MockFinanceAdapter()
         interaction_port = MockInteractionAdapter()
     else:
-        from internal.infrastructure.adapters import gRPCFinanceAdapter, gRPCInteractionAdapter
+        from internal.infrastructure.adapters import (
+            gRPCFinanceAdapter,
+            gRPCInteractionAdapter,
+        )
+
         finance_port = gRPCFinanceAdapter(settings.FINANCE_SERVICE_ADDR)
         interaction_port = gRPCInteractionAdapter(settings.INTERACTION_SERVICE_ADDR)
 
@@ -183,4 +185,5 @@ app = FastAPI(
 )
 
 from internal.interfaces.http.router import router as http_router  # noqa: E402
+
 app.include_router(http_router)

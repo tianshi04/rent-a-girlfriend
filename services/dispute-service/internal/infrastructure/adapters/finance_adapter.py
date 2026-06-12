@@ -48,11 +48,15 @@ class gRPCFinanceAdapter(IFinancePort):
 
     async def refund_escrow_to_wallet(self, booking_id: str) -> RefundResult:
         if FinanceServiceStub is None:
-            logger.error("Finance gRPC stubs not found. Make sure protos are generated.")
+            logger.error(
+                "Finance gRPC stubs not found. Make sure protos are generated."
+            )
             return RefundResult(success=False, error="gRPC stubs not found")
 
         try:
-            logger.info(f"Calling Finance Service RefundEscrow via gRPC at {self.address} for booking {booking_id}")
+            logger.info(
+                f"Calling Finance Service RefundEscrow via gRPC at {self.address} for booking {booking_id}"
+            )
             async with grpc.aio.insecure_channel(self.address) as channel:
                 stub = FinanceServiceStub(channel)
                 # Note: RefundEscrowRequest in protobuf has:
@@ -62,14 +66,14 @@ class gRPCFinanceAdapter(IFinancePort):
                 # In Dispute SAGA, booking_id is the primary key and the finance service escrow
                 # handles resolving the matching client and amount. We pass client_id="" and refund_amount=0.
                 request = RefundEscrowRequest(
-                    booking_id=booking_id,
-                    client_id="",
-                    refund_amount=0
+                    booking_id=booking_id, client_id="", refund_amount=0
                 )
                 response = await stub.RefundEscrow(request)
                 if response.status == "FAILED":
                     return RefundResult(success=False, error=response.message)
-                return RefundResult(success=True, transaction_id=response.transaction_id)
+                return RefundResult(
+                    success=True, transaction_id=response.transaction_id
+                )
         except Exception as e:
             logger.error(f"gRPC call to Finance Service RefundEscrow failed: {e}")
             return RefundResult(success=False, error=str(e))
@@ -78,22 +82,28 @@ class gRPCFinanceAdapter(IFinancePort):
         self, booking_id: str, companion_wallet_id: str, commission_rate: float
     ) -> PayoutResult:
         if FinanceServiceStub is None:
-            logger.error("Finance gRPC stubs not found. Make sure protos are generated.")
+            logger.error(
+                "Finance gRPC stubs not found. Make sure protos are generated."
+            )
             return PayoutResult(success=False, error="gRPC stubs not found")
 
         try:
-            logger.info(f"Calling Finance Service ProcessPayout via gRPC at {self.address} for booking {booking_id}")
+            logger.info(
+                f"Calling Finance Service ProcessPayout via gRPC at {self.address} for booking {booking_id}"
+            )
             async with grpc.aio.insecure_channel(self.address) as channel:
                 stub = FinanceServiceStub(channel)
                 request = ProcessPayoutRequest(
                     booking_id=booking_id,
                     companion_id=companion_wallet_id,
-                    commission_rate=commission_rate
+                    commission_rate=commission_rate,
                 )
                 response = await stub.ProcessPayout(request)
                 if response.status == "FAILED":
                     return PayoutResult(success=False, error=response.message)
-                return PayoutResult(success=True, transaction_id=response.transaction_id)
+                return PayoutResult(
+                    success=True, transaction_id=response.transaction_id
+                )
         except Exception as e:
             logger.error(f"gRPC call to Finance Service ProcessPayout failed: {e}")
             return PayoutResult(success=False, error=str(e))
@@ -104,4 +114,3 @@ class gRPCFinanceAdapter(IFinancePort):
         # For now, returning stub values as we lack the specific gRPC definition.
         logger.info(f"Stubbing get_payout_snapshot for booking {booking_id}")
         return (f"wallet-{booking_id}", 0.15)
-

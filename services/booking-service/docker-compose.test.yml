@@ -79,14 +79,14 @@ services:
       DB_SSLMODE: "disable"
       DATABASE_URL: "postgres://postgres:postgres@postgres-test:5432/booking_test_db?sslmode=disable"
       KAFKA_BROKERS: "kafka-test:9092"
-      KAFKA_TOPIC_BOOKING: "booking-events-test"
-      KAFKA_TOPIC_FINANCE: "finance-events-test"
-      KAFKA_TOPIC_INTERACTION: "interaction-events-test"
-      KAFKA_TOPIC_DISPUTE: "dispute-events-test"
+      KAFKA_TOPIC_BOOKING: "booking.events.test"
+      KAFKA_TOPIC_FINANCE: "finance.events.test"
+      KAFKA_TOPIC_INTERACTION: "interaction.events.test"
+      KAFKA_TOPIC_DISPUTE: "dispute.events.test"
       PROFILE_SERVICE_ADDR: "mock-grpc-test:50052"
       FINANCE_SERVICE_ADDR: "mock-grpc-test:50053"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health/ready || exit 1"]
       interval: 2s
       timeout: 2s
       retries: 10

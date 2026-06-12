@@ -73,7 +73,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
                 };
                 (
                     Uuid::new_v4().to_string(),
-                    "com.rentagf.interaction.ChatRoomCreated.v1".to_string(),
+                    "interaction.chat-room-created.v1".to_string(),
                     serde_json::to_value(&event).unwrap(),
                 )
             }
@@ -85,7 +85,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
                 };
                 (
                     Uuid::new_v4().to_string(),
-                    "com.rentagf.interaction.ChatRoomLocked.v1".to_string(),
+                    "interaction.chat-room-locked.v1".to_string(),
                     serde_json::to_value(&event).unwrap(),
                 )
             }
@@ -295,7 +295,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
             };
 
             let event_id = Uuid::new_v4().to_string();
-            let event_type = "com.rentagf.interaction.ChatRoomLocked.v1".to_string();
+            let event_type = "interaction.chat-room-locked.v1".to_string();
             let payload = serde_json::to_value(&event).unwrap();
             let payload_str = payload.to_string();
 
@@ -386,7 +386,7 @@ impl ReviewRepository for SqlxReviewRepository {
             };
             (
                 Uuid::new_v4().to_string(),
-                "com.rentagf.interaction.ReviewSubmitted.v1".to_string(),
+                "interaction.review-submitted.v1".to_string(),
                 serde_json::to_value(&event).unwrap(),
             )
         } else {
@@ -397,7 +397,7 @@ impl ReviewRepository for SqlxReviewRepository {
             };
             (
                 Uuid::new_v4().to_string(),
-                "com.rentagf.interaction.ReviewHidden.v1".to_string(),
+                "interaction.review-hidden.v1".to_string(),
                 serde_json::to_value(&event).unwrap(),
             )
         };

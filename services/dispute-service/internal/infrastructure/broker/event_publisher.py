@@ -33,9 +33,14 @@ class DatabaseEventPublisher(IEventPublisher):
 
         event_id = str(uuid.uuid4())
 
+        import re
+
+        kebab_name = re.sub("(.)([A-Z][a-z]+)", r"\1-\2", proto_msg.DESCRIPTOR.name)
+        kebab_name = re.sub("([a-z0-9])([A-Z])", r"\1-\2", kebab_name).lower()
+
         outbox = OutboxModel(
             event_id=event_id,
-            event_type=f"com.rentagf.dispute.{proto_msg.DESCRIPTOR.name}.v1",
+            event_type=f"dispute.{kebab_name}.v1",
             payload=json.dumps(payload_dict),
         )
         self.session.add(outbox)

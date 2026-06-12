@@ -22,7 +22,7 @@ def test_resolution_valid():
         vo = Resolution(res)
         assert vo.value == res
         assert str(vo) == res
-        
+
         if res == "REFUND_CLIENT":
             assert vo.is_refund is True
             assert vo.is_payout is False

@@ -5,6 +5,7 @@ metadata:
   name: {{ .Release.Namespace }}
   labels:
     app: {{ include "identity-service.name" . }}
+    istio.io/dataplane-mode: ambient
     {{- with .Values.namespace.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}

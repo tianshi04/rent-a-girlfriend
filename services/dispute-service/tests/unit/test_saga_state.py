@@ -80,8 +80,11 @@ def test_refund_saga_failed_interaction_retries():
 
 def test_payout_saga_successful_flow():
     saga = DisputePayoutSaga.create(
-        saga_id="saga-payout-1", dispute_id="disp-1", booking_id="book-1",
-        companion_wallet_id="wallet-1", commission_rate=0.15
+        saga_id="saga-payout-1",
+        dispute_id="disp-1",
+        booking_id="book-1",
+        companion_wallet_id="wallet-1",
+        commission_rate=0.15,
     )
 
     assert saga.current_state == "PAYING_OUT"

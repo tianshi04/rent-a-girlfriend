@@ -31,7 +31,7 @@ impl ChatUseCases {
         if let Some(ref ev_id) = event_id {
             let already_processed = self
                 .processed_event_repo
-                .check_and_record(ev_id, "com.rentagf.interaction.CreateChatRoom.v1")
+                .check_and_record(ev_id, "interaction.create-chat-room.v1")
                 .await?;
             if already_processed {
                 if let Some(existing) = self.repo.find_by_booking_id(&booking_id).await? {
@@ -66,7 +66,7 @@ impl ChatUseCases {
         if let Some(ref ev_id) = event_id {
             let already_processed = self
                 .processed_event_repo
-                .check_and_record(ev_id, "com.rentagf.booking.BookingCancelled.v1")
+                .check_and_record(ev_id, "booking.booking-cancelled.v1")
                 .await?;
             if already_processed {
                 return Ok(());
@@ -93,7 +93,7 @@ impl ChatUseCases {
         if let Some(ref ev_id) = event_id {
             let already_processed = self
                 .processed_event_repo
-                .check_and_record(ev_id, "com.rentagf.booking.BookingCompleted.v1")
+                .check_and_record(ev_id, "booking.booking-completed.v1")
                 .await?;
             if already_processed {
                 return Ok(());
@@ -246,7 +246,7 @@ mod tests {
             .expect_check_and_record()
             .with(
                 mockall::predicate::eq("event-xyz"),
-                mockall::predicate::eq("com.rentagf.interaction.CreateChatRoom.v1"),
+                mockall::predicate::eq("interaction.create-chat-room.v1"),
             )
             .times(1)
             .returning(|_, _| Ok(true));
@@ -355,7 +355,7 @@ mod tests {
             .expect_check_and_record()
             .with(
                 mockall::predicate::eq("event-xyz"),
-                mockall::predicate::eq("com.rentagf.booking.BookingCompleted.v1"),
+                mockall::predicate::eq("booking.booking-completed.v1"),
             )
             .times(1)
             .returning(|_, _| Ok(false));

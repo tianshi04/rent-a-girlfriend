@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   notification-db:
     image: postgres:15-alpine
@@ -16,7 +14,43 @@ services:
     networks:
       - smoke-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis-smoke
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - smoke-network
+
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: kafka-smoke
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://:9092,CONTROLLER://:9093'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - smoke-network
+
   notification-service:
+    image: ${NOTIFICATION_IMAGE:-rentagf/notification-service:smoke}
     build:
       context: ../../
       dockerfile: Dockerfile
@@ -25,14 +59,22 @@ services:
       - "8084:8084"
     environment:
       - SERVER_PORT=8084
-      - DB_URL=jdbc:postgresql://notification-db:5432/notification_db
+      - DB_HOST=notification-db
+      - DB_PORT=5432
+      - DB_NAME=notification_db
       - DB_USERNAME=postgres
       - DB_PASSWORD=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - TEMPLATES_PATH=classpath:templates.yaml
-      # Bypass Redis and Kafka by excluding their auto-configuration classes
-      - SPRING_AUTOCONFIGURE_EXCLUDE=org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration,org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+      - MANAGEMENT_HEALTH_MAIL_ENABLED=false
     depends_on:
       notification-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     networks:
       - smoke-network

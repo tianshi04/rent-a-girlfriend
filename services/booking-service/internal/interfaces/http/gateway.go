@@ -46,13 +46,6 @@ func NewGateway(
 	// Create standard root HTTP multiplexer
 	mux := http.NewServeMux()
 
-	// Health Check
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status": "ok", "service": "booking-service"}`))
-	})
-
 	// Apply any customized gateway options (e.g., custom routes, test routes)
 	for _, opt := range options {
 		if opt != nil {

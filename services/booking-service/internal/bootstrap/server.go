@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -31,6 +32,7 @@ type Server struct {
 	OutboxWorker         *messaging.OutboxWorker
 	AutoCompleteWorker   *worker.AutoCompleteWorker
 	PendingTimeoutWorker *worker.PendingTimeoutWorker
+	DbCleanupWorker      *worker.DbCleanupWorker
 	KafkaConsumer        *messaging.KafkaConsumer
 	KafkaPublisher       *messaging.KafkaPublisher
 	ProfileConn          *grpc.ClientConn
@@ -102,6 +104,13 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 		cfg.Worker.AutoCompleteInterval,
 	)
 
+	// --- DB Cleanup Worker ---
+	dbCleanupWorker := worker.NewDbCleanupWorker(
+		db,
+		cfg.Worker.CleanupInterval,
+		cfg.Worker.CleanupRetentionDays,
+	)
+
 	// --- SAGA Coordinator ---
 	sagaCoordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outboxPublisher)
 
@@ -120,9 +129,50 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 	getBookingHandler := query.NewGetBookingHandler(bookingRepo)
 	listBookingsHandler := query.NewListBookingsHandler(bookingRepo)
 
+	// --- Health check endpoints options ---
+	var gatewayOpts []router.GatewayOption
+
+	// 1. /health/live
+	gatewayOpts = append(gatewayOpts, router.WithAdditionalHandler("/health/live", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok","service":"booking-service"}`))
+	})))
+
+	// 2. /health/ready
+	gatewayOpts = append(gatewayOpts, router.WithAdditionalHandler("/health/ready", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		// 1. Ping DB Postgres
+		sqlDB, err := db.DB()
+		if err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"status": "error",
+				"reason": fmt.Sprintf("database client error: %v", err),
+			})
+			return
+		}
+
+		pingCtx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+
+		if err := sqlDB.PingContext(pingCtx); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"status": "error",
+				"reason": fmt.Sprintf("database connection error: %v", err),
+			})
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok","service":"booking-service"}`))
+	})))
+
 	// --- Router (gRPC Gateway) ---
 	grpcTargetAddr := "localhost:" + cfg.Server.GRPCPort
-	r, err := router.NewGateway(context.Background(), grpcTargetAddr)
+	r, err := router.NewGateway(context.Background(), grpcTargetAddr, gatewayOpts...)
 	if err != nil {
 		log.Fatalf("failed to initialize HTTP Gateway: %v", err)
 	}
@@ -150,6 +200,7 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 		OutboxWorker:         outboxWorker,
 		AutoCompleteWorker:   autoCompleteWorker,
 		PendingTimeoutWorker: pendingTimeoutWorker,
+		DbCleanupWorker:      dbCleanupWorker,
 		KafkaConsumer:        kafkaConsumer,
 		KafkaPublisher:       kafkaPublisher,
 		ProfileConn:          profileConn,
@@ -165,6 +216,12 @@ func (s *Server) Run(ctx context.Context, httpAddr, grpcAddr string) error {
 	go func() {
 		log.Println("[OUTBOX] Starting outbox polling worker...")
 		s.OutboxWorker.Start(ctx)
+	}()
+
+	// Start DB Cleanup Worker (background)
+	go func() {
+		log.Println("[DB-CLEANUP-WORKER] Starting database cleanup worker...")
+		s.DbCleanupWorker.Start(ctx)
 	}()
 
 	// Start Auto-Complete Worker (background)

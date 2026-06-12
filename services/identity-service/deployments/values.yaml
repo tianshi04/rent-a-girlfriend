@@ -8,7 +8,7 @@ namespace:
 replicaCount: 3
 
 image:
-  repository: your-registry/identity-service
+  repository: ghcr.io/viethung213/identity-service
   tag: latest
   pullPolicy: IfNotPresent
 
@@ -30,11 +30,14 @@ config:
   SERVER_PORT: "8080"
   GRPC_PORT: "50051"
   GIN_MODE: "release"
-  KAFKA_BROKERS: "kafka-1:9092,kafka-2:9092,kafka-3:9092"
+  KAFKA_BROKERS: "kafka-headless.kafka.svc.cluster.local:9092"
   KAFKA_TOPIC_IDENTITY: "identity-events"
   JWT_ISSUER: "rent-a-girlfriend-identity"
   OUTBOX_POLLING_INTERVAL_MS: "500"
   OUTBOX_BATCH_SIZE: "50"
+  ENABLE_TEST_ROUTES: "false"
+  JWT_ACCESS_TTL_MINUTES: "15"
+  JWT_REFRESH_TTL_DAYS: "7"
 
 secrets:
   DB_URL: ""
@@ -64,8 +67,16 @@ httpRoute:
     - /.well-known/jwks.json
     - /health
 
-  authorizationPolicy:
-    enabled: true
+grpcRoute:
+  enabled: true
+  hosts:
+    - "identity.example.com"
+  services:
+    - "identity.v1.IdentityService"
+
+authorizationPolicy:
+  enabled: true
+  principals: []
 
 podSecurityContext:
   runAsNonRoot: true
@@ -75,7 +86,16 @@ tolerations: []
 
 nodeSelector: {}
 
-affinity: {}
+affinity:
+  podAntiAffinity:
+    # [INV-HA01] Prefer spreading pods across distinct nodes to avoid single-node failure taking down all replicas.
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app: identity-service
+          topologyKey: kubernetes.io/hostname
 
 extraEnv: []
 

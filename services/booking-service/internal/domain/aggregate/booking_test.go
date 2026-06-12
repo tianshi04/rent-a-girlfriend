@@ -38,7 +38,7 @@ func TestNewBooking_Success(t *testing.T) {
 	if len(events) != 1 {
 		t.Fatalf("expected 1 event, got %d", len(events))
 	}
-	if events[0].EventType() != "com.rentagf.booking.BookingRequested.v1" {
+	if events[0].EventType() != "booking.booking-requested.v1" {
 		t.Errorf("expected BookingRequested event, got %s", events[0].EventType())
 	}
 }
@@ -188,7 +188,7 @@ func TestCancel_LateCancellation(t *testing.T) {
 	if len(events) != 1 {
 		t.Fatalf("expected 1 event, got %d", len(events))
 	}
-	if events[0].EventType() != "com.rentagf.booking.BookingCancelledLate.v1" {
+	if events[0].EventType() != "booking.booking-cancelled-late.v1" {
 		t.Errorf("expected BookingCancelledLate, got %s", events[0].EventType())
 	}
 }
@@ -213,7 +213,7 @@ func TestCancel_EarlyCancellation(t *testing.T) {
 	}
 
 	events := booking.Events()
-	if events[0].EventType() != "com.rentagf.booking.BookingCancelledEarly.v1" {
+	if events[0].EventType() != "booking.booking-cancelled-early.v1" {
 		t.Errorf("expected BookingCancelledEarly, got %s", events[0].EventType())
 	}
 }
@@ -239,7 +239,7 @@ func TestCancel_ClientEarly(t *testing.T) {
 	}
 
 	events := booking.Events()
-	if len(events) != 1 || events[0].EventType() != "com.rentagf.booking.BookingCancelledEarly.v1" {
+	if len(events) != 1 || events[0].EventType() != "booking.booking-cancelled-early.v1" {
 		t.Errorf("expected BookingCancelledEarly event, got %v", events)
 	}
 }
@@ -265,7 +265,7 @@ func TestCancel_ClientLate(t *testing.T) {
 	}
 
 	events := booking.Events()
-	if len(events) != 1 || events[0].EventType() != "com.rentagf.booking.BookingCancelledLate.v1" {
+	if len(events) != 1 || events[0].EventType() != "booking.booking-cancelled-late.v1" {
 		t.Errorf("expected BookingCancelledLate event, got %v", events)
 	}
 }
@@ -291,7 +291,7 @@ func TestCancel_CompanionEarly(t *testing.T) {
 	}
 
 	events := booking.Events()
-	if len(events) != 1 || events[0].EventType() != "com.rentagf.booking.BookingCancelledEarly.v1" {
+	if len(events) != 1 || events[0].EventType() != "booking.booking-cancelled-early.v1" {
 		t.Errorf("expected BookingCancelledEarly event, got %v", events)
 	}
 }
@@ -317,7 +317,7 @@ func TestCancel_CompanionLate(t *testing.T) {
 	}
 
 	events := booking.Events()
-	if len(events) != 1 || events[0].EventType() != "com.rentagf.booking.BookingCancelledLate.v1" {
+	if len(events) != 1 || events[0].EventType() != "booking.booking-cancelled-late.v1" {
 		t.Errorf("expected BookingCancelledLate event, got %v", events)
 	}
 }
@@ -342,7 +342,7 @@ func TestCancel_CancelPendingBooking(t *testing.T) {
 	}
 
 	events := booking.Events()
-	if len(events) != 1 || events[0].EventType() != "com.rentagf.booking.BookingCancelledEarly.v1" {
+	if len(events) != 1 || events[0].EventType() != "booking.booking-cancelled-early.v1" {
 		t.Errorf("expected BookingCancelledEarly event, got %v", events)
 	}
 }
@@ -384,7 +384,7 @@ func TestSystemComplete_Success(t *testing.T) {
 	}
 
 	events := booking.Events()
-	if len(events) != 1 || events[0].EventType() != "com.rentagf.booking.BookingCompleted.v1" {
+	if len(events) != 1 || events[0].EventType() != "booking.booking-completed.v1" {
 		t.Errorf("expected BookingCompleted event, got %v", events)
 	}
 }

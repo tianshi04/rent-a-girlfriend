@@ -1,0 +1,21 @@
+# Development environment overrides.
+# Applied on top of values.yaml: helm install ... -f values.yaml -f values.dev.yaml
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+hpa:
+  enabled: false
+
+config:
+  GIN_MODE: "debug"
+  ENABLE_TEST_ROUTES: "true"
+
+# No anti-affinity needed with a single replica.
+affinity: {}

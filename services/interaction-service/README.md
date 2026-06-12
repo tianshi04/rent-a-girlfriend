@@ -71,8 +71,8 @@ services/interaction-service/
 | `RUST_LOG` | Logger filter configuration | `info` |
 | `DATABASE_URL` | PostgreSQL connection URL string | `postgres://postgres:postgres@localhost:5432/interaction_service?sslmode=disable` |
 | `KAFKA_BROKERS` | Kafka connection string | `localhost:9092` |
-| `KAFKA_TOPIC_INTERACTION` | Kafka topic to publish events | `interaction-events` |
-| `KAFKA_TOPIC_BOOKING` | Kafka topic to consume booking events | `booking-events` |
+| `KAFKA_TOPIC_INTERACTION` | Kafka topic to publish events | `interaction.events` |
+| `KAFKA_TOPIC_BOOKING` | Kafka topic to consume booking events | `booking.events` |
 | `KAFKA_GROUP_ID` | Kafka consumer group ID | `interaction-service-group` |
 | `OUTBOX_POLLING_INTERVAL_MS` | Outbox worker poll frequency | `500` |
 | `OUTBOX_BATCH_SIZE` | Outbox processing batch size | `50` |
