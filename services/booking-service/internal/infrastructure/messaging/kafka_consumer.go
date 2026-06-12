@@ -24,7 +24,7 @@ type inboundEvent struct {
 }
 
 type bookingIDPayload struct {
-	BookingID string `json:"bookingId"`
+	BookingID string `json:"booking_id"`
 }
 
 // KafkaConsumer listens to finance-events and interaction-events topics and
@@ -147,12 +147,22 @@ func (c *KafkaConsumer) dispatch(ctx context.Context, msg kafka.Message) error {
 
 	var payload bookingIDPayload
 	if err := json.Unmarshal(ce.Data, &payload); err != nil {
-		log.Printf("[KAFKA-CONSUMER] Failed to parse bookingId from event type=%s: %v", ce.Type, err)
+		log.Printf("[KAFKA-CONSUMER] Failed to parse booking_id from event type=%s: %v", ce.Type, err)
 		return nil
 	}
 
 	bookingID := payload.BookingID
-	log.Printf("[KAFKA-CONSUMER] Routing event type=%s bookingId=%s", ce.Type, bookingID)
+	if bookingID == "" {
+		log.Printf("[KAFKA-CONSUMER] Missing booking_id in event type=%s, skipping", ce.Type)
+		return nil
+	}
+
+	if _, err := vo.BookingIDFromString(bookingID); err != nil {
+		log.Printf("[KAFKA-CONSUMER] Invalid booking UUID '%s' in event type=%s, skipping: %v", bookingID, ce.Type, err)
+		return nil
+	}
+
+	log.Printf("[KAFKA-CONSUMER] Routing event type=%s booking_id=%s", ce.Type, bookingID)
 
 	switch ce.Type {
 	// Finance events
