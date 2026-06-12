@@ -26,7 +26,7 @@ type cloudEvent struct {
 }
 
 type bookingPayload struct {
-	BookingID string `json:"bookingId"`
+	BookingID string `json:"booking_id"`
 }
 
 // Payload structs for commands from Booking Service

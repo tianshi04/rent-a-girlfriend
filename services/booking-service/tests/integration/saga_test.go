@@ -34,7 +34,7 @@ func publishTestKafkaEvent(t *testing.T, brokers []string, topic string, eventID
 		"type":        eventType,
 		"time":        time.Now().Format(time.RFC3339),
 		"data": map[string]interface{}{
-			"bookingId": bookingID,
+			"booking_id": bookingID,
 		},
 	}
 
