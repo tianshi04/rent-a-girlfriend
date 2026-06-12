@@ -10,6 +10,7 @@ from internal.infrastructure.persistence import (
     DisputeRepository,
     SagaStateRepository,
 )
+from internal.infrastructure.persistence.db_cleanup_worker import DbCleanupWorker
 from internal.infrastructure.broker import (
     DatabaseEventPublisher,
     OutboxPublisherWorker,
@@ -54,6 +55,10 @@ class Settings(BaseSettings):
     USE_MOCKS: bool = True
     FINANCE_SERVICE_ADDR: str = "localhost:50052"
     INTERACTION_SERVICE_ADDR: str = "localhost:50053"
+
+    DB_CLEANUP_INTERVAL_MINUTES: int = 30
+    PROCESSED_EVENTS_RETENTION_DAYS: int = 7
+    OUTBOX_RETENTION_DAYS: int = 1
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -156,11 +161,17 @@ async def get_query_service(services=Depends(get_services)) -> DisputeQueryServi
 
 
 # --- Workers & Consumers Setup ---
+db_cleanup_worker = DbCleanupWorker(
+    session_factory=SessionLocal,
+    cleanup_interval_minutes=settings.DB_CLEANUP_INTERVAL_MINUTES,
+    processed_events_retention_days=settings.PROCESSED_EVENTS_RETENTION_DAYS,
+    outbox_retention_days=settings.OUTBOX_RETENTION_DAYS,
+)
+
 saga_retry_worker = SagaRetryWorker(
     session_factory=SessionLocal,
     polling_interval_seconds=settings.SAGA_RETRY_INTERVAL_SECONDS,
 )
-
 
 outbox_worker = OutboxPublisherWorker(
     session_factory=SessionLocal,

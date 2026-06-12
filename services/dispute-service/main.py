@@ -11,6 +11,7 @@ from internal.bootstrap import (
     outbox_worker,
     saga_retry_worker,
     event_consumer,
+    db_cleanup_worker,
     app,
     init_db,
 )
@@ -97,6 +98,12 @@ async def main():
     except Exception as e:
         logger.warning(f"Event Consumer failed to start: {e}.")
 
+    # Start Database Cleanup Worker
+    try:
+        await db_cleanup_worker.start()
+    except Exception as e:
+        logger.warning(f"Database Cleanup Worker failed to start: {e}.")
+
     # Concurrently execute gRPC Server and FastAPI Server
     try:
         await asyncio.gather(
@@ -107,6 +114,7 @@ async def main():
         await outbox_worker.stop()
         await saga_retry_worker.stop()
         await event_consumer.stop()
+        await db_cleanup_worker.stop()
         logger.info("Server successfully stopped.")
 
 
