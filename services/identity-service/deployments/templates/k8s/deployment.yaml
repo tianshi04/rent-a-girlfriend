@@ -20,6 +20,9 @@ spec:
     metadata:
       labels:
         app: {{ include "identity-service.fullname" . }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/k8s/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/k8s/secret.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ include "identity-service.fullname" . }}
       securityContext:
@@ -29,6 +32,37 @@ spec:
       tolerations:{{ toYaml .Values.tolerations | nindent 8 }}
       affinity:{{ toYaml .Values.affinity | nindent 8 }}
       terminationGracePeriodSeconds: 30
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:15-alpine
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waking up Neon DB and waiting for it to be ready..."
+              until pg_isready -d "${DB_URL:-$DATABASE_URL}"; do
+                echo "Waiting for PostgreSQL to start..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+          envFrom:
+            - secretRef:
+                name: {{ include "identity-service.fullname" . }}-secrets
+        - name: wait-for-redis
+          image: redis:7-alpine
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for Redis to be ready..."
+              until redis-cli -u "$REDIS_URL" ping; do
+                echo "Waiting for Redis..."
+                sleep 2
+              done
+              echo "Redis is ready!"
+          envFrom:
+            - secretRef:
+                name: {{ include "identity-service.fullname" . }}-secrets
       containers:
         - name: identity-service
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -38,6 +72,10 @@ spec:
               name: http
             - containerPort: {{ .Values.service.ports.grpc }}
               name: grpc
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
           envFrom:
             - configMapRef:
                 name: {{ include "identity-service.fullname" . }}-config
@@ -73,7 +111,7 @@ spec:
               path: /health/ready
               port: http
               scheme: HTTP
-            initialDelaySeconds: 10
+            initialDelaySeconds: 1
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
