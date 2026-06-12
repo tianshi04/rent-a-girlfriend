@@ -80,8 +80,8 @@ func LoadConfig() *Config {
 	outboxBatchSize, _ := strconv.ParseInt(getEnv("OUTBOX_BATCH_SIZE", "50"), 10, 64)
 	autoCompleteIntervalMs, _ := strconv.ParseInt(getEnv("AUTO_COMPLETE_INTERVAL_MS", "10000"), 10, 64) // default 10s
 	autoCompleteBufferHours, _ := strconv.ParseInt(getEnv("AUTO_COMPLETE_BUFFER_HOURS", "12"), 10, 64)  // default 12h
-	cleanupIntervalMin, _ := strconv.ParseInt(getEnv("CLEANUP_INTERVAL_MINUTES", "60"), 10, 64)          // default 60m
-	cleanupRetentionDays, _ := strconv.ParseInt(getEnv("CLEANUP_RETENTION_DAYS", "30"), 10, 64)          // default 30d
+	cleanupIntervalMin, _ := strconv.ParseInt(getEnv("CLEANUP_INTERVAL_MINUTES", "60"), 10, 64)         // default 60m
+	cleanupRetentionDays, _ := strconv.ParseInt(getEnv("CLEANUP_RETENTION_DAYS", "30"), 10, 64)         // default 30d
 
 	return &Config{
 		Server: ServerConfig{
