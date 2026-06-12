@@ -42,7 +42,7 @@ func NewSagaCoordinator(
 // Saga: WAITING_FOR_ESCROW -> WAITING_FOR_CHAT. Writes CreateChatRoomCommand to outbox.
 func (c *SagaCoordinator) HandleEscrowSuccess(ctx context.Context, bookingID string, eventID string) error {
 	return c.withTx(ctx, func(txCtx context.Context) error {
-		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "finance.coin-escrowed.v1")
+		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "finance.escrow-created.v1")
 		if err != nil {
 			return err
 		}
@@ -219,7 +219,7 @@ func (c *SagaCoordinator) HandleChatRoomFailed(ctx context.Context, bookingID st
 // Saga: REVERTING_ESCROW -> FAILED_TECHNICAL. Booking -> CANCELLED.
 func (c *SagaCoordinator) HandleRefundSuccess(ctx context.Context, bookingID string, eventID string) error {
 	return c.withTx(ctx, func(txCtx context.Context) error {
-		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "finance.refund-success.v1")
+		alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, c.db, eventID, "finance.escrow-refunded.v1")
 		if err != nil {
 			return err
 		}

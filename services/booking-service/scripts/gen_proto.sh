@@ -57,6 +57,14 @@ financeProtos=(
     "finance/v1/messages/process_payout_request.proto"
     "finance/v1/messages/refund_escrow_request.proto"
     "finance/v1/messages/transfer_to_escrow_request.proto"
+    "finance/v1/events/coins_frozen.proto"
+    "finance/v1/events/coins_unfrozen.proto"
+    "finance/v1/events/escrow_created.proto"
+    "finance/v1/events/escrow_failed.proto"
+    "finance/v1/events/escrow_refunded.proto"
+    "finance/v1/events/refund_failed.proto"
+    "finance/v1/events/payout_processed.proto"
+    "finance/v1/events/wallet_topped_up.proto"
 )
 
 profileProtos=(
@@ -77,7 +85,17 @@ profileProtos=(
     "profile/v1/messages/media_command_response.proto"
 )
 
-protoFiles=("${bookingProtos[@]}" "${financeProtos[@]}" "${profileProtos[@]}")
+interactionProtos=(
+    "interaction/v1/events/chat_room_created.proto"
+    "interaction/v1/events/chat_room_creation_failed.proto"
+)
+
+disputeProtos=(
+    "dispute/v1/events/dispute_created.proto"
+    "dispute/v1/events/dispute_resolved.proto"
+)
+
+protoFiles=("${bookingProtos[@]}" "${financeProtos[@]}" "${profileProtos[@]}" "${interactionProtos[@]}" "${disputeProtos[@]}")
 
 fullPaths=()
 for f in "${protoFiles[@]}"; do
@@ -88,13 +106,23 @@ go_opts=(--go_opt=module="$module" --go_opt="Mcommon/v1/enums.proto=github.com/r
 go_grpc_opts=(--go-grpc_opt=module="$module" --go-grpc_opt="Mcommon/v1/enums.proto=github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1")
 
 for f in "${financeProtos[@]}"; do
-    go_opts+=(--go_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/financev1")
-    go_grpc_opts+=(--go-grpc_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/financev1")
+    go_opts+=(--go_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/financev1;financev1")
+    go_grpc_opts+=(--go-grpc_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/financev1;financev1")
 done
 
 for f in "${profileProtos[@]}"; do
-    go_opts+=(--go_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/profilev1")
-    go_grpc_opts+=(--go-grpc_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/profilev1")
+    go_opts+=(--go_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/profilev1;profilev1")
+    go_grpc_opts+=(--go-grpc_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/profilev1;profilev1")
+done
+
+for f in "${interactionProtos[@]}"; do
+    go_opts+=(--go_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/interactionv1;interactionv1")
+    go_grpc_opts+=(--go-grpc_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/interactionv1;interactionv1")
+done
+
+for f in "${disputeProtos[@]}"; do
+    go_opts+=(--go_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/disputev1;disputev1")
+    go_grpc_opts+=(--go-grpc_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/disputev1;disputev1")
 done
 
 # 1. Sinh gRPC code

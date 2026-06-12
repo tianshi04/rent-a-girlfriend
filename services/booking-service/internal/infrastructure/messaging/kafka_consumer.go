@@ -8,8 +8,12 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"google.golang.org/protobuf/encoding/protojson"
 	"gorm.io/gorm"
 
+	"github.com/rent-a-girlfriend/booking-service/gen/proto/disputev1"
+	"github.com/rent-a-girlfriend/booking-service/gen/proto/financev1"
+	"github.com/rent-a-girlfriend/booking-service/gen/proto/interactionv1"
 	"github.com/rent-a-girlfriend/booking-service/internal/application/command"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
 	"github.com/rent-a-girlfriend/booking-service/internal/infrastructure/persistence"
@@ -21,10 +25,6 @@ type inboundEvent struct {
 	ID          string          `json:"id"`
 	Type        string          `json:"type"`
 	Data        json.RawMessage `json:"data"`
-}
-
-type bookingIDPayload struct {
-	BookingID string `json:"bookingId"`
 }
 
 // KafkaConsumer listens to finance-events and interaction-events topics and
@@ -145,31 +145,81 @@ func (c *KafkaConsumer) dispatch(ctx context.Context, msg kafka.Message) error {
 		return nil // skip malformed messages
 	}
 
-	var payload bookingIDPayload
-	if err := json.Unmarshal(ce.Data, &payload); err != nil {
-		log.Printf("[KAFKA-CONSUMER] Failed to parse bookingId from event type=%s: %v", ce.Type, err)
+	var bookingID string
+	var err error
+
+	switch ce.Type {
+	case "finance.coin-escrowed.v1", "finance.escrow-created.v1":
+		var evt financev1.EscrowCreated
+		if err = protojson.Unmarshal(ce.Data, &evt); err == nil {
+			bookingID = evt.GetBookingId()
+		}
+	case "finance.escrow-failed.v1":
+		var evt financev1.EscrowFailed
+		if err = protojson.Unmarshal(ce.Data, &evt); err == nil {
+			bookingID = evt.GetBookingId()
+		}
+	case "finance.refund-success.v1", "finance.escrow-refunded.v1":
+		var evt financev1.EscrowRefunded
+		if err = protojson.Unmarshal(ce.Data, &evt); err == nil {
+			bookingID = evt.GetBookingId()
+		}
+	case "finance.refund-failed.v1":
+		var evt financev1.RefundFailed
+		if err = protojson.Unmarshal(ce.Data, &evt); err == nil {
+			bookingID = evt.GetBookingId()
+		}
+	case "interaction.chat-room-created.v1":
+		var evt interactionv1.ChatRoomCreated
+		if err = protojson.Unmarshal(ce.Data, &evt); err == nil {
+			bookingID = evt.GetBookingId()
+		}
+	case "interaction.chat-room-creation-failed.v1":
+		var evt interactionv1.ChatRoomCreationFailed
+		if err = protojson.Unmarshal(ce.Data, &evt); err == nil {
+			bookingID = evt.GetBookingId()
+		}
+	case "dispute.dispute-created.v1":
+		var evt disputev1.DisputeCreated
+		if err = protojson.Unmarshal(ce.Data, &evt); err == nil {
+			bookingID = evt.GetBookingId()
+		}
+	case "dispute.dispute-resolved.v1":
+		var evt disputev1.DisputeResolved
+		if err = protojson.Unmarshal(ce.Data, &evt); err == nil {
+			bookingID = evt.GetBookingId()
+		}
+	default:
+		log.Printf("[KAFKA-CONSUMER] Unrecognised event type=%s, ignoring", ce.Type)
 		return nil
 	}
 
-	bookingID := payload.BookingID
+	if err != nil {
+		log.Printf("[KAFKA-CONSUMER] Failed to parse event type=%s payload: %v", ce.Type, err)
+		return nil
+	}
+
+	// UUID validation to avoid poison pill panic
+	if _, err := vo.BookingIDFromString(bookingID); err != nil {
+		log.Printf("[KAFKA-CONSUMER] Warning: skipped event id=%s type=%s with invalid booking_id '%s'", ce.ID, ce.Type, bookingID)
+		return nil
+	}
+
 	log.Printf("[KAFKA-CONSUMER] Routing event type=%s bookingId=%s", ce.Type, bookingID)
 
 	switch ce.Type {
-	// Finance events
-	case "finance.coin-escrowed.v1":
+	case "finance.coin-escrowed.v1", "finance.escrow-created.v1":
 		return c.coordinators.HandleEscrowSuccess(ctx, bookingID, ce.ID)
 	case "finance.escrow-failed.v1":
 		return c.coordinators.HandleEscrowFailed(ctx, bookingID, ce.ID)
-	case "finance.refund-success.v1":
+	case "finance.refund-success.v1", "finance.escrow-refunded.v1":
 		return c.coordinators.HandleRefundSuccess(ctx, bookingID, ce.ID)
 	case "finance.refund-failed.v1":
 		return c.coordinators.HandleRefundFailed(ctx, bookingID, ce.ID)
-	// Interaction events
 	case "interaction.chat-room-created.v1":
 		return c.coordinators.HandleChatRoomCreated(ctx, bookingID, ce.ID)
 	case "interaction.chat-room-creation-failed.v1":
 		return c.coordinators.HandleChatRoomFailed(ctx, bookingID, ce.ID)
-	// Dispute events
 	case "dispute.dispute-created.v1":
 		err := c.db.Transaction(func(tx *gorm.DB) error {
 			txCtx := context.WithValue(ctx, vo.TxKey, tx)
@@ -200,8 +250,6 @@ func (c *KafkaConsumer) dispatch(ctx context.Context, msg kafka.Message) error {
 			return err
 		})
 		return err
-	default:
-		log.Printf("[KAFKA-CONSUMER] Unrecognised event type=%s, ignoring", ce.Type)
 	}
 	return nil
 }

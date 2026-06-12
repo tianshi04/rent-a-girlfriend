@@ -132,7 +132,7 @@ func TestSagaLifecycle_E2E_Kafka(t *testing.T) {
 
 	// 5. Emit CoinEscrowed from Finance Service mock
 	event1ID := uuid.New().String()
-	publishTestKafkaEvent(t, []string{kafkaBrokers}, financeTopic, event1ID, "finance.coin-escrowed.v1", bid.String())
+	publishTestKafkaEvent(t, []string{kafkaBrokers}, financeTopic, event1ID, "finance.escrow-created.v1", bid.String())
 
 	// 6. Assert Saga state updates to WAITING_FOR_CHAT in DB
 	err = pollDatabaseAssertion(50, 200*time.Millisecond, func() error {
