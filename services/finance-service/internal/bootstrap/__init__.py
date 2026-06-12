@@ -12,6 +12,7 @@ from internal.infrastructure.persistence import (
 )
 from internal.infrastructure.payment.vnpay import VNPayAdapter
 from internal.infrastructure.broker import DatabaseEventPublisher, OutboxPublisherWorker
+from internal.infrastructure.persistence.db_cleanup_worker import DbCleanupWorker
 from internal.application.command.finance import FinanceCommandService
 
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +42,9 @@ class Settings(BaseSettings):
 
     OUTBOX_POLLING_INTERVAL_MS: int = 500
     OUTBOX_BATCH_SIZE: int = 50
+
+    DB_CLEANUP_INTERVAL_MINUTES: int = 30
+    OUTBOX_RETENTION_DAYS: int = 1
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -129,7 +133,13 @@ async def get_finance_cmd(
     return bootstrap_services(db)
 
 
-# --- Outbox Worker Setup ---
+# --- Outbox & Cleanup Workers Setup ---
+db_cleanup_worker = DbCleanupWorker(
+    session_factory=SessionLocal,
+    cleanup_interval_minutes=settings.DB_CLEANUP_INTERVAL_MINUTES,
+    outbox_retention_days=settings.OUTBOX_RETENTION_DAYS,
+)
+
 outbox_worker = OutboxPublisherWorker(
     session_factory=SessionLocal,
     kafka_brokers=settings.KAFKA_BROKERS,
