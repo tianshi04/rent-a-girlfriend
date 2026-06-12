@@ -31,6 +31,7 @@ type Server struct {
 	OutboxWorker         *messaging.OutboxWorker
 	AutoCompleteWorker   *worker.AutoCompleteWorker
 	PendingTimeoutWorker *worker.PendingTimeoutWorker
+	DbCleanupWorker      *worker.DbCleanupWorker
 	KafkaConsumer        *messaging.KafkaConsumer
 	KafkaPublisher       *messaging.KafkaPublisher
 	ProfileConn          *grpc.ClientConn
@@ -102,6 +103,13 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 		cfg.Worker.AutoCompleteInterval,
 	)
 
+	// --- DB Cleanup Worker ---
+	dbCleanupWorker := worker.NewDbCleanupWorker(
+		db,
+		cfg.Worker.CleanupInterval,
+		cfg.Worker.CleanupRetentionDays,
+	)
+
 	// --- SAGA Coordinator ---
 	sagaCoordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outboxPublisher)
 
@@ -150,6 +158,7 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 		OutboxWorker:         outboxWorker,
 		AutoCompleteWorker:   autoCompleteWorker,
 		PendingTimeoutWorker: pendingTimeoutWorker,
+		DbCleanupWorker:      dbCleanupWorker,
 		KafkaConsumer:        kafkaConsumer,
 		KafkaPublisher:       kafkaPublisher,
 		ProfileConn:          profileConn,
@@ -165,6 +174,12 @@ func (s *Server) Run(ctx context.Context, httpAddr, grpcAddr string) error {
 	go func() {
 		log.Println("[OUTBOX] Starting outbox polling worker...")
 		s.OutboxWorker.Start(ctx)
+	}()
+
+	// Start DB Cleanup Worker (background)
+	go func() {
+		log.Println("[DB-CLEANUP-WORKER] Starting database cleanup worker...")
+		s.DbCleanupWorker.Start(ctx)
 	}()
 
 	// Start Auto-Complete Worker (background)
