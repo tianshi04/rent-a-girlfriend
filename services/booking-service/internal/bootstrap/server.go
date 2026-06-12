@@ -159,22 +159,6 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 			return
 		}
 
-		// 2. Ping Kafka Broker
-		brokerList := strings.Split(cfg.Kafka.Brokers, ",")
-		if len(brokerList) > 0 && brokerList[0] != "" {
-			var dialer net.Dialer
-			conn, err := dialer.DialContext(pingCtx, "tcp", strings.TrimSpace(brokerList[0]))
-			if err != nil {
-				w.WriteHeader(http.StatusServiceUnavailable)
-				_ = json.NewEncoder(w).Encode(map[string]string{
-					"status": "error",
-					"reason": fmt.Sprintf("kafka broker connection error: %v", err),
-				})
-				return
-			}
-			_ = conn.Close()
-		}
-
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"status":"ok","service":"booking-service"}`))
 	})))
