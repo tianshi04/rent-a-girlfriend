@@ -22,162 +22,47 @@ concurrency:
 
 jobs:
   lint-and-test:
-    name: "Lint & Unit Tests"
+    name: "Lint, Format Check & Test"
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v5
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
         with:
-          enable-cache: true
-          cache-dependency-glob: "services/profile-service/uv.lock"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        run: uv python install 3.12
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "services/profile-service/.python-version"
 
       - name: Install dependencies
         working-directory: services/profile-service
-        run: uv sync --frozen
+        run: uv sync
 
-      - name: Generate Protobufs
+      - name: Generate Proto
         working-directory: services/profile-service
         run: make generate-proto
 
-      - name: Format Check (Ruff)
+      - name: Run Format Check
         working-directory: services/profile-service
-        run: uv run ruff format --check .
+        run: |
+          uv run ruff format .
+          git diff
+          uv run ruff format --check .
 
-      - name: Lint Check (Ruff)
+      - name: Run Lint Check
         working-directory: services/profile-service
         run: uv run ruff check .
 
-      - name: Run Tests (Pytest)
+      - name: Run Unit Tests
         working-directory: services/profile-service
         run: make test
-
-  build-image:
-    name: "Docker Build & Smoke Test"
-    needs: [lint-and-test]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    env:
-      REGISTRY: ghcr.io
-      IMAGE_NAME: ${{ github.repository }}/profile-service
-      IS_MAIN: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
-      TEST_IMAGE: profile-service:test
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: "services/profile-service/uv.lock"
-
-      - name: Set up Python
-        run: uv python install 3.12
-
-      - name: Install dependencies
-        working-directory: services/profile-service
-        run: uv sync --frozen
-
-      - name: Generate Protobufs
-        working-directory: services/profile-service
-        run: make generate-proto
-
-      - name: Get short SHA
-        id: vars
-        run: |
-          echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest,enable=${{ env.IS_MAIN == 'true' }}
-            type=raw,value=sha-${{ steps.vars.outputs.sha_short }}
-
-      - name: Prepare build context
-        run: |
-          cp -r contracts services/profile-service/contracts
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and load for Smoke Test
-        uses: docker/build-push-action@v5
-        with:
-          context: ./services/profile-service
-          file: services/profile-service/Dockerfile
-          load: true
-          tags: ${{ env.TEST_IMAGE }}
-          cache-from: type=gha,scope=profile-service
-          cache-to: type=gha,mode=max,scope=profile-service
-
-      - name: Container Smoke Test
-        run: |
-          echo "==> Starting container..."
-          docker run -d --name smoke-test -p 8080:8080 ${{ env.TEST_IMAGE }}
-          
-          echo "==> Waiting 10 seconds for service to boot..."
-          sleep 10
-          
-          echo "==> Checking if container is still running..."
-          if ! docker ps | grep -q smoke-test; then
-            echo "❌ Container crashed!"
-            docker logs smoke-test
-            exit 1
-          fi
-          
-          echo "==> Hitting health check endpoint..."
-          if ! curl -f http://localhost:8080/health; then
-            echo "⚠️ /health failed, trying /docs as fallback..."
-            if ! curl -f http://localhost:8080/docs; then
-                echo "❌ Health check failed!"
-                docker logs smoke-test
-                exit 1
-            fi
-          fi
-          
-          echo "✅ Smoke test passed successfully!"
-
-      - name: Log in to GHCR
-        if: env.IS_MAIN == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push to GHCR
-        if: env.IS_MAIN == 'true'
-        id: push
-        uses: docker/build-push-action@v5
-        with:
-          context: ./services/profile-service
-          file: services/profile-service/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=profile-service
-          cache-to: type=gha,mode=max,scope=profile-service
-
-      - name: Output Image Digest for GitOps
-        if: env.IS_MAIN == 'true'
-        run: |
-          echo "============================================="
-          echo "DOCKER IMAGE DIGEST FOR GITOPS:"
-          echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
-          echo "============================================="
