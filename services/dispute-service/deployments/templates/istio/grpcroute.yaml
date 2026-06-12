@@ -1,0 +1,21 @@
+{{- if .Values.grpcRoute.enabled }}
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: GRPCRoute
+metadata:
+  name: {{ include "dispute-service.fullname" . }}-grpcroute
+  labels:
+    {{- include "dispute-service.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ include "dispute-service.fullname" . }}
+      kind: Service
+      group: ""
+      port: 50051
+  rules:
+    - matches:
+        - method:
+            service: dispute.v1.DisputeService
+      backendRefs:
+        - name: {{ include "dispute-service.fullname" . }}
+          port: 50051
+{{- end }}
