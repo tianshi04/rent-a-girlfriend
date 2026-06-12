@@ -1,0 +1,90 @@
+namespace:
+  create: true
+  labels:
+    team: backend
+    purpose: booking-management
+    service: booking-service
+  istio:
+    # Set to false in dev/local environments to skip Istio Ambient injection
+    ambientEnabled: true
+
+replicaCount: 3
+
+image:
+  repository: your-registry/booking-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  ports:
+    http: 8080
+    grpc: 50051
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+config:
+  SERVER_PORT: "8080"
+  GRPC_PORT: "50051"
+  GIN_MODE: "release"
+  KAFKA_BROKERS: "kafka-headless.kafka.svc.cluster.local:9092"
+  KAFKA_TOPIC_BOOKING: "booking.events"
+  KAFKA_TOPIC_FINANCE: "finance.events"
+  KAFKA_TOPIC_INTERACTION: "interaction.events"
+  KAFKA_TOPIC_DISPUTE: "dispute.events"
+  OUTBOX_POLLING_INTERVAL_MS: "500"
+  OUTBOX_BATCH_SIZE: "50"
+
+secrets:
+  # Do NOT set values here. Inject via CI/CD:
+  #   helm upgrade ... -f values.secret.yaml
+  #   or: helm upgrade ... --set secrets.DATABASE_URL=$DATABASE_URL
+  DATABASE_URL: ""
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+gateway:
+  enabled: false
+  hostname: "booking.com"
+  tls:
+    certificateName: "booking-service-tls"
+
+httpRoute:
+  enabled: true
+  hosts:
+    - "booking.com"
+  paths:
+    - /api/v1
+    - /health
+
+grpcRoute:
+  enabled: true
+  hosts:
+    - "booking.com"
+  services:
+    - "booking.v1.BookingService"
+
+authorizationPolicy:
+  enabled: true
+  principals: []
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+
+tolerations: []
+nodeSelector: {}
+affinity: {}
+extraEnv: []
+extraVolumeMounts: []
+extraVolumes: []
