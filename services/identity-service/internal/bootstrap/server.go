@@ -25,12 +25,14 @@ import (
 	grpchandler "github.com/rent-a-girlfriend/identity-service/internal/interfaces/grpc/handler"
 	grpcinterceptor "github.com/rent-a-girlfriend/identity-service/internal/interfaces/grpc/interceptor"
 	gateway "github.com/rent-a-girlfriend/identity-service/internal/interfaces/http"
+	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/worker"
 )
 
 // Server holds all wired dependencies.
 type Server struct {
 	GRPCServer       *grpc.Server
 	outboxWorker     *messaging.OutboxWorker
+	dbCleanupWorker  *worker.DbCleanupWorker
 	kafkaAdapter     *messaging.KafkaAdapter
 	getJWKSHandler   *query.GetJWKSHandler
 	mockLoginHandler *command.MockLoginHandler
@@ -84,6 +86,13 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 		)
 	}
 
+	// --- DB Cleanup Worker ---
+	dbCleanupWorker := worker.NewDbCleanupWorker(
+		db,
+		cfg.Worker.CleanupInterval,
+		cfg.Worker.CleanupRetentionDays,
+	)
+
 	lockPolicy := service.NewAccountLockPolicyService(configRepo)
 
 	initGoogleAuthHandler := command.NewInitGoogleAuthHandler(googleOAuth, pkceStore)
@@ -131,6 +140,7 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 	return &Server{
 		GRPCServer:       gServer,
 		outboxWorker:     outboxWorker,
+		dbCleanupWorker:  dbCleanupWorker,
 		kafkaAdapter:     kafkaAdapter,
 		getJWKSHandler:   getJWKSHandler,
 		mockLoginHandler: mockLoginHandler,
@@ -150,6 +160,13 @@ func (s *Server) Run(ctx context.Context, httpAddr, grpcAddr string) error {
 		}()
 	} else {
 		log.Println("[BOOTSTRAP] Outbox Worker is disabled")
+	}
+
+	// Start DB Cleanup Worker
+	if s.dbCleanupWorker != nil {
+		go func() {
+			s.dbCleanupWorker.Start(ctx)
+		}()
 	}
 
 	// Start gRPC server
