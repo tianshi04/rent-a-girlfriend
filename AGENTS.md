@@ -110,4 +110,5 @@
   - **Asynchronous**: CloudEvents JSON format.
     - **Event Type Naming Rule**: `<domain>.<event-name>.v<version>` (where `<domain>` is lowercase, `<event-name>` is in `kebab-case`, e.g., `booking.booking-accepted.v1`).
     - **Topic Naming Rule**: `<domain>.events` (all lowercase, e.g., `booking.events`).
+    - **Casing Standard**: All JSON fields (inside CloudEvents `data` payload and REST APIs) must strictly use **`camelCase`** to align with the Google Protobuf JSON Mapping specification.
 
