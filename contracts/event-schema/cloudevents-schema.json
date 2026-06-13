@@ -426,7 +426,9 @@
         "disputeId",
         "bookingId",
         "resolution",
-        "resolvedBy"
+        "resolvedBy",
+        "reporterId",
+        "accusedId"
       ],
       "description": "Emitted by Dispute Service when Admin resolves a dispute. Booking Service listens to finalize booking state. Finance Service listens for Payout or Refund.",
       "properties": {
@@ -443,11 +445,20 @@
           "format": "uuid",
           "description": "Admin user ID."
         },
+        "reporterId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accusedId": {
+          "type": "string",
+          "format": "uuid"
+        },
         "resolution": {
           "type": "string",
           "enum": [
             "PAYOUT_COMPANION",
-            "REFUND_CLIENT"
+            "REFUND_CLIENT",
+            "REJECT"
           ],
           "description": "PAYOUT_COMPANION: booking → COMPLETED, review stays VISIBLE (BR-08b). REFUND_CLIENT: booking → CANCELLED, review → HIDDEN (BR-08a)."
         }
