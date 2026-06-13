@@ -91,7 +91,7 @@ class OutboxPublisherWorker:
                     cloudevent = {
                         "specversion": "1.0",
                         "id": event.event_id,
-                        "source": f"/rent-a-gf/dispute-service/{payload.get('dispute_id') or payload.get('booking_id')}",
+                        "source": f"/rent-a-gf/dispute-service/{payload.get('disputeId') or payload.get('bookingId')}",
                         "type": event.event_type,
                         "datacontenttype": "application/json",
                         "time": event.created_at.isoformat()
@@ -99,7 +99,7 @@ class OutboxPublisherWorker:
                         else datetime.now(timezone.utc).isoformat(),
                         "data": payload,
                         "extensions": {
-                            "correlationId": payload.get("event_id", event.event_id)
+                            "correlationId": payload.get("eventId", event.event_id)
                         },
                     }
 
@@ -107,7 +107,7 @@ class OutboxPublisherWorker:
                     if self.producer:
                         await self.producer.send_and_wait(
                             topic=self.topic,
-                            key=bytes(payload.get("dispute_id", ""), "utf-8"),
+                            key=bytes(payload.get("disputeId", ""), "utf-8"),
                             value=cloudevent,
                         )
 

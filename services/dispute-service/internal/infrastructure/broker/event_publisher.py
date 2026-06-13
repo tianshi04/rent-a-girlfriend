@@ -28,7 +28,7 @@ class DatabaseEventPublisher(IEventPublisher):
 
         # Strictly generate JSON payload based on proto contract
         payload_dict = MessageToDict(
-            proto_msg, preserving_proto_field_name=True, use_integers_for_enums=True
+            proto_msg, preserving_proto_field_name=False, use_integers_for_enums=True
         )
 
         event_id = str(uuid.uuid4())
