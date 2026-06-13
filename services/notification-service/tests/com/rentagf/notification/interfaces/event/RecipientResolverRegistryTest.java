@@ -65,19 +65,19 @@ public class RecipientResolverRegistryTest {
 
   @Test
   public void testDisputeResolvedResolvesToBothParties() {
-    UUID clientId = UUID.randomUUID();
-    UUID companionId = UUID.randomUUID();
+    UUID reporterId = UUID.randomUUID();
+    UUID accusedId = UUID.randomUUID();
 
     Map<String, Object> data =
         Map.of(
-            "clientId", clientId.toString(),
-            "companionId", companionId.toString());
+            "reporterId", reporterId.toString(),
+            "accusedId", accusedId.toString());
 
     List<UUID> recipients = registry.resolve("dispute.dispute-resolved.v1", data, null);
 
     assertEquals(2, recipients.size());
-    assertTrue(recipients.contains(clientId));
-    assertTrue(recipients.contains(companionId));
+    assertTrue(recipients.contains(reporterId));
+    assertTrue(recipients.contains(accusedId));
   }
 
   @Test

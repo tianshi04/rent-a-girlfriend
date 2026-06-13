@@ -18,7 +18,7 @@ public class DisputeResolvedResolver implements RecipientResolver {
 
   // Payload cục bộ chỉ dùng để parse an toàn trong class này, bỏ qua các trường không cần thiết
   @JsonIgnoreProperties(ignoreUnknown = true)
-  private record DisputeResolvedPayload(String clientId, String companionId) {}
+  private record DisputeResolvedPayload(String reporterId, String accusedId) {}
 
   public DisputeResolvedResolver(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
@@ -30,13 +30,13 @@ public class DisputeResolvedResolver implements RecipientResolver {
       DisputeResolvedPayload payload =
           objectMapper.convertValue(eventData, DisputeResolvedPayload.class);
 
-      if (payload.clientId() == null || payload.companionId() == null) {
+      if (payload.reporterId() == null || payload.accusedId() == null) {
         throw new IllegalArgumentException(
-            "Missing required fields (clientId, companionId) in DisputeResolved payload");
+            "Missing required fields (reporterId, accusedId) in DisputeResolved payload");
       }
 
       // Trả về danh sách chứa cả 2 ID để Translator sinh ra 2 bản Notification độc lập
-      return List.of(UUID.fromString(payload.clientId()), UUID.fromString(payload.companionId()));
+      return List.of(UUID.fromString(payload.reporterId()), UUID.fromString(payload.accusedId()));
     } catch (IllegalArgumentException e) {
       throw e;
     } catch (Exception e) {

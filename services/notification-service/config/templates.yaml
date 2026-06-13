@@ -258,7 +258,7 @@ events:
 
   dispute.dispute-resolved.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "_dynamic"  # Gửi cho cả clientId và companionId
+    recipient_field: "_dynamic"  # Gửi cho cả reporterId và accusedId
     priority: "HIGH"
     channels: ["SSE", "FCM"]
     template:
