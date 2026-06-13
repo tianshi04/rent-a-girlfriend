@@ -1301,6 +1301,7 @@ dependencies = [
  "dotenvy",
  "mockall",
  "prost",
+ "prost-types",
  "rdkafka",
  "serde",
  "serde_json",

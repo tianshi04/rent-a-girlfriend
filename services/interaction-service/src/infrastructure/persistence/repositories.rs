@@ -1,9 +1,7 @@
 use crate::application::ports::{ChatRoomRepository, ProcessedEventRepository, ReviewRepository};
 use crate::domain::chat_room::{ChatMessage, ChatRoom, ChatRoomStatus};
 use crate::domain::errors::DomainError;
-use crate::domain::events::{
-    ChatRoomCreatedEvent, ChatRoomLockedEvent, ReviewHiddenEvent, ReviewSubmittedEvent,
-};
+
 use crate::domain::review::Review;
 use crate::domain::value_objects::Rating;
 use async_trait::async_trait;
@@ -62,14 +60,18 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
 
         // 2. Publish transactional event based on status
+        let now_utc = Utc::now();
+        let occurred_at = Some(prost_types::Timestamp {
+            seconds: now_utc.timestamp(),
+            nanos: now_utc.timestamp_subsec_nanos() as i32,
+        });
+
         let (event_id, event_type, payload) = match chat_room.status {
             ChatRoomStatus::Active => {
-                let event = ChatRoomCreatedEvent {
+                let event = crate::proto::ChatRoomCreated {
                     room_id: chat_room.room_id.clone(),
                     booking_id: chat_room.booking_id.clone(),
-                    client_id: chat_room.client_id.clone(),
-                    companion_id: chat_room.companion_id.clone(),
-                    occurred_at: Utc::now(),
+                    occurred_at,
                 };
                 (
                     Uuid::new_v4().to_string(),
@@ -78,10 +80,10 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
                 )
             }
             ChatRoomStatus::Locked => {
-                let event = ChatRoomLockedEvent {
+                let event = crate::proto::ChatRoomLocked {
                     room_id: chat_room.room_id.clone(),
                     booking_id: chat_room.booking_id.clone(),
-                    occurred_at: Utc::now(),
+                    occurred_at,
                 };
                 (
                     Uuid::new_v4().to_string(),
@@ -288,10 +290,14 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
             .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
 
             // Insert ChatRoomLocked event into outbox
-            let event = ChatRoomLockedEvent {
+            let occurred_at = Some(prost_types::Timestamp {
+                seconds: now_utc.timestamp(),
+                nanos: now_utc.timestamp_subsec_nanos() as i32,
+            });
+            let event = crate::proto::ChatRoomLocked {
                 room_id: room_id.clone(),
                 booking_id: booking_id.clone(),
-                occurred_at: now_utc,
+                occurred_at,
             };
 
             let event_id = Uuid::new_v4().to_string();
@@ -374,15 +380,18 @@ impl ReviewRepository for SqlxReviewRepository {
         .map_err(|e| DomainError::ReviewNotFound(e.to_string()))?;
 
         // 2. Publish transactional event based on visibility
+        let now_utc = Utc::now();
+        let occurred_at = Some(prost_types::Timestamp {
+            seconds: now_utc.timestamp(),
+            nanos: now_utc.timestamp_subsec_nanos() as i32,
+        });
+
         let (event_id, event_type, payload) = if review.is_visible {
-            let event = ReviewSubmittedEvent {
+            let event = crate::proto::ReviewSubmitted {
                 review_id: review.review_id.clone(),
                 booking_id: review.booking_id.clone(),
-                client_id: review.client_id.clone(),
-                companion_id: review.companion_id.clone(),
                 rating: rating_val,
-                comment: review.comment.clone(),
-                occurred_at: Utc::now(),
+                occurred_at,
             };
             (
                 Uuid::new_v4().to_string(),
@@ -390,10 +399,10 @@ impl ReviewRepository for SqlxReviewRepository {
                 serde_json::to_value(&event).unwrap(),
             )
         } else {
-            let event = ReviewHiddenEvent {
+            let event = crate::proto::ReviewHidden {
                 review_id: review.review_id.clone(),
                 booking_id: review.booking_id.clone(),
-                occurred_at: Utc::now(),
+                occurred_at,
             };
             (
                 Uuid::new_v4().to_string(),
