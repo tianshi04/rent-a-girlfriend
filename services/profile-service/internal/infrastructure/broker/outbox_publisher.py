@@ -32,7 +32,7 @@ class DatabaseEventPublisher(IEventPublisher):
 
         # Strictly generate JSON payload based on proto contract
         payload_dict = MessageToDict(
-            proto_msg, preserving_proto_field_name=True, use_integers_for_enums=True
+            proto_msg, preserving_proto_field_name=False, use_integers_for_enums=True
         )
 
         event_id = str(uuid.uuid4())
@@ -133,7 +133,7 @@ class OutboxPublisherWorker:
                     cloudevent = {
                         "specversion": "1.0",
                         "id": event.event_id,
-                        "source": f"/rent-a-gf/profile-service/{payload.get('companion_id') or payload.get('userId')}",
+                        "source": f"/rent-a-gf/profile-service/{payload.get('companionId') or payload.get('userId')}",
                         "type": event.event_type,
                         "datacontenttype": "application/json",
                         "time": event.created_at.isoformat()
@@ -141,7 +141,7 @@ class OutboxPublisherWorker:
                         else datetime.utcnow().isoformat(),
                         "data": payload,
                         "extensions": {
-                            "correlationId": payload.get("event_id", event.event_id)
+                            "correlationId": payload.get("eventId", event.event_id)
                         },
                     }
 
@@ -149,7 +149,7 @@ class OutboxPublisherWorker:
                     if self.producer:
                         await self.producer.send_and_wait(
                             topic=self.topic,
-                            key=bytes(payload.get("companion_id", ""), "utf-8"),
+                            key=bytes(payload.get("companionId", ""), "utf-8"),
                             value=cloudevent,
                         )
 
