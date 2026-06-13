@@ -71,11 +71,13 @@ func (SystemConfigModel) TableName() string { return "system_configs" }
 
 // OutboxModel is the GORM model for the outbox_events table.
 type OutboxModel struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
-	EventType string    `gorm:"type:varchar(255);not null;column:event_type"`
-	Payload   string    `gorm:"type:jsonb;not null"`
-	Published bool      `gorm:"not null;default:false"`
-	CreatedAt time.Time `gorm:"not null;column:created_at"`
+	ID          uuid.UUID  `gorm:"type:uuid;primaryKey"`
+	EventType   string     `gorm:"type:varchar(255);not null;column:event_type"`
+	Payload     string     `gorm:"type:jsonb;not null"`
+	Published   bool       `gorm:"not null;default:false"`
+	PublishedAt *time.Time `gorm:"column:published_at"`
+	LockedUntil *time.Time `gorm:"column:locked_until"`
+	CreatedAt   time.Time  `gorm:"not null;column:created_at"`
 }
 
 func (OutboxModel) TableName() string { return "outbox_events" }
