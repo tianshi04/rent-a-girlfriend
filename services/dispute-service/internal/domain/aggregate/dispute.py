@@ -157,6 +157,8 @@ class Dispute:
                 dispute_id=self.dispute_id,
                 booking_id=self.booking_id,
                 admin_id=admin_id,
+                reporter_id=self.reporter_id,
+                accused_id=self.accused_id,
             )
         )
 
@@ -177,6 +179,8 @@ class Dispute:
                 dispute_id=self.dispute_id,
                 booking_id=self.booking_id,
                 admin_id=admin_id,
+                reporter_id=self.reporter_id,
+                accused_id=self.accused_id,
             )
         )
 
@@ -197,6 +201,8 @@ class Dispute:
                 dispute_id=self.dispute_id,
                 booking_id=self.booking_id,
                 admin_id=admin_id,
+                reporter_id=self.reporter_id,
+                accused_id=self.accused_id,
             )
         )
 
