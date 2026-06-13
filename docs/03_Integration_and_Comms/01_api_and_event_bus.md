@@ -68,3 +68,7 @@ Tất cả các consumer đều áp dụng cơ chế chủ động **kéo (Pull)
 *   `data`: Payload nghiệp vụ thực tế chứa các thông tin cần thiết.
 *   `correlationId` (Extensions): Truyền xuyên suốt từ API Gateway đến tất cả các Context để Debug/Trace log trên hệ thống (Kibana/Datadog).
 *   `sagaId` (Trong data hoặc extensions): Định danh của phiên giao dịch phân tán nếu event thuộc một phần của luồng SAGA.
+
+### 4.1. Quy chuẩn đặt tên trường trong JSON Payload (Casing Standard)
+
+Để đảm bảo khả năng tương thích 100% giữa các ngôn ngữ lập trình khác nhau (Go, Rust, Python, Java) và tuân thủ đặc tả Protobuf JSON Mapping của Google, toàn bộ các trường dữ liệu bên trong JSON payload (cụ thể là trường `data` của CloudEvents và các REST APIs) **bắt buộc phải đặt tên theo định dạng `camelCase`**.
