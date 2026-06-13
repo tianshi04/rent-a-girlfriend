@@ -44,6 +44,13 @@
   - Infrastructure (DB/Broker Adapters).
   - Interfaces (HTTP/gRPC/PubSub).
 - **Contracts as SSOT**: All communications (gRPC, Async Events) must be defined in the `/contracts` directory at the root (the Single Source of Truth). Redefining messages/events in individual services is strictly forbidden; services must generate code from these proto files.
+  - **Synchronous Protocols**:
+    - **Internal (Inter-service)**: Strictly use **gRPC** for both commands and queries to ensure high performance, low latency, and strong type safety.
+    - **External (Client-to-Service / Gateway)**: Expose **REST APIs** (HTTP/JSON) for frontend/external clients. (Use gRPC-Gateway or service controllers to map REST to internal gRPC).
+  - **Asynchronous Protocols**: CloudEvents JSON format via Kafka.
+    - **Event Type Naming Rule**: `<domain>.<event-name>.v<version>` (where `<domain>` is lowercase, `<event-name>` is in `kebab-case`, e.g., `booking.booking-accepted.v1`).
+    - **Topic Naming Rule**: `<domain>.events` (all lowercase, e.g., `booking.events`).
+  - **JSON Casing Standard**: To align with the Google Protobuf JSON Mapping specification, all JSON fields inside CloudEvents `data` payloads must strictly use **`camelCase`**. To maintain system-wide consistency, all REST APIs (requests and responses) must also strictly use **`camelCase`** for JSON fields.
 - **Directory Structure**:
   - `cmd/server/`: Entry point.
   - `internal/domain/`: Aggregate, VO, Repository port, Events.
@@ -104,11 +111,5 @@
     - `user-role` (from `role`)
     - `user-status` (from `status`)
 - **Reliable Messaging**: Transactional Outbox when sending events.
-- **Safe Consumption**: Check idempotency using `eventId`.
-- **Contract Standards**: 
-  - **Synchronous**: gRPC for commands, REST for queries.
-  - **Asynchronous**: CloudEvents JSON format.
-    - **Event Type Naming Rule**: `<domain>.<event-name>.v<version>` (where `<domain>` is lowercase, `<event-name>` is in `kebab-case`, e.g., `booking.booking-accepted.v1`).
-    - **Topic Naming Rule**: `<domain>.events` (all lowercase, e.g., `booking.events`).
-    - **Casing Standard**: All JSON fields (inside CloudEvents `data` payload and REST APIs) must strictly use **`camelCase`** to align with the Google Protobuf JSON Mapping specification.
+- **Safe Consumption**: Check idempotency to guarantee exactly-once processing semantic.
 
