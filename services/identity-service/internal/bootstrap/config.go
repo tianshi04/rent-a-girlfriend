@@ -20,6 +20,7 @@ type Config struct {
 	Kafka    KafkaConfig
 	Outbox   OutboxConfig
 	Redis    RedisConfig
+	Worker   WorkerConfig
 }
 
 type ServerConfig struct {
@@ -63,6 +64,11 @@ type RedisConfig struct {
 	URL string
 }
 
+type WorkerConfig struct {
+	CleanupInterval      time.Duration
+	CleanupRetentionDays int
+}
+
 // LoadConfig loads configuration from environment variables.
 func LoadConfig() *Config {
 	// Try to load .env file from current directory or parent directories
@@ -87,6 +93,8 @@ func LoadConfig() *Config {
 	refreshTTL, _ := strconv.Atoi(getConfigValue(configFiles, secretFiles, "JWT_REFRESH_TTL_DAYS", "7"))
 	outboxInterval, _ := strconv.Atoi(getConfigValue(configFiles, secretFiles, "OUTBOX_POLLING_INTERVAL_MS", "500"))
 	outboxBatchSize, _ := strconv.Atoi(getConfigValue(configFiles, secretFiles, "OUTBOX_BATCH_SIZE", "50"))
+	cleanupIntervalMin, _ := strconv.Atoi(getConfigValue(configFiles, secretFiles, "CLEANUP_INTERVAL_MINUTES", "60"))
+	cleanupRetentionDays, _ := strconv.Atoi(getConfigValue(configFiles, secretFiles, "CLEANUP_RETENTION_DAYS", "7"))
 
 	return &Config{
 		Server: ServerConfig{
@@ -117,6 +125,10 @@ func LoadConfig() *Config {
 		},
 		Redis: RedisConfig{
 			URL: getConfigValue(configFiles, secretFiles, "REDIS_URL", ""),
+		},
+		Worker: WorkerConfig{
+			CleanupInterval:      time.Duration(cleanupIntervalMin) * time.Minute,
+			CleanupRetentionDays: cleanupRetentionDays,
 		},
 	}
 }
