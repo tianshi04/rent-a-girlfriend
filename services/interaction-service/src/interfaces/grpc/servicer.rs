@@ -4,11 +4,7 @@ use crate::domain::errors::DomainError;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
-// Include the generated Tonic proto structures from Cargo's OUT_DIR
-pub mod proto {
-    tonic::include_proto!("interaction.v1");
-}
-
+pub use crate::proto;
 use proto::interaction_service_server::InteractionService;
 use proto::{
     ChatCommandResponse, CreateChatRoomRequest, HideReviewRequest, LockChatRoomRequest,
