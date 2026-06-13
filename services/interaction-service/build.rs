@@ -36,6 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "../../contracts/interaction/v1/service/interaction_service.proto",
                 "../../contracts/interaction/v1/events/chat_room_created.proto",
                 "../../contracts/interaction/v1/events/chat_room_locked.proto",
+                "../../contracts/interaction/v1/events/chat_room_creation_failed.proto",
                 "../../contracts/interaction/v1/events/review_submitted.proto",
                 "../../contracts/interaction/v1/events/review_hidden.proto",
             ],

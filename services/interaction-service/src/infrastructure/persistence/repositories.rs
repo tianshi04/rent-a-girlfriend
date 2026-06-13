@@ -33,7 +33,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
             .pool
             .begin()
             .await
-            .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?; // generic DB error mapping
+            .map_err(|e| DomainError::DatabaseError(e.to_string()))?; // generic DB error mapping
 
         // 1. Save/Update ChatRoom
         let status_str = chat_room.status.as_str();
@@ -57,7 +57,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         .bind(chat_room.updated_at)
         .execute(&mut *tx)
         .await
-        .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         // 2. Publish transactional event based on status
         let now_utc = Utc::now();
@@ -109,11 +109,11 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         .bind(now)
         .execute(&mut *tx)
         .await
-        .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         tx.commit()
             .await
-            .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
         self.outbox_notify.notify_one();
         Ok(())
     }
@@ -128,7 +128,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         .bind(room_id)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         if let Some(r) = row {
             let status_str: String = r.get("status");
@@ -159,7 +159,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         .bind(booking_id)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         if let Some(r) = row {
             let status_str: String = r.get("status");
@@ -194,7 +194,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         .bind(message.created_at)
         .execute(&self.pool)
         .await
-        .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
@@ -217,7 +217,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         .bind(offset)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         let messages = rows
             .into_iter()
@@ -242,7 +242,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
             .pool
             .begin()
             .await
-            .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         // 1. Select expired active rooms with FOR UPDATE SKIP LOCKED
         let rows = sqlx::query(
@@ -259,7 +259,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         .bind(limit)
         .fetch_all(&mut *tx)
         .await
-        .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         if rows.is_empty() {
             return Ok(Vec::new());
@@ -287,7 +287,7 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
             .bind(&room_id)
             .execute(&mut *tx)
             .await
-            .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
             // Insert ChatRoomLocked event into outbox
             let occurred_at = Some(prost_types::Timestamp {
@@ -318,17 +318,54 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
             .bind(now_utc)
             .execute(&mut *tx)
             .await
-            .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
             locked_bookings.push(booking_id);
         }
 
         tx.commit()
             .await
-            .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
         self.outbox_notify.notify_one();
 
         Ok(locked_bookings)
+    }
+
+    async fn report_creation_failure(&self, booking_id: &str) -> Result<(), DomainError> {
+        let now_utc = Utc::now();
+        let occurred_at = Some(prost_types::Timestamp {
+            seconds: now_utc.timestamp(),
+            nanos: now_utc.timestamp_subsec_nanos() as i32,
+        });
+
+        let event = crate::proto::ChatRoomCreationFailed {
+            booking_id: booking_id.to_string(),
+            occurred_at,
+        };
+
+        let event_id = Uuid::new_v4().to_string();
+        let event_type = "interaction.chat-room-creation-failed.v1".to_string();
+        let payload = serde_json::to_value(&event).unwrap();
+        let payload_str = payload.to_string();
+
+        sqlx::query(
+            r#"
+            INSERT INTO outbox (event_id, event_type, payload, processed, created_at)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (event_id) DO NOTHING
+            "#,
+        )
+        .bind(event_id)
+        .bind(event_type)
+        .bind(payload_str)
+        .bind(false)
+        .bind(now_utc)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+
+        self.outbox_notify.notify_one();
+        Ok(())
     }
 }
 
@@ -353,7 +390,7 @@ impl ReviewRepository for SqlxReviewRepository {
             .pool
             .begin()
             .await
-            .map_err(|e| DomainError::ReviewNotFound(e.to_string()))?;
+            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         // 1. Save/Update Review
         let rating_val = review.rating.value();
@@ -376,8 +413,8 @@ impl ReviewRepository for SqlxReviewRepository {
         .bind(review.created_at)
         .bind(review.updated_at)
         .execute(&mut *tx)
-        .await
-        .map_err(|e| DomainError::ReviewNotFound(e.to_string()))?;
+            .await
+            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         // 2. Publish transactional event based on visibility
         let now_utc = Utc::now();
@@ -426,12 +463,12 @@ impl ReviewRepository for SqlxReviewRepository {
         .bind(false)
         .bind(now)
         .execute(&mut *tx)
-        .await
-        .map_err(|e| DomainError::ReviewNotFound(e.to_string()))?;
+            .await
+            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         tx.commit()
             .await
-            .map_err(|e| DomainError::ReviewNotFound(e.to_string()))?;
+            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
         self.outbox_notify.notify_one();
         Ok(())
     }
@@ -446,7 +483,7 @@ impl ReviewRepository for SqlxReviewRepository {
         .bind(review_id)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DomainError::ReviewNotFound(e.to_string()))?;
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         if let Some(r) = row {
             let rating_val: i32 = r.get("rating");
@@ -477,7 +514,7 @@ impl ReviewRepository for SqlxReviewRepository {
         .bind(booking_id)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DomainError::ReviewNotFound(e.to_string()))?;
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         if let Some(r) = row {
             let rating_val: i32 = r.get("rating");
@@ -509,7 +546,7 @@ impl ReviewRepository for SqlxReviewRepository {
         .bind(companion_id)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DomainError::ReviewNotFound(e.to_string()))?;
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         let mut reviews = Vec::new();
         for r in rows {
@@ -561,7 +598,7 @@ impl ProcessedEventRepository for SqlxProcessedEventRepository {
         .bind(now)
         .execute(&self.pool)
         .await
-        .map_err(|e| DomainError::ChatRoomNotFound(e.to_string()))?;
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         Ok(result.rows_affected() == 0)
     }

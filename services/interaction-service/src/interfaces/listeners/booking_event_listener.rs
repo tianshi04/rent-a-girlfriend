@@ -8,6 +8,7 @@ use tokio::time::sleep;
 use tracing::{debug, error, info, warn};
 
 use crate::application::chat_use_cases::ChatUseCases;
+use crate::domain::errors::DomainError;
 
 #[derive(Deserialize, Debug)]
 struct BookingCloudEvent {
@@ -101,6 +102,7 @@ impl BookingEventListener {
 
                             if let Err(e) = self.handle_message(payload).await {
                                 error!("Error handling booking event: {:?}", e);
+                                sleep(tokio::time::Duration::from_secs(2)).await;
                             }
                         }
                         Err(e) => {
@@ -173,11 +175,27 @@ impl BookingEventListener {
                                 booking_id
                             );
                         }
-                        Err(e) => {
+                        Err(DomainError::DatabaseError(msg)) => {
                             error!(
-                                "Failed to create chat room via event for booking {}: {:?}",
-                                booking_id, e
+                                "Transient database error creating chat room for booking {}: {}. Returning error to trigger retry.",
+                                booking_id, msg
                             );
+                            return Err(Box::new(DomainError::DatabaseError(msg)));
+                        }
+                        Err(other_err) => {
+                            error!(
+                                "Validation/Business error creating chat room for booking {}: {}. Publishing failure event.",
+                                booking_id, other_err
+                            );
+                            if let Err(pub_err) = chat_cases.report_creation_failure(&booking_id).await {
+                                error!(
+                                    "Failed to publish ChatRoomCreationFailed event for booking {}: {:?}",
+                                    booking_id, pub_err
+                                );
+                                if let DomainError::DatabaseError(pub_db_err) = pub_err {
+                                    return Err(Box::new(DomainError::DatabaseError(pub_db_err)));
+                                }
+                            }
                         }
                     }
                 } else {
@@ -185,6 +203,15 @@ impl BookingEventListener {
                         "Missing client_id or companion_id in CreateChatRoom command for booking {}",
                         booking_id
                     );
+                    if let Err(pub_err) = chat_cases.report_creation_failure(&booking_id).await {
+                        error!(
+                            "Failed to publish ChatRoomCreationFailed event for booking {}: {:?}",
+                            booking_id, pub_err
+                        );
+                        if let DomainError::DatabaseError(pub_db_err) = pub_err {
+                            return Err(Box::new(DomainError::DatabaseError(pub_db_err)));
+                        }
+                    }
                 }
             }
             "com.rentagf.booking.BookingCancelled.v1"
@@ -197,14 +224,24 @@ impl BookingEventListener {
                     "Booking {} cancelled. Locking chat room immediately.",
                     booking_id
                 );
-                if let Err(e) = chat_cases
+                match chat_cases
                     .lock_chat_room(&booking_id, Some(cloudevent.id.clone()))
                     .await
                 {
-                    error!(
-                        "Failed to lock chat room for booking {}: {:?}",
-                        booking_id, e
-                    );
+                    Ok(_) => {}
+                    Err(DomainError::DatabaseError(msg)) => {
+                        error!(
+                            "Transient database error locking chat room for booking {}: {}. Returning error to trigger retry.",
+                            booking_id, msg
+                        );
+                        return Err(Box::new(DomainError::DatabaseError(msg)));
+                    }
+                    Err(e) => {
+                        error!(
+                            "Failed to lock chat room for booking {}: {:?}",
+                            booking_id, e
+                        );
+                    }
                 }
             }
             "com.rentagf.booking.BookingCompleted.v1" | "booking.booking-completed.v1" => {
@@ -225,19 +262,29 @@ impl BookingEventListener {
                     booking_id, lock_time
                 );
 
-                if let Err(e) = chat_cases
+                match chat_cases
                     .schedule_chat_room_lock(&booking_id, lock_time, Some(cloudevent.id.clone()))
                     .await
                 {
-                    error!(
-                        "Failed to schedule chat room lock for booking {}: {:?}",
-                        booking_id, e
-                    );
-                } else {
-                    info!(
-                        "Successfully scheduled chat room lock for booking {}.",
-                        booking_id
-                    );
+                    Ok(_) => {
+                        info!(
+                            "Successfully scheduled chat room lock for booking {}.",
+                            booking_id
+                        );
+                    }
+                    Err(DomainError::DatabaseError(msg)) => {
+                        error!(
+                            "Transient database error scheduling chat room lock for booking {}: {}. Returning error to trigger retry.",
+                            booking_id, msg
+                        );
+                        return Err(Box::new(DomainError::DatabaseError(msg)));
+                    }
+                    Err(e) => {
+                        error!(
+                            "Failed to schedule chat room lock for booking {}: {:?}",
+                            booking_id, e
+                        );
+                    }
                 }
             }
             _ => {

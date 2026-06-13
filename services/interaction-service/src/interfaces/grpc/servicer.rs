@@ -46,6 +46,7 @@ fn map_domain_error(err: DomainError) -> Status {
         DomainError::ChatRoomNotFound(msg) => Status::not_found(msg),
         DomainError::ReviewNotFound(msg) => Status::not_found(msg),
         DomainError::ChatRoomAlreadyExists(msg) => Status::already_exists(msg),
+        DomainError::DatabaseError(msg) => Status::internal(msg),
     }
 }
 
