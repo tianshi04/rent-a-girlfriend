@@ -49,7 +49,7 @@ class FinanceServiceServicer(finance_service_pb2_grpc.FinanceServiceServicer):
                     from internal.domain.events import EscrowFailed
                     event = EscrowFailed(
                         booking_id=request.booking_id,
-                        client_id=request.user_id,
+                        client_id=request.user_id or "00000000-0000-0000-0000-000000000000",
                         reason=str(e),
                     )
                     cmd_service.event_publisher.publish(event)
@@ -184,7 +184,7 @@ class FinanceServiceServicer(finance_service_pb2_grpc.FinanceServiceServicer):
                     from internal.domain.events import RefundFailed
                     event = RefundFailed(
                         booking_id=request.booking_id,
-                        client_id=resolved_client_id or "",
+                        client_id=resolved_client_id or "00000000-0000-0000-0000-000000000000",
                         reason=str(e),
                     )
                     cmd_service.event_publisher.publish(event)
