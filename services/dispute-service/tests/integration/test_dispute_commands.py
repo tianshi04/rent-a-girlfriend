@@ -160,13 +160,16 @@ async def test_resolve_dispute_reject(integration_deps):
 
     # Verify Outbox contains DisputeResolved event and correct payload
     outbox_events = (await session.execute(select(OutboxModel))).scalars().all()
-    resolved_event = next(e for e in outbox_events if "dispute-resolved" in e.event_type)
+    resolved_event = next(
+        e for e in outbox_events if "dispute-resolved" in e.event_type
+    )
     import json
+
     payload = json.loads(resolved_event.payload)
-    assert payload["booking_id"] == booking_id
-    assert payload["resolved_by"] == admin_id
-    assert payload["reporter_id"] == "client-1"
-    assert payload["accused_id"] == "companion-1"
+    assert payload["bookingId"] == booking_id
+    assert payload["resolvedBy"] == admin_id
+    assert payload["reporterId"] == "client-1"
+    assert payload["accusedId"] == "companion-1"
 
 
 async def test_resolve_dispute_refund_saga(integration_deps):
