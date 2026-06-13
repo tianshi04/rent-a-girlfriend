@@ -417,54 +417,68 @@ async def test_session_factory():
     await engine.dispose()
 
 
-async def test_grpc_freeze_coin_insufficient_balance_publishes_escrow_failed(test_session_factory):
+async def test_grpc_freeze_coin_insufficient_balance_publishes_escrow_failed(
+    test_session_factory,
+):
     servicer = FinanceServiceServicer(test_session_factory)
     context = MockGRPCContext()
     request = MockRequest(user_id="u-sad-grpc-1", amount=100, booking_id="b-sad-grpc-1")
 
     # Call servicer (should fail because wallet has 0 balance)
-    response = await servicer.FreezeCoin(request, context)
+    await servicer.FreezeCoin(request, context)
     assert context.code == grpc.StatusCode.FAILED_PRECONDITION
     assert "Insufficient available balance" in context.details
 
     # Verify EscrowFailed event was published to the outbox database table
     async with test_session_factory() as session:
-        stmt = select(OutboxModel).filter(OutboxModel.event_type == "finance.escrow-failed.v1")
+        stmt = select(OutboxModel).filter(
+            OutboxModel.event_type == "finance.escrow-failed.v1"
+        )
         result = await session.execute(stmt)
         outbox_events = result.scalars().all()
         assert len(outbox_events) == 1
-        
+
         import json
+
         payload = json.loads(outbox_events[0].payload)
-        assert payload["booking_id"] == "b-sad-grpc-1"
-        assert payload["client_id"] == "u-sad-grpc-1"
+        assert payload["bookingId"] == "b-sad-grpc-1"
+        assert payload["clientId"] == "u-sad-grpc-1"
         assert "Insufficient available balance" in payload["reason"]
 
 
-async def test_grpc_refund_escrow_not_found_publishes_refund_failed(test_session_factory):
+async def test_grpc_refund_escrow_not_found_publishes_refund_failed(
+    test_session_factory,
+):
     servicer = FinanceServiceServicer(test_session_factory)
     context = MockGRPCContext()
-    request = MockRequest(booking_id="b-sad-grpc-2", client_id="u-sad-grpc-2", refund_amount=100)
+    request = MockRequest(
+        booking_id="b-sad-grpc-2", client_id="u-sad-grpc-2", refund_amount=100
+    )
 
     # Call servicer (should fail because escrow does not exist)
-    response = await servicer.RefundEscrow(request, context)
+    await servicer.RefundEscrow(request, context)
     assert context.code == grpc.StatusCode.NOT_FOUND
 
     # Verify RefundFailed event was published to outbox
     async with test_session_factory() as session:
-        stmt = select(OutboxModel).filter(OutboxModel.event_type == "finance.refund-failed.v1")
+        stmt = select(OutboxModel).filter(
+            OutboxModel.event_type == "finance.refund-failed.v1"
+        )
         result = await session.execute(stmt)
         outbox_events = result.scalars().all()
         assert len(outbox_events) == 1
 
         import json
+
         payload = json.loads(outbox_events[0].payload)
-        assert payload["booking_id"] == "b-sad-grpc-2"
-        assert payload["client_id"] == "u-sad-grpc-2"
+        assert payload["bookingId"] == "b-sad-grpc-2"
+        assert payload["clientId"] == "u-sad-grpc-2"
         assert "Escrow not found" in payload["reason"]
 
 
-async def test_grpc_refund_escrow_empty_client_resolves_fallback_and_publishes_refund_failed(test_session_factory):
+async def test_grpc_refund_escrow_empty_client_resolves_fallback_and_publishes_refund_failed(
+    test_session_factory,
+):
     # Seed a reservation transaction first
     async with test_session_factory() as session:
         # Create a transaction model representing a booking reservation
@@ -474,7 +488,7 @@ async def test_grpc_refund_escrow_empty_client_resolves_fallback_and_publishes_r
             amount=150,
             type="BOOKING_RESERVATION",
             status="SUCCESS",
-            reference_id="b-sad-grpc-3"
+            reference_id="b-sad-grpc-3",
         )
         session.add(txn)
         await session.commit()
@@ -485,18 +499,21 @@ async def test_grpc_refund_escrow_empty_client_resolves_fallback_and_publishes_r
     request = MockRequest(booking_id="b-sad-grpc-3", client_id="", refund_amount=0)
 
     # Call servicer (should fail because escrow does not exist, but client_id and refund_amount should be resolved first!)
-    response = await servicer.RefundEscrow(request, context)
+    await servicer.RefundEscrow(request, context)
     assert context.code == grpc.StatusCode.NOT_FOUND
 
     # Verify RefundFailed event was published to outbox with the correct resolved client_id!
     async with test_session_factory() as session:
-        stmt = select(OutboxModel).filter(OutboxModel.event_type == "finance.refund-failed.v1")
+        stmt = select(OutboxModel).filter(
+            OutboxModel.event_type == "finance.refund-failed.v1"
+        )
         result = await session.execute(stmt)
         outbox_events = result.scalars().all()
         assert len(outbox_events) == 1
 
         import json
+
         payload = json.loads(outbox_events[0].payload)
-        assert payload["booking_id"] == "b-sad-grpc-3"
-        assert payload["client_id"] == "u-resolved-client" # Resolved!
+        assert payload["bookingId"] == "b-sad-grpc-3"
+        assert payload["clientId"] == "u-resolved-client"  # Resolved!
         assert "Escrow not found" in payload["reason"]

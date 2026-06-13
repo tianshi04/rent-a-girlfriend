@@ -1,5 +1,6 @@
 import uuid
 from typing import Dict
+from sqlalchemy.ext.asyncio import AsyncSession
 from internal.domain.vo import Money
 from internal.domain.aggregate.wallet import Wallet
 from internal.domain.aggregate.escrow import Escrow
@@ -27,12 +28,14 @@ class FinanceCommandService:
         transaction_repo: ITransactionRepository,
         event_publisher: IEventPublisher,
         vnpay_adapter: VNPayAdapter,
+        session: AsyncSession = None,
     ):
         self.wallet_repo = wallet_repo
         self.escrow_repo = escrow_repo
         self.transaction_repo = transaction_repo
         self.event_publisher = event_publisher
         self.vnpay_adapter = vnpay_adapter
+        self.session = session
 
     async def get_or_create_wallet(self, user_id: str, lock: bool = False) -> Wallet:
         """
@@ -61,31 +64,52 @@ class FinanceCommandService:
         """
         Freezes coins in Client's wallet for booking request reservation.
         """
-        wallet = await self.get_or_create_wallet(user_id, lock=True)
-        money = Money(amount)
+        try:
+            wallet = await self.get_or_create_wallet(user_id, lock=True)
+            money = Money(amount)
 
-        # Freeze coin and append domain event
-        wallet.freeze_coin(money, booking_id)
+            # Freeze coin and append domain event
+            wallet.freeze_coin(money, booking_id)
 
-        # Create Ledger transaction logs (PENDING)
-        txn_id = str(uuid.uuid4())
-        txn = Transaction.create(
-            transaction_id=txn_id,
-            user_id=user_id,
-            amount=money,
-            type="BOOKING_RESERVATION",
-            status="PENDING",
-            reference_id=booking_id,
-        )
+            # Create Ledger transaction logs (PENDING)
+            txn_id = str(uuid.uuid4())
+            txn = Transaction.create(
+                transaction_id=txn_id,
+                user_id=user_id,
+                amount=money,
+                type="BOOKING_RESERVATION",
+                status="PENDING",
+                reference_id=booking_id,
+            )
 
-        await self.wallet_repo.save(wallet)
-        await self.transaction_repo.save(txn)
+            await self.wallet_repo.save(wallet)
+            await self.transaction_repo.save(txn)
 
-        # Commit outbox events
-        for event in wallet.clear_events():
-            self.event_publisher.publish(event)
+            # Commit outbox events
+            for event in wallet.clear_events():
+                self.event_publisher.publish(event)
 
-        return txn_id
+            return txn_id
+        except Exception as e:
+            if self.session:
+                await self.session.rollback()
+                try:
+                    from internal.domain.events import EscrowFailed
+
+                    event = EscrowFailed(
+                        booking_id=booking_id,
+                        client_id=user_id or "00000000-0000-0000-0000-000000000000",
+                        reason=str(e),
+                    )
+                    self.event_publisher.publish(event)
+                    await self.session.commit()
+                except Exception as pub_err:
+                    import logging
+
+                    logging.getLogger("finance_command").error(
+                        f"Failed to publish EscrowFailed: {pub_err}", exc_info=True
+                    )
+            raise e
 
     async def transfer_to_escrow(
         self, user_id: str, amount: int, booking_id: str
@@ -182,50 +206,87 @@ class FinanceCommandService:
         """
         Refunds the Escrow fund back to Client's wallet.
         """
-        escrow = await self.escrow_repo.find_by_booking_id(booking_id, lock=True)
-        if not escrow:
-            raise EscrowNotFoundError(booking_id)
+        try:
+            escrow = await self.escrow_repo.find_by_booking_id(booking_id, lock=True)
+            if not escrow:
+                raise EscrowNotFoundError(booking_id)
 
-        # Resolve client_id and refund_amount if not provided
-        if not client_id or refund_amount <= 0:
-            reservation_txn = await self.transaction_repo.find_by_reference_id(
-                booking_id, "BOOKING_RESERVATION"
+            # Resolve client_id and refund_amount if not provided
+            if not client_id or refund_amount <= 0:
+                reservation_txn = await self.transaction_repo.find_by_reference_id(
+                    booking_id, "BOOKING_RESERVATION"
+                )
+                if reservation_txn:
+                    if not client_id:
+                        client_id = reservation_txn.user_id
+                    if refund_amount <= 0:
+                        refund_amount = reservation_txn.amount.amount
+
+            money_refund = Money(refund_amount)
+
+            # Refund logic (validates HELD internally [INV-F05])
+            escrow.refund(client_id, money_refund)
+
+            # Refund Client's wallet
+            client_wallet = await self.get_or_create_wallet(client_id, lock=True)
+            client_wallet.deposit(money_refund)
+
+            # Log refund transaction
+            txn_id = str(uuid.uuid4())
+            txn = Transaction.create(
+                transaction_id=txn_id,
+                user_id=client_id,
+                amount=money_refund,
+                type="REFUND",
+                status="SUCCESS",
+                reference_id=booking_id,
             )
-            if reservation_txn:
-                if not client_id:
-                    client_id = reservation_txn.user_id
-                if refund_amount <= 0:
-                    refund_amount = reservation_txn.amount.amount
 
-        money_refund = Money(refund_amount)
+            await self.escrow_repo.save(escrow)
+            await self.wallet_repo.save(client_wallet)
+            await self.transaction_repo.save(txn)
 
-        # Refund logic (validates HELD internally [INV-F05])
-        escrow.refund(client_id, money_refund)
+            # Commit outbox events
+            for event in escrow.clear_events():
+                self.event_publisher.publish(event)
 
-        # Refund Client's wallet
-        client_wallet = await self.get_or_create_wallet(client_id, lock=True)
-        client_wallet.deposit(money_refund)
+            return txn_id
+        except Exception as e:
+            if self.session:
+                await self.session.rollback()
+                try:
+                    resolved_client_id = client_id
+                    if not resolved_client_id:
+                        try:
+                            txn = await self.transaction_repo.find_by_reference_id(
+                                booking_id, "BOOKING_RESERVATION"
+                            )
+                            if txn:
+                                resolved_client_id = txn.user_id
+                        except Exception as query_err:
+                            import logging
 
-        # Log refund transaction
-        txn_id = str(uuid.uuid4())
-        txn = Transaction.create(
-            transaction_id=txn_id,
-            user_id=client_id,
-            amount=money_refund,
-            type="REFUND",
-            status="SUCCESS",
-            reference_id=booking_id,
-        )
+                            logging.getLogger("finance_command").error(
+                                f"Failed to query client_id for RefundFailed: {query_err}"
+                            )
 
-        await self.escrow_repo.save(escrow)
-        await self.wallet_repo.save(client_wallet)
-        await self.transaction_repo.save(txn)
+                    from internal.domain.events import RefundFailed
 
-        # Commit outbox events
-        for event in escrow.clear_events():
-            self.event_publisher.publish(event)
+                    event = RefundFailed(
+                        booking_id=booking_id,
+                        client_id=resolved_client_id
+                        or "00000000-0000-0000-0000-000000000000",
+                        reason=str(e),
+                    )
+                    self.event_publisher.publish(event)
+                    await self.session.commit()
+                except Exception as pub_err:
+                    import logging
 
-        return txn_id
+                    logging.getLogger("finance_command").error(
+                        f"Failed to publish RefundFailed: {pub_err}", exc_info=True
+                    )
+            raise e
 
     async def initiate_topup(
         self, user_id: str, amount_coins: int, client_ip: str

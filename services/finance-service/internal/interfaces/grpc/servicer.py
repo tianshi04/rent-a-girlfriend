@@ -41,22 +41,6 @@ class FinanceServiceServicer(finance_service_pb2_grpc.FinanceServiceServicer):
                     message="Coins successfully frozen for booking reservation.",
                 )
             except Exception as e:
-                await session.rollback()
-
-                # Publish EscrowFailed event
-                try:
-                    cmd_service = bootstrap_services(session)
-                    from internal.domain.events import EscrowFailed
-                    event = EscrowFailed(
-                        booking_id=request.booking_id,
-                        client_id=request.user_id or "00000000-0000-0000-0000-000000000000",
-                        reason=str(e),
-                    )
-                    cmd_service.event_publisher.publish(event)
-                    await session.commit()
-                except Exception as pub_err:
-                    logger.error(f"Failed to publish EscrowFailed event: {pub_err}", exc_info=True)
-
                 if isinstance(e, WalletNotFoundError):
                     context.set_code(grpc.StatusCode.NOT_FOUND)
                 elif isinstance(e, (InsufficientBalanceError, InvalidAmountError)):
@@ -64,7 +48,9 @@ class FinanceServiceServicer(finance_service_pb2_grpc.FinanceServiceServicer):
                 else:
                     logger.error(f"Error freezing coins: {e}", exc_info=True)
                     context.set_code(grpc.StatusCode.INTERNAL)
-                    context.set_details("Internal server error occurred." if not str(e) else str(e))
+                    context.set_details(
+                        "Internal server error occurred." if not str(e) else str(e)
+                    )
                     return finance_command_response_pb2.FinanceCommandResponse()
 
                 context.set_details(str(e))
@@ -164,42 +150,23 @@ class FinanceServiceServicer(finance_service_pb2_grpc.FinanceServiceServicer):
                     message="Escrow successfully refunded to client wallet.",
                 )
             except Exception as e:
-                await session.rollback()
-
-                # Publish RefundFailed event
-                try:
-                    cmd_service = bootstrap_services(session)
-                    resolved_client_id = request.client_id
-                    if not resolved_client_id:
-                        # Try to resolve client_id from database
-                        try:
-                            txn = await cmd_service.transaction_repo.find_by_reference_id(
-                                request.booking_id, "BOOKING_RESERVATION"
-                            )
-                            if txn:
-                                resolved_client_id = txn.user_id
-                        except Exception as query_err:
-                            logger.error(f"Failed to query client_id for RefundFailed: {query_err}")
-
-                    from internal.domain.events import RefundFailed
-                    event = RefundFailed(
-                        booking_id=request.booking_id,
-                        client_id=resolved_client_id or "00000000-0000-0000-0000-000000000000",
-                        reason=str(e),
-                    )
-                    cmd_service.event_publisher.publish(event)
-                    await session.commit()
-                except Exception as pub_err:
-                    logger.error(f"Failed to publish RefundFailed event: {pub_err}", exc_info=True)
-
                 if isinstance(e, EscrowNotFoundError):
                     context.set_code(grpc.StatusCode.NOT_FOUND)
-                elif isinstance(e, (InvalidEscrowStatusTransitionError, InsufficientBalanceError, InvalidAmountError)):
+                elif isinstance(
+                    e,
+                    (
+                        InvalidEscrowStatusTransitionError,
+                        InsufficientBalanceError,
+                        InvalidAmountError,
+                    ),
+                ):
                     context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
                 else:
                     logger.error(f"Error refunding escrow: {e}", exc_info=True)
                     context.set_code(grpc.StatusCode.INTERNAL)
-                    context.set_details("Internal server error occurred." if not str(e) else str(e))
+                    context.set_details(
+                        "Internal server error occurred." if not str(e) else str(e)
+                    )
                     return finance_command_response_pb2.FinanceCommandResponse()
 
                 context.set_details(str(e))
