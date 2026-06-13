@@ -117,8 +117,8 @@ public class EventTranslatorTest {
 
   @Test
   public void testTranslateDisputeResolvedSendsToBothParties() {
-    UUID clientId = UUID.randomUUID();
-    UUID companionId = UUID.randomUUID();
+    UUID reporterId = UUID.randomUUID();
+    UUID accusedId = UUID.randomUUID();
     String eventId = UUID.randomUUID().toString();
 
     CloudEvent event =
@@ -132,8 +132,8 @@ public class EventTranslatorTest {
             Map.of(
                 "disputeId", "d-777",
                 "bookingId", "b-555",
-                "clientId", clientId.toString(),
-                "companionId", companionId.toString(),
+                "reporterId", reporterId.toString(),
+                "accusedId", accusedId.toString(),
                 "resolution", "Hoàn trả 50% Kano-Coin"));
 
     // DisputeResolved phải sinh ra 2 notifications riêng biệt cho cả hai bên
@@ -141,8 +141,8 @@ public class EventTranslatorTest {
 
     assertEquals(2, notifications.size());
 
-    boolean hasClient = false;
-    boolean hasCompanion = false;
+    boolean hasReporter = false;
+    boolean hasAccused = false;
 
     for (Notification notification : notifications) {
       assertEquals(eventId, notification.getEventId());
@@ -151,15 +151,15 @@ public class EventTranslatorTest {
           "Khiếu nại cho booking đã được giải quyết: Hoàn trả 50% Kano-Coin.",
           notification.getPayload().get("body"));
 
-      if (notification.getUserId().equals(clientId)) {
-        hasClient = true;
-      } else if (notification.getUserId().equals(companionId)) {
-        hasCompanion = true;
+      if (notification.getUserId().equals(reporterId)) {
+        hasReporter = true;
+      } else if (notification.getUserId().equals(accusedId)) {
+        hasAccused = true;
       }
     }
 
-    assertTrue(hasClient, "Should send notification to Client");
-    assertTrue(hasCompanion, "Should send notification to Companion");
+    assertTrue(hasReporter, "Should send notification to Reporter");
+    assertTrue(hasAccused, "Should send notification to Accused");
   }
 
   @Test
