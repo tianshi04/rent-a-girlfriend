@@ -9,6 +9,7 @@ pub enum DomainError {
     ChatRoomAlreadyExists(String),
     ChatRoomNotFound(String),
     ReviewNotFound(String),
+    DatabaseError(String),
 }
 
 impl fmt::Display for DomainError {
@@ -50,6 +51,9 @@ impl fmt::Display for DomainError {
             }
             DomainError::ReviewNotFound(review_id) => {
                 write!(f, "Review not found for ID: {}.", review_id)
+            }
+            DomainError::DatabaseError(msg) => {
+                write!(f, "Database error: {}", msg)
             }
         }
     }
