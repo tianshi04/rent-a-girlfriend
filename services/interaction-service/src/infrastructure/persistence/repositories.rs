@@ -463,8 +463,8 @@ impl ReviewRepository for SqlxReviewRepository {
         .bind(false)
         .bind(now)
         .execute(&mut *tx)
-            .await
-            .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+        .await
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
 
         tx.commit()
             .await

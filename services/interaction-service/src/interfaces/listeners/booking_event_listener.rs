@@ -187,7 +187,9 @@ impl BookingEventListener {
                                 "Validation/Business error creating chat room for booking {}: {}. Publishing failure event.",
                                 booking_id, other_err
                             );
-                            if let Err(pub_err) = chat_cases.report_creation_failure(&booking_id).await {
+                            if let Err(pub_err) =
+                                chat_cases.report_creation_failure(&booking_id).await
+                            {
                                 error!(
                                     "Failed to publish ChatRoomCreationFailed event for booking {}: {:?}",
                                     booking_id, pub_err
