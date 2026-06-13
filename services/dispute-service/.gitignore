@@ -21,3 +21,6 @@ htmlcov/
 .idea/
 *.swp
 *.swo
+
+# Auto-generated code
+gen/
