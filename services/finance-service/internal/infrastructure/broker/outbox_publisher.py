@@ -36,9 +36,9 @@ class DatabaseEventPublisher(IEventPublisher):
         # Map to protobuf
         proto_msg = EventMapper.to_protobuf(event)
 
-        # Convert to dictionary (preserving field names)
+        # Convert to dictionary (mapping fields to camelCase)
         payload_dict = MessageToDict(
-            proto_msg, preserving_proto_field_name=True, use_integers_for_enums=True
+            proto_msg, preserving_proto_field_name=False, use_integers_for_enums=True
         )
 
         event_id = str(uuid.uuid4())
@@ -130,7 +130,7 @@ class OutboxPublisherWorker:
                     cloudevent = {
                         "specversion": "1.0",
                         "id": event.event_id,
-                        "source": f"/rent-a-gf/finance-service/{payload.get('user_id') or payload.get('companion_id', 'system')}",
+                        "source": f"/rent-a-gf/finance-service/{payload.get('userId') or payload.get('companionId', 'system')}",
                         "type": event.event_type,
                         "datacontenttype": "application/json",
                         "time": event.created_at.isoformat() + "Z"
@@ -138,14 +138,14 @@ class OutboxPublisherWorker:
                         else datetime.now(timezone.utc).isoformat(),
                         "data": payload,
                         "extensions": {
-                            "correlationId": payload.get("event_id", event.event_id)
+                            "correlationId": payload.get("eventId", event.event_id)
                         },
                     }
 
                     if self.producer:
-                        # Direct key partitioning by booking_id or user_id for sequence preservation
+                        # Direct key partitioning by bookingId or userId for sequence preservation
                         key_str = (
-                            payload.get("booking_id") or payload.get("user_id") or ""
+                            payload.get("bookingId") or payload.get("userId") or ""
                         )
                         await self.producer.send_and_wait(
                             topic=self.topic,
