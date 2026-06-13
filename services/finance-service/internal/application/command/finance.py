@@ -186,6 +186,17 @@ class FinanceCommandService:
         if not escrow:
             raise EscrowNotFoundError(booking_id)
 
+        # Resolve client_id and refund_amount if not provided
+        if not client_id or refund_amount <= 0:
+            reservation_txn = await self.transaction_repo.find_by_reference_id(
+                booking_id, "BOOKING_RESERVATION"
+            )
+            if reservation_txn:
+                if not client_id:
+                    client_id = reservation_txn.user_id
+                if refund_amount <= 0:
+                    refund_amount = reservation_txn.amount.amount
+
         money_refund = Money(refund_amount)
 
         # Refund logic (validates HELD internally [INV-F05])

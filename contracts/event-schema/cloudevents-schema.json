@@ -78,6 +78,9 @@
           "$ref": "#/definitions/EscrowFailedPayload"
         },
         {
+          "$ref": "#/definitions/RefundFailedPayload"
+        },
+        {
           "$ref": "#/definitions/PayoutProcessedPayload"
         },
         {
@@ -378,6 +381,29 @@
         "reason"
       ],
       "description": "Emitted by Finance Service when Escrow fails (SAGA compensating event). Booking Service listens to rollback booking status.",
+      "properties": {
+        "bookingId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "clientId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Technical failure reason."
+        }
+      }
+    },
+    "RefundFailedPayload": {
+      "type": "object",
+      "required": [
+        "bookingId",
+        "clientId",
+        "reason"
+      ],
+      "description": "Emitted by Finance Service when Escrow refund fails (SAGA compensating event). Booking Service listens to rollback/alert booking status.",
       "properties": {
         "bookingId": {
           "type": "string",
