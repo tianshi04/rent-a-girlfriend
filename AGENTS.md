@@ -35,45 +35,64 @@
 ## 4. Core Philosophy
 - Domain-Driven Design (DDD) & Hexagonal Architecture.
 - Event-Driven Microservices with SAGA for distributed transactions.
-- Zero cross-service database access.
+- Polyglot Microservices: Each service chooses its own language and framework, unified by shared Protobuf contracts and the architectural principles below.
 
-## 5. Universal Architecture Standards (Scope: `services/**/*`)
-- **Hexagonal Architecture**: 
-  - Domain (Entities/Aggregates/VO).
-  - Application (Use Cases/Handlers).
-  - Infrastructure (DB/Broker Adapters).
-  - Interfaces (HTTP/gRPC/PubSub).
-- **Contracts as SSOT**: All communications (gRPC, Async Events) must be defined in the `/contracts` directory at the root (the Single Source of Truth). Redefining messages/events in individual services is strictly forbidden; services must generate code from these proto files.
-  - **Synchronous Protocols**:
-    - **Internal (Inter-service)**: Strictly use **gRPC** for both commands and queries to ensure high performance, low latency, and strong type safety.
-    - **External (Client-to-Service / Gateway)**: Expose **REST APIs** (HTTP/JSON) for frontend/external clients. (Use gRPC-Gateway or service controllers to map REST to internal gRPC).
-  - **Asynchronous Protocols**: CloudEvents JSON format via Kafka.
-    - **Event Type Naming Rule**: `<domain>.<event-name>.v<version>` (where `<domain>` is lowercase, `<event-name>` is in `kebab-case`, e.g., `booking.booking-accepted.v1`).
-    - **Topic Naming Rule**: `<domain>.events` (all lowercase, e.g., `booking.events`).
-  - **JSON Casing Standard**: To align with the Google Protobuf JSON Mapping specification, all JSON fields inside CloudEvents `data` payloads must strictly use **`camelCase`**. To maintain system-wide consistency, all REST APIs (requests and responses) must also strictly use **`camelCase`** for JSON fields.
-- **Directory Structure**:
-  - `cmd/server/`: Entry point.
-  - `internal/domain/`: Aggregate, VO, Repository port, Events.
-  - `internal/application/`: Commands, Queries, Saga.
-  - `internal/infrastructure/`: DB/Broker/Client adapters.
-  - `internal/interfaces/`: HTTP/gRPC/PubSub handlers.
-  - `deployments/`: K8s manifests and Istio policies specific to the service.
-  - `gen/`: Generated code from Protobuf/AsyncAPI.
-  - `docs/`: Technical documentation specific to the service.
-  - `tests/`: Integration & E2E tests.
+## 5. Monorepo Layout
+- `contracts/`: Protobuf definitions (SSOT for all APIs and events).
+- `services/`: Individual microservices, each independently deployable.
+- `docs/`: System-wide documentation (architecture, bounded contexts, BRD, ADRs).
+- `infra/`: Infrastructure configs (K8s, Istio, Kafka, local Docker Compose).
+- `.github/`: CI/CD workflows (per-service CI, proto-lint, GHCR publish).
+- `third_party/`: External proto imports (googleapis).
+
+## 6. Service Architecture Standards
+- **Hexagonal Architecture** (all services, regardless of language):
+  - Domain: Entities, Aggregates, Value Objects, Domain Events, Repository Ports.
+  - Application: Use Cases, Command/Query Handlers, Saga Coordinators.
+  - Infrastructure: Database Adapters, Broker Adapters, External Service Clients.
+  - Interfaces: HTTP Controllers, gRPC Servicers, PubSub Listeners.
+- **Directory Structure**: Each service organizes code into the layers above using idiomatic conventions of its language. Refer to each service's own README or codebase for language-specific layout.
+- **Contracts as SSOT**: All gRPC services and async events MUST be defined in `/contracts`. Redefining messages in individual services is strictly forbidden; services must generate code from these proto files.
 - **Principles**:
-  - Dependency Direction: Outside-in (Domain is the core).
+  - Dependency Direction: Outside-in (Domain has zero external dependencies).
   - Database Isolation: No cross-service database access.
-  - Service Autonomy: Each service must contain everything needed to run as an independent repository and deploy standalone (Independent Repo Ready).
-- **Deployment**:
-  - Standalone Dockerfile for each service at its root. Multi-stage build.
-  - Configure via environment variables (.env.example). No hard-coded values.
-  - **Port Conventions**: All Microservices must use standard ports: HTTP runs on `8080` (`SERVER_PORT`), gRPC runs on `50051` (`GRPC_PORT`).
-- **Quality & Documentation**:
-  - **Self-Documenting**: Each service must manage its own `docs/` directory. Update documentation immediately upon business logic changes.
-  - **Test-Driven**: Every new feature/logic must have Unit Tests (for Domain/Application) and Integration Tests (for Infrastructure).
+  - Service Autonomy: Each service is independently deployable (Independent Repo Ready).
 
-## 6. Architecture Decision Records (ADR)
+## 7. Contract & Communication Standards
+
+### Synchronous Protocols
+- **Internal (Inter-service)**: Strictly gRPC for both commands and queries.
+- **External (Client-to-Service)**: REST APIs (HTTP/JSON) via gRPC-Gateway or controllers.
+
+### Asynchronous Protocols
+- **Format**: CloudEvents JSON via Kafka.
+- **Event Type**: `<domain>.<event-name>.v<version>` (e.g., `booking.booking-accepted.v1`).
+- **Topic**: `<domain>.events` (e.g., `booking.events`).
+- **Reliable Messaging**: Transactional Outbox pattern when sending events.
+- **Safe Consumption**: Idempotency check to guarantee exactly-once processing.
+- See: `docs/03_Integration_and_Comms/` and `docs/04_Distributed_Transactions/`
+
+### JSON Casing
+- All JSON fields (CloudEvents `data` payloads, REST APIs) must use **camelCase** per Google Protobuf JSON Mapping specification.
+
+### Service Mesh & Auth
+- **Istio Ambient Mode** (Sidecar-less): L4 mTLS via ztunnel, L7 JWT/Routing via Waypoint.
+- **Auth Offloading**: NEVER implement JWT verification in microservice code. Verification is offloaded to Istio Waypoint.
+- **Header Injection** (by Istio after JWT verification):
+  - `user-id` (from `sub`), `user-email` (from `email`), `user-role` (from `role`), `user-status` (from `status`).
+
+## 8. Deployment & Infrastructure
+- Standalone Dockerfile per service (multi-stage build).
+- Configuration via environment variables (`.env.example`). No hard-coded values.
+- **Port Conventions**: HTTP on `8080` (`SERVER_PORT`), gRPC on `50051` (`GRPC_PORT`).
+
+## 9. Quality & Documentation
+- **Self-Documenting**: Each service manages its own `docs/` directory. Update documentation immediately upon business logic changes.
+- **Test-Driven**: Every new feature must include:
+  - Unit Tests (Domain and Application layers).
+  - Integration Tests (Infrastructure layer).
+
+## 10. Architecture Decision Records (ADR)
 - **Architecture Decision Records (ADRs)**: Proactively create/update ADRs when aligning on technical design, architecture, or technology stack (database, libraries, main flows, etc.).
 - **Storage Location**:
   - **Service level**: `services/<service-name>/docs/adr/` (local impact).
@@ -90,7 +109,7 @@
   - Draft the ADR immediately after finalizing the approach and propose saving the file.
   - Never modify an `Accepted` ADR. When changes occur, mark the old ADR as `Superseded by ADR XXXX` and create a new ADR.
 
-## 7. DDD & Business Logic Conventions
+## 11. DDD & Business Logic Conventions
 - **Ubiquitous Language**: Always use terms defined in `docs/BRD.md` (Kano-Coin, Scenario, Companion, Client, Escrow).
 - **Snapshot Policy**: Save a copy of parameters (price, configuration, terms) at transaction time instead of just referencing IDs.
 - **Naming Standards**:
@@ -98,18 +117,3 @@
   - **Commands**: `Verb + Noun` (AcceptBooking).
   - **Events**: `Noun + PastVerb` (BookingAccepted).
 - **Domain Errors**: Return explicit business errors to map to HTTP/gRPC codes.
-
-## 8. Distributed Communication Patterns
-- **Service Mesh**: Istio Ambient Mode (Sidecar-less).
-  - **L4 (ztunnel)**: Handles mTLS and Service Identity (SPIFFE).
-  - **L7 (Waypoint)**: Handles JWT Verification, Routing, and Traffic Policies.
-- **Auth Offloading & Identity Propagation**: 
-  - NEVER implement JWT verification logic within microservice code. Verification is offloaded to Istio Waypoint.
-  - **Header Injection**: After verification, Istio injects JWT claim information into headers for application consumption:
-    - `user-id` (from `sub`)
-    - `user-email` (from `email`)
-    - `user-role` (from `role`)
-    - `user-status` (from `status`)
-- **Reliable Messaging**: Transactional Outbox when sending events.
-- **Safe Consumption**: Check idempotency to guarantee exactly-once processing semantic.
-
