@@ -1,4 +1,5 @@
 use chrono::Utc;
+use cloudevents::{EventBuilder, EventBuilderV10};
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use serde_json::Value;
@@ -8,6 +9,7 @@ use std::time::Duration;
 use tokio::sync::Notify;
 use tokio::time::sleep;
 use tracing::{error, info, warn};
+use url::Url;
 
 struct OutboxEvent {
     id: i64,
@@ -162,18 +164,19 @@ impl OutboxWorker {
             // Parse event data from outbox payload
             let data: Value = serde_json::from_str(&event.payload).unwrap_or(Value::Null);
 
-            // Construct standard GFM CloudEvents JSON envelope
-            let cloudevent = serde_json::json!({
-                "specversion": "1.0",
-                "id": event.event_id,
-                "source": "/rent-a-gf/interaction-service",
-                "type": event.event_type,
-                "datacontenttype": "application/json",
-                "time": event.created_at.to_rfc3339(),
-                "data": data
-            });
+            // Construct standard CloudEvents envelope using the official SDK
+            let source_url = Url::parse("http://rent-a-gf/interaction-service").unwrap();
+            let cloudevent = EventBuilderV10::new()
+                .id(&event.event_id)
+                .source(source_url)
+                .ty(&event.event_type)
+                .time(event.created_at)
+                .data("application/json", data)
+                .build()
+                .map_err(|e| sqlx::Error::Protocol(e.to_string()))?;
 
-            let cloudevent_str = cloudevent.to_string();
+            let cloudevent_str = serde_json::to_string(&cloudevent)
+                .map_err(|e| sqlx::Error::Protocol(e.to_string()))?;
 
             // 3. Publish to Kafka topic asynchronously (completely outside DB transaction)
             let record = FutureRecord::to(&self.topic)
