@@ -1,9 +1,10 @@
-from dataclasses import dataclass
+import uuid
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True, kw_only=True)
 class DomainEvent:
-    pass
+    event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
 
 @dataclass(frozen=True, kw_only=True)
