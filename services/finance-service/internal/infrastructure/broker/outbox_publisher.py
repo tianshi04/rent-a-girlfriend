@@ -6,6 +6,8 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy import select
 from aiokafka import AIOKafkaProducer
+from cloudevents.v1.http import CloudEvent
+from cloudevents.v1.conversion import to_dict
 from internal.domain.events import DomainEvent
 from internal.application.port import IEventPublisher
 from internal.infrastructure.persistence.models import OutboxModel
@@ -126,21 +128,19 @@ class OutboxPublisherWorker:
                 for event in events:
                     payload = json.loads(event.payload)
 
-                    # Build Standard CloudEvent v1.0 payload
-                    cloudevent = {
-                        "specversion": "1.0",
-                        "id": event.event_id,
-                        "source": f"/rent-a-gf/finance-service/{payload.get('userId') or payload.get('companionId', 'system')}",
+                    # Build Standard CloudEvent v1.0 payload using official SDK
+                    attributes = {
                         "type": event.event_type,
-                        "datacontenttype": "application/json",
+                        "source": f"/rent-a-gf/finance-service/{payload.get('userId') or payload.get('companionId', 'system')}",
+                        "id": event.event_id,
                         "time": event.created_at.isoformat() + "Z"
                         if hasattr(event, "created_at")
                         else datetime.now(timezone.utc).isoformat(),
-                        "data": payload,
-                        "extensions": {
-                            "correlationId": payload.get("eventId", event.event_id)
-                        },
+                        "datacontenttype": "application/json",
+                        "correlationid": payload.get("eventId", event.event_id),
                     }
+                    ce = CloudEvent(attributes, payload)
+                    cloudevent = to_dict(ce)
 
                     if self.producer:
                         # Direct key partitioning by bookingId or userId for sequence preservation

@@ -292,3 +292,89 @@ async def test_vnpay_topup_and_ipn_flow(finance_service, mock_publisher):
     # Balances must remain unchanged
     w_dup = await finance_service.wallet_repo.find_by_user_id(user_id)
     assert w_dup.available_balance.amount == 50
+
+
+async def test_outbox_publisher_worker_cloudevent():
+    from sqlalchemy.ext.asyncio import (
+        create_async_engine,
+        AsyncSession,
+        async_sessionmaker,
+    )
+    from internal.domain import events as domain_events
+    from internal.infrastructure.persistence.models import Base, OutboxModel
+    from internal.infrastructure.broker.outbox_publisher import (
+        DatabaseEventPublisher,
+        OutboxPublisherWorker,
+    )
+    from sqlalchemy import select
+
+    # 1. Setup in-memory SQLite for this test
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    SessionLocal = async_sessionmaker(
+        autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
+    )
+
+    # 2. Insert event via DatabaseEventPublisher
+    async with SessionLocal() as session:
+        publisher = DatabaseEventPublisher(session)
+        event = domain_events.WalletToppedUp(
+            wallet_id="wallet-123",
+            user_id="user-123",
+            amount=50,
+            vnpay_amount_vnd=50000,
+        )
+        publisher.publish(event)
+        await session.commit()
+
+    # Get the generated event_id from outbox table
+    async with SessionLocal() as session:
+        stmt = select(OutboxModel)
+        res = await session.execute(stmt)
+        outbox_record = res.scalar()
+        event_id = outbox_record.event_id
+
+    # 3. Mock Kafka Producer
+    published_events = []
+
+    class MockKafkaProducer:
+        async def send_and_wait(self, topic, key, value):
+            published_events.append((topic, key, value))
+
+    worker = OutboxPublisherWorker(
+        session_factory=SessionLocal,
+        kafka_brokers="localhost:9092",
+        topic="finance.events",
+    )
+    worker.producer = MockKafkaProducer()
+
+    # 4. Run worker batch process
+    await worker._process_batch()
+
+    # 5. Verify published message
+    assert len(published_events) == 1
+    topic, key, value = published_events[0]
+    assert topic == "finance.events"
+    assert key == b"user-123"
+
+    assert value["specversion"] == "1.0"
+    assert value["id"] == event_id
+    assert value["type"] == "finance.wallet-topped-up.v1"
+    assert value["datacontenttype"] == "application/json"
+    assert value["correlationid"] == event_id
+    assert "extensions" not in value or "correlationId" not in value.get(
+        "extensions", {}
+    )
+    assert value["data"]["userId"] == "user-123"
+    assert value["data"]["amount"] == "50"
+
+    # 6. Verify marked as processed in DB
+    async with SessionLocal() as session:
+        stmt = select(OutboxModel)
+        res = await session.execute(stmt)
+        record = res.scalar()
+        assert record.processed is True
+
+    await engine.dispose()
