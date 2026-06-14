@@ -5,32 +5,47 @@ Hệ thống sử dụng mẫu thiết kế SAGA (cả Orchestration và Choreog
 ---
 
 ## 1. LUỒNG BOOKING REQUEST (COIN FREEZE SAGA)
-*   **Mô hình:** **SAGA Choreography** (Tự điều phối phân tán).
-*   **Chủ thể:** `Booking Context` và `Finance Context`.
-*   **Đặc điểm:** Khi Client yêu cầu đặt lịch hẹn, giao dịch đóng băng tiền cọc (Freeze Coin) được thực hiện bất đồng bộ. Điều này giúp giảm độ trễ (latency) của API đặt lịch và đảm bảo khả năng chịu tải tốt hơn.
+*   **Mô hình:** Lai (Hybrid) giữa **Đồng bộ (Synchronous gRPC)** và **Bất đồng bộ (SAGA Choreography)**.
+*   **Chủ thể:** `Booking Context`, `Profile Context` và `Finance Context`.
+*   **Đặc điểm:** 
+    *   Khi Client yêu cầu đặt lịch hẹn, `Booking Context` đầu tiên sẽ thực hiện một cuộc gọi **gRPC đồng bộ** sang `Profile Context` (`GetScenarioSnapshot(scenarioId)`) để lấy snapshot của kịch bản hẹn hò (chứa thông tin Giá và Thời lượng thực tế tại thời điểm đặt lịch).
+    *   Sau khi nhận được giá tiền từ snapshot, `Booking Context` thực hiện cuộc gọi **gRPC đồng bộ** sang `Finance Context` để kiểm tra xem số dư tài khoản khả dụng của Client có đủ thanh toán cho booking này hay không.
+    *   Nếu kiểm tra gRPC trả về `true` (đủ số dư khả dụng), hệ thống tiếp tục lưu booking vào database với trạng thái **`BOOKING_STATUS_PENDING_RESERVING`**, đẩy event `booking.booking-requested.v1` vào Outbox và trả về phản hồi thành công (200 OK) cho người dùng ngay lập tức.
+    *   Sau đó, tiến trình thực tế đóng băng tiền (Freeze Coin) được thực hiện **bất đồng bộ** thông qua SAGA Choreography để tối ưu hiệu năng và tránh lock luồng lâu.
 
 ### Sequence Diagram
 ```mermaid
 sequenceDiagram
     participant CL as Client
     participant BA as Booking Context
+    participant PR as Profile Context
     participant FA as Finance Context
 
     CL->>BA: RequestBooking()
-    BA->>BA: Save Booking (State: PENDING_RESERVING)
-    BA->>BA: Publish event: booking.booking-requested.v1
-    BA-->>CL: Response: 200 OK (PENDING_RESERVING)
-
-    FA->>FA: Consume: BookingRequested
-    FA->>FA: Execute: freeze_coin()
-    alt Freeze Thành công (Đủ ví khả dụng)
-        FA->>FA: Publish event: finance.coins-frozen.v1
-        BA->>BA: Consume: CoinsFrozen
-        BA->>BA: ConfirmReserved() -> State: PENDING (Sẵn sàng để Accept)
-    else Freeze Thất bại (Không đủ tiền hoặc lỗi)
-        FA->>FA: Publish event: finance.coins-freeze-failed.v1
-        BA->>BA: Consume: CoinsFreezeFailed
-        BA->>BA: CancelReserving() -> State: CANCELLED (SYSTEM)
+    BA->>PR: gRPC: GetScenarioSnapshot(scenarioId) (Đồng bộ)
+    PR-->>BA: Trả về ScenarioSnapshot (Giá, Thời lượng)
+    
+    BA->>FA: gRPC: CheckBalance(clientId, price) (Đồng bộ)
+    alt Số dư Khả dụng (FA trả về True)
+        BA->>BA: Save Booking (State: PENDING_RESERVING)
+        BA->>BA: Publish event: booking.booking-requested.v1
+        BA-->>CL: Response: 200 OK (PENDING_RESERVING)
+        
+        Note over BA, FA: Luồng SAGA đóng băng tiền chạy bất đồng bộ
+        FA->>FA: Consume: BookingRequested
+        FA->>FA: Execute: freeze_coin()
+        alt Freeze Thành công
+            FA->>FA: Publish event: finance.coins-frozen.v1
+            BA->>BA: Consume: CoinsFrozen
+            BA->>BA: ConfirmReserved() -> State: PENDING (Sẵn sàng để Accept)
+        else Freeze Thất bại
+            FA->>FA: Publish event: finance.coins-freeze-failed.v1
+            BA->>BA: Consume: CoinsFreezeFailed
+            BA->>BA: CancelReserving() -> State: CANCELLED (SYSTEM)
+        end
+    else Không đủ số dư (FA trả về False)
+        FA-->>BA: Reply: False (Insufficient balance)
+        BA-->>CL: Response: 400 Bad Request (Insufficient Balance)
     end
 ```
 
