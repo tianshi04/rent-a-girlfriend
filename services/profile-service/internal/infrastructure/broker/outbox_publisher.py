@@ -1,11 +1,13 @@
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy import select
 from aiokafka import AIOKafkaProducer
+from cloudevents.v1.http import CloudEvent
+from cloudevents.v1.conversion import to_structured
 from internal.domain.events import DomainEvent
 from internal.application.port import IEventPublisher
 from internal.infrastructure.persistence.models import OutboxModel
@@ -129,28 +131,32 @@ class OutboxPublisherWorker:
                 for event in events:
                     payload = json.loads(event.payload)
 
-                    # Construct standard CloudEvent v1.0 payload
-                    cloudevent = {
-                        "specversion": "1.0",
-                        "id": event.event_id,
-                        "source": f"/rent-a-gf/profile-service/{payload.get('companionId') or payload.get('userId')}",
+                    # Construct standard CloudEvent v1.0 payload using the official SDK
+                    time_str = (
+                        event.created_at.replace(tzinfo=timezone.utc).isoformat()
+                        if hasattr(event, "created_at") and event.created_at
+                        else datetime.now(timezone.utc).isoformat()
+                    )
+
+                    attributes = {
                         "type": event.event_type,
+                        "source": f"/rent-a-gf/profile-service/{payload.get('companionId') or payload.get('userId')}",
+                        "id": event.event_id,
+                        "time": time_str,
                         "datacontenttype": "application/json",
-                        "time": event.created_at.isoformat()
-                        if hasattr(event, "created_at")
-                        else datetime.utcnow().isoformat(),
-                        "data": payload,
-                        "extensions": {
-                            "correlationId": payload.get("eventId", event.event_id)
-                        },
+                        "correlationid": payload.get("eventId", event.event_id),
                     }
+
+                    cloudevent = CloudEvent(attributes, payload)
+                    _, body = to_structured(cloudevent)
+                    cloudevent_dict = json.loads(body.decode("utf-8"))
 
                     # Publish to Kafka
                     if self.producer:
                         await self.producer.send_and_wait(
                             topic=self.topic,
                             key=bytes(payload.get("companionId", ""), "utf-8"),
-                            value=cloudevent,
+                            value=cloudevent_dict,
                         )
 
                     # Mark as processed
