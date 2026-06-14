@@ -78,15 +78,19 @@ async fn test_chat_room_repository_integration() {
     assert_eq!(found_by_booking.unwrap().room_id, room_id);
 
     // 4. Verify that the outbox contains the created event with correct booking_id
-    let outbox_event: (String, String, String, bool) =
-        sqlx::query_as("SELECT event_type, payload, booking_id, processed FROM outbox WHERE event_type = $1")
-            .bind("interaction.chat-room-created.v1")
-            .fetch_one(&pool)
-            .await
-            .expect("Failed to fetch outbox event");
+    let outbox_event: (String, String, String, bool) = sqlx::query_as(
+        "SELECT event_type, payload, booking_id, processed FROM outbox WHERE event_type = $1",
+    )
+    .bind("interaction.chat-room-created.v1")
+    .fetch_one(&pool)
+    .await
+    .expect("Failed to fetch outbox event");
 
     assert_eq!(outbox_event.0, "interaction.chat-room-created.v1");
-    assert_eq!(outbox_event.2, booking_id, "outbox booking_id must match the Aggregate Root ID");
+    assert_eq!(
+        outbox_event.2, booking_id,
+        "outbox booking_id must match the Aggregate Root ID"
+    );
     assert!(!outbox_event.3); // processed should be false initially
 
     // 5. Save and get messages
@@ -132,14 +136,18 @@ async fn test_chat_room_repository_integration() {
     );
 
     // Verify lock event in outbox with correct booking_id
-    let lock_event: (String, String, bool) =
-        sqlx::query_as("SELECT event_type, booking_id, processed FROM outbox WHERE event_type = $1")
-            .bind("interaction.chat-room-locked.v1")
-            .fetch_one(&pool)
-            .await
-            .expect("Failed to fetch outbox lock event");
+    let lock_event: (String, String, bool) = sqlx::query_as(
+        "SELECT event_type, booking_id, processed FROM outbox WHERE event_type = $1",
+    )
+    .bind("interaction.chat-room-locked.v1")
+    .fetch_one(&pool)
+    .await
+    .expect("Failed to fetch outbox lock event");
     assert_eq!(lock_event.0, "interaction.chat-room-locked.v1");
-    assert_eq!(lock_event.1, booking_id, "outbox booking_id must match the Aggregate Root ID");
+    assert_eq!(
+        lock_event.1, booking_id,
+        "outbox booking_id must match the Aggregate Root ID"
+    );
 }
 
 #[tokio::test]
@@ -197,14 +205,18 @@ async fn test_review_repository_integration() {
     assert_eq!(companion_reviews[0].review_id, review_id);
 
     // 5. Verify outbox contains ReviewSubmitted event with correct booking_id
-    let outbox_event: (String, String, bool) =
-        sqlx::query_as("SELECT event_type, booking_id, processed FROM outbox WHERE event_type = $1")
-            .bind("interaction.review-submitted.v1")
-            .fetch_one(&pool)
-            .await
-            .expect("Failed to fetch review submitted outbox event");
+    let outbox_event: (String, String, bool) = sqlx::query_as(
+        "SELECT event_type, booking_id, processed FROM outbox WHERE event_type = $1",
+    )
+    .bind("interaction.review-submitted.v1")
+    .fetch_one(&pool)
+    .await
+    .expect("Failed to fetch review submitted outbox event");
     assert_eq!(outbox_event.0, "interaction.review-submitted.v1");
-    assert_eq!(outbox_event.1, booking_id, "outbox booking_id must match the Aggregate Root ID");
+    assert_eq!(
+        outbox_event.1, booking_id,
+        "outbox booking_id must match the Aggregate Root ID"
+    );
 
     // 6. Hide the Review and verify hidden status + outbox hidden event
     let mut mutable_review = found;
