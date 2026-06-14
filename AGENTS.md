@@ -65,15 +65,17 @@
 - **External (Client-to-Service)**: REST APIs (HTTP/JSON) via gRPC-Gateway or controllers.
 
 ### Asynchronous Protocols
-- **Format**: CloudEvents JSON via Kafka.
-- **Event Type**: `<domain>.<event-name>.v<version>` (e.g., `booking.booking-accepted.v1`).
+- **Format**: CloudEvents JSON via Kafka (Structured Content Mode).
+- **Event Type**: `<domain>.<event-name>.v<version>` (kebab-case, e.g., `booking.booking-accepted.v1`).
 - **Topic**: `<domain>.events` (e.g., `booking.events`).
+- **Message Key**: Each service must publish events with the primary Aggregate Root ID (e.g., `bookingId`, `userId`) as the Kafka message key to ensure partition-level ordering.
+- **Extensions**: Custom extension attributes (like `correlationid`) must be serialized in all-lowercase alphanumeric format at the root level of the JSON envelope (sibling to `specversion`, `id`, `data`, etc.) per the CloudEvents specification.
 - **Reliable Messaging**: Transactional Outbox pattern when sending events.
 - **Safe Consumption**: Idempotency check to guarantee exactly-once processing.
 - See: `docs/03_Integration_and_Comms/` and `docs/04_Distributed_Transactions/`
 
 ### JSON Casing
-- All JSON fields (CloudEvents `data` payloads, REST APIs) must use **camelCase** per Google Protobuf JSON Mapping specification.
+- All JSON fields (CloudEvents `data` payloads, REST APIs) must use **camelCase** per Google Protobuf JSON Mapping specification. Custom extension attributes at the envelope root level must remain all-lowercase.
 
 ### Service Mesh & Auth
 - **Istio Ambient Mode** (Sidecar-less): L4 mTLS via ztunnel, L7 JWT/Routing via Waypoint.
