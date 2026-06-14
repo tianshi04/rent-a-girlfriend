@@ -107,6 +107,7 @@ def bootstrap_services(db_session: AsyncSession) -> FinanceCommandService:
         transaction_repo=transaction_repo,
         event_publisher=event_publisher,
         vnpay_adapter=vnpay_adapter,
+        session=db_session,
     )
 
     return finance_cmd

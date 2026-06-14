@@ -72,10 +72,16 @@
           "$ref": "#/definitions/CoinFrozenPayload"
         },
         {
+          "$ref": "#/definitions/CoinsFreezeFailedPayload"
+        },
+        {
           "$ref": "#/definitions/CoinEscrowedPayload"
         },
         {
           "$ref": "#/definitions/EscrowFailedPayload"
+        },
+        {
+          "$ref": "#/definitions/RefundFailedPayload"
         },
         {
           "$ref": "#/definitions/PayoutProcessedPayload"
@@ -370,6 +376,33 @@
         }
       }
     },
+    "CoinsFreezeFailedPayload": {
+      "type": "object",
+      "required": [
+        "bookingId",
+        "userId",
+        "amount",
+        "reason"
+      ],
+      "description": "Emitted by Finance Service when coin freeze fails. Saga orchestrator listens to mark booking as failed.",
+      "properties": {
+        "bookingId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "amount": {
+          "type": "integer"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Technical failure reason."
+        }
+      }
+    },
     "EscrowFailedPayload": {
       "type": "object",
       "required": [
@@ -378,6 +411,29 @@
         "reason"
       ],
       "description": "Emitted by Finance Service when Escrow fails (SAGA compensating event). Booking Service listens to rollback booking status.",
+      "properties": {
+        "bookingId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "clientId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Technical failure reason."
+        }
+      }
+    },
+    "RefundFailedPayload": {
+      "type": "object",
+      "required": [
+        "bookingId",
+        "clientId",
+        "reason"
+      ],
+      "description": "Emitted by Finance Service when Escrow refund fails (SAGA compensating event). Booking Service listens to rollback/alert booking status.",
       "properties": {
         "bookingId": {
           "type": "string",

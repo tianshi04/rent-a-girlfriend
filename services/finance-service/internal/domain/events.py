@@ -50,3 +50,25 @@ class WalletToppedUp(DomainEvent):
     user_id: str
     amount: int
     vnpay_amount_vnd: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class EscrowFailed(DomainEvent):
+    booking_id: str
+    client_id: str
+    reason: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class RefundFailed(DomainEvent):
+    booking_id: str
+    client_id: str
+    reason: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class CoinsFreezeFailed(DomainEvent):
+    booking_id: str
+    user_id: str
+    amount: int
+    reason: str
