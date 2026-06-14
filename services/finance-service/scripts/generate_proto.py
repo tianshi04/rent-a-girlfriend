@@ -38,9 +38,16 @@ def main():
             if file.endswith(".proto"):
                 proto_files.append(os.path.join(root, file))
 
+    for root, dirs, files in os.walk(os.path.join(contracts_dir, "booking")):
+        for file in files:
+            if file.endswith(".proto"):
+                proto_files.append(os.path.join(root, file))
+
     if not proto_files:
         print("No .proto files found!")
         sys.exit(1)
+
+    third_party_dir = os.path.join(workspace_dir, "third_party", "googleapis")
 
     # Compile
     for proto_file in proto_files:
@@ -48,6 +55,7 @@ def main():
         args = [
             "grpc_tools.protoc",
             f"-I{contracts_dir}",
+            f"-I{third_party_dir}",
             f"--python_out={gen_dir}",
             f"--pyi_out={gen_dir}",
             f"--grpc_python_out={gen_dir}",

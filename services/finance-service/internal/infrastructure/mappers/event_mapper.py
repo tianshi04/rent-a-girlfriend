@@ -47,12 +47,24 @@ class EventMapper:
         )
 
         occurred_timestamp = Timestamp()
-        if hasattr(domain_event, "occurred_at"):
+        if hasattr(domain_event, "occurred_at") and domain_event.occurred_at:
             occurred_timestamp.FromDatetime(domain_event.occurred_at)
+        else:
+            from datetime import datetime, timezone
+
+            occurred_timestamp.FromDatetime(datetime.now(timezone.utc))
+
+        import uuid
+
+        event_id = (
+            getattr(domain_event, "event_id", None)
+            or getattr(domain_event, "transaction_id", None)
+            or str(uuid.uuid4())
+        )
 
         if isinstance(domain_event, domain_events.CoinsFrozen):
             return coins_frozen_pb2.CoinsFrozen(
-                transaction_id=domain_event.event_id,
+                transaction_id=event_id,
                 booking_id=domain_event.booking_id,
                 user_id=domain_event.user_id,
                 amount=domain_event.amount,
@@ -61,7 +73,7 @@ class EventMapper:
 
         elif isinstance(domain_event, domain_events.CoinsUnfrozen):
             return coins_unfrozen_pb2.CoinsUnfrozen(
-                transaction_id=domain_event.event_id,
+                transaction_id=event_id,
                 booking_id=domain_event.booking_id,
                 user_id=domain_event.user_id,
                 amount=domain_event.amount,
@@ -95,7 +107,7 @@ class EventMapper:
 
         elif isinstance(domain_event, domain_events.WalletToppedUp):
             return wallet_topped_up_pb2.WalletToppedUp(
-                transaction_id=domain_event.event_id,
+                transaction_id=event_id,
                 user_id=domain_event.user_id,
                 amount=domain_event.amount,
                 vnpay_amount_vnd=domain_event.vnpay_amount_vnd,
