@@ -417,7 +417,7 @@ async def test_session_factory():
     await engine.dispose()
 
 
-async def test_grpc_freeze_coin_insufficient_balance_publishes_escrow_failed(
+async def test_grpc_freeze_coin_insufficient_balance_publishes_coins_freeze_failed(
     test_session_factory,
 ):
     servicer = FinanceServiceServicer(test_session_factory)
@@ -429,10 +429,10 @@ async def test_grpc_freeze_coin_insufficient_balance_publishes_escrow_failed(
     assert context.code == grpc.StatusCode.FAILED_PRECONDITION
     assert "Insufficient available balance" in context.details
 
-    # Verify EscrowFailed event was published to the outbox database table
+    # Verify CoinsFreezeFailed event was published to the outbox database table
     async with test_session_factory() as session:
         stmt = select(OutboxModel).filter(
-            OutboxModel.event_type == "finance.escrow-failed.v1"
+            OutboxModel.event_type == "finance.coins-freeze-failed.v1"
         )
         result = await session.execute(stmt)
         outbox_events = result.scalars().all()
@@ -442,7 +442,8 @@ async def test_grpc_freeze_coin_insufficient_balance_publishes_escrow_failed(
 
         payload = json.loads(outbox_events[0].payload)
         assert payload["bookingId"] == "b-sad-grpc-1"
-        assert payload["clientId"] == "u-sad-grpc-1"
+        assert payload["userId"] == "u-sad-grpc-1"
+        assert payload["amount"] == "100"
         assert "Insufficient available balance" in payload["reason"]
 
 

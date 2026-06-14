@@ -72,6 +72,9 @@
           "$ref": "#/definitions/CoinFrozenPayload"
         },
         {
+          "$ref": "#/definitions/CoinsFreezeFailedPayload"
+        },
+        {
           "$ref": "#/definitions/CoinEscrowedPayload"
         },
         {
@@ -370,6 +373,33 @@
         },
         "amount": {
           "type": "integer"
+        }
+      }
+    },
+    "CoinsFreezeFailedPayload": {
+      "type": "object",
+      "required": [
+        "bookingId",
+        "userId",
+        "amount",
+        "reason"
+      ],
+      "description": "Emitted by Finance Service when coin freeze fails. Saga orchestrator listens to mark booking as failed.",
+      "properties": {
+        "bookingId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "amount": {
+          "type": "integer"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Technical failure reason."
         }
       }
     },

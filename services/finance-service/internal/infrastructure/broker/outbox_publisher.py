@@ -13,11 +13,11 @@ from internal.infrastructure.persistence.models import OutboxModel
 logger = logging.getLogger("outbox_publisher")
 
 
-
 def _to_kebab_case(name: str) -> str:
     import re
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1-\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1-\2', s1).lower()
+
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1-\2", name)
+    return re.sub("([a-z0-9])([A-Z])", r"\1-\2", s1).lower()
 
 
 class DatabaseEventPublisher(IEventPublisher):

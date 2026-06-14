@@ -12,6 +12,7 @@ try:
         wallet_topped_up_pb2,
         escrow_failed_pb2,
         refund_failed_pb2,
+        coins_freeze_failed_pb2,
     )
 except ImportError:
     # Fallback/dynamic import wrapper if proto is not compiled yet
@@ -23,6 +24,7 @@ except ImportError:
     wallet_topped_up_pb2 = None
     escrow_failed_pb2 = None
     refund_failed_pb2 = None
+    coins_freeze_failed_pb2 = None
 
 
 class EventMapper:
@@ -41,6 +43,7 @@ class EventMapper:
             wallet_topped_up_pb2,
             escrow_failed_pb2,
             refund_failed_pb2,
+            coins_freeze_failed_pb2,
         )
 
         occurred_timestamp = Timestamp()
@@ -111,6 +114,15 @@ class EventMapper:
             return refund_failed_pb2.RefundFailed(
                 booking_id=domain_event.booking_id,
                 client_id=domain_event.client_id,
+                reason=domain_event.reason,
+                occurred_at=occurred_timestamp,
+            )
+
+        elif isinstance(domain_event, domain_events.CoinsFreezeFailed):
+            return coins_freeze_failed_pb2.CoinsFreezeFailed(
+                booking_id=domain_event.booking_id,
+                user_id=domain_event.user_id,
+                amount=domain_event.amount,
                 reason=domain_event.reason,
                 occurred_at=occurred_timestamp,
             )

@@ -94,6 +94,79 @@ class FinanceCommandService:
             if self.session:
                 await self.session.rollback()
                 try:
+                    from internal.domain.events import CoinsFreezeFailed
+
+                    event = CoinsFreezeFailed(
+                        booking_id=booking_id,
+                        user_id=user_id or "00000000-0000-0000-0000-000000000000",
+                        amount=amount,
+                        reason=str(e),
+                    )
+                    self.event_publisher.publish(event)
+                    await self.session.commit()
+                except Exception as pub_err:
+                    import logging
+
+                    logging.getLogger("finance_command").error(
+                        f"Failed to publish CoinsFreezeFailed: {pub_err}", exc_info=True
+                    )
+            raise e
+
+    async def transfer_to_escrow(
+        self, user_id: str, amount: int, booking_id: str
+    ) -> str:
+        """
+        Transfers frozen coins from Client's wallet to Escrow fund when Companion accepts booking.
+        """
+        try:
+            wallet = await self.wallet_repo.find_by_user_id(user_id, lock=True)
+            if not wallet:
+                raise WalletNotFoundError(user_id)
+
+            money = Money(amount)
+
+            # Ensure no active Escrow exists for this booking (INV-F04)
+            existing_escrow = await self.escrow_repo.find_by_booking_id(booking_id)
+            if existing_escrow and existing_escrow.status == "HELD":
+                raise EscrowAlreadyExistsError(booking_id)
+
+            # Deduct from frozen balance
+            wallet.deduct_frozen(money)
+
+            # Create Escrow fund (starts HELD)
+            escrow_id = str(uuid.uuid4())
+            escrow = Escrow.create(escrow_id, booking_id, money)
+
+            # Update or record escrow deposit transaction
+            txn = await self.transaction_repo.find_by_reference_id(
+                booking_id, "BOOKING_RESERVATION"
+            )
+            if not txn:
+                txn_id = str(uuid.uuid4())
+                txn = Transaction.create(
+                    transaction_id=txn_id,
+                    user_id=user_id,
+                    amount=money,
+                    type="BOOKING_RESERVATION",
+                    status="SUCCESS",
+                    reference_id=booking_id,
+                )
+            else:
+                txn.success()
+
+            await self.wallet_repo.save(wallet)
+            await self.escrow_repo.save(escrow)
+            await self.transaction_repo.save(txn)
+
+            # Commit outbox events
+            for event in escrow.clear_events():
+                self.event_publisher.publish(event)
+
+            return escrow_id
+        except Exception as e:
+            if self.session:
+                await self.session.rollback()
+                try:
                     from internal.domain.events import EscrowFailed
 
                     event = EscrowFailed(
@@ -110,57 +183,6 @@ class FinanceCommandService:
                         f"Failed to publish EscrowFailed: {pub_err}", exc_info=True
                     )
             raise e
-
-    async def transfer_to_escrow(
-        self, user_id: str, amount: int, booking_id: str
-    ) -> str:
-        """
-        Transfers frozen coins from Client's wallet to Escrow fund when Companion accepts booking.
-        """
-        wallet = await self.wallet_repo.find_by_user_id(user_id, lock=True)
-        if not wallet:
-            raise WalletNotFoundError(user_id)
-
-        money = Money(amount)
-
-        # Ensure no active Escrow exists for this booking (INV-F04)
-        existing_escrow = await self.escrow_repo.find_by_booking_id(booking_id)
-        if existing_escrow and existing_escrow.status == "HELD":
-            raise EscrowAlreadyExistsError(booking_id)
-
-        # Deduct from frozen balance
-        wallet.deduct_frozen(money)
-
-        # Create Escrow fund (starts HELD)
-        escrow_id = str(uuid.uuid4())
-        escrow = Escrow.create(escrow_id, booking_id, money)
-
-        # Update or record escrow deposit transaction
-        txn = await self.transaction_repo.find_by_reference_id(
-            booking_id, "BOOKING_RESERVATION"
-        )
-        if not txn:
-            txn_id = str(uuid.uuid4())
-            txn = Transaction.create(
-                transaction_id=txn_id,
-                user_id=user_id,
-                amount=money,
-                type="BOOKING_RESERVATION",
-                status="SUCCESS",
-                reference_id=booking_id,
-            )
-        else:
-            txn.success()
-
-        await self.wallet_repo.save(wallet)
-        await self.escrow_repo.save(escrow)
-        await self.transaction_repo.save(txn)
-
-        # Commit outbox events
-        for event in escrow.clear_events():
-            self.event_publisher.publish(event)
-
-        return escrow_id
 
     async def process_payout(
         self, booking_id: str, companion_id: str, commission_rate: float

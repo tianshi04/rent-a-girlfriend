@@ -15,7 +15,9 @@ class IWalletRepository(ABC):
         pass
 
     @abstractmethod
-    async def find_by_user_id(self, user_id: str, lock: bool = False) -> Optional[Wallet]:
+    async def find_by_user_id(
+        self, user_id: str, lock: bool = False
+    ) -> Optional[Wallet]:
         pass
 
 
@@ -29,7 +31,9 @@ class IEscrowRepository(ABC):
         pass
 
     @abstractmethod
-    async def find_by_booking_id(self, booking_id: str, lock: bool = False) -> Optional[Escrow]:
+    async def find_by_booking_id(
+        self, booking_id: str, lock: bool = False
+    ) -> Optional[Escrow]:
         pass
 
 
@@ -39,7 +43,9 @@ class ITransactionRepository(ABC):
         pass
 
     @abstractmethod
-    async def find_by_id(self, transaction_id: str, lock: bool = False) -> Optional[Transaction]:
+    async def find_by_id(
+        self, transaction_id: str, lock: bool = False
+    ) -> Optional[Transaction]:
         pass
 
     @abstractmethod
