@@ -20,8 +20,8 @@ type BookingRequested struct {
 	*bookingv1.BookingRequested
 }
 
-func (e BookingRequested) EventType() string     { return "booking.booking-requested.v1" }
-func (e BookingRequested) OccurredAt() time.Time { return e.BookingRequested.GetOccurredAt().AsTime() }
+func (e BookingRequested) EventType() string      { return "booking.booking-requested.v1" }
+func (e BookingRequested) OccurredAt() time.Time  { return e.BookingRequested.GetOccurredAt().AsTime() }
 func (e BookingRequested) ToProto() proto.Message { return e.BookingRequested }
 
 // BookingAccepted is raised when a Companion accepts a booking.
@@ -29,8 +29,8 @@ type BookingAccepted struct {
 	*bookingv1.BookingAccepted
 }
 
-func (e BookingAccepted) EventType() string     { return "booking.booking-accepted.v1" }
-func (e BookingAccepted) OccurredAt() time.Time { return e.BookingAccepted.GetOccurredAt().AsTime() }
+func (e BookingAccepted) EventType() string      { return "booking.booking-accepted.v1" }
+func (e BookingAccepted) OccurredAt() time.Time  { return e.BookingAccepted.GetOccurredAt().AsTime() }
 func (e BookingAccepted) ToProto() proto.Message { return e.BookingAccepted }
 
 // BookingRejected is raised when a Companion rejects a booking.
@@ -38,8 +38,8 @@ type BookingRejected struct {
 	*bookingv1.BookingRejected
 }
 
-func (e BookingRejected) EventType() string     { return "booking.booking-rejected.v1" }
-func (e BookingRejected) OccurredAt() time.Time { return e.BookingRejected.GetOccurredAt().AsTime() }
+func (e BookingRejected) EventType() string      { return "booking.booking-rejected.v1" }
+func (e BookingRejected) OccurredAt() time.Time  { return e.BookingRejected.GetOccurredAt().AsTime() }
 func (e BookingRejected) ToProto() proto.Message { return e.BookingRejected }
 
 // BookingCancelledEarly is raised when booking is cancelled >24h before start.
@@ -73,8 +73,8 @@ type BookingTimedOut struct {
 	*bookingv1.BookingTimedOut
 }
 
-func (e BookingTimedOut) EventType() string     { return "booking.booking-timed-out.v1" }
-func (e BookingTimedOut) OccurredAt() time.Time { return e.BookingTimedOut.GetOccurredAt().AsTime() }
+func (e BookingTimedOut) EventType() string      { return "booking.booking-timed-out.v1" }
+func (e BookingTimedOut) OccurredAt() time.Time  { return e.BookingTimedOut.GetOccurredAt().AsTime() }
 func (e BookingTimedOut) ToProto() proto.Message { return e.BookingTimedOut }
 
 // BookingCompleted is raised when an ACCEPTED booking completes without dispute.
@@ -82,6 +82,6 @@ type BookingCompleted struct {
 	*bookingv1.BookingCompleted
 }
 
-func (e BookingCompleted) EventType() string     { return "booking.booking-completed.v1" }
-func (e BookingCompleted) OccurredAt() time.Time { return e.BookingCompleted.GetOccurredAt().AsTime() }
+func (e BookingCompleted) EventType() string      { return "booking.booking-completed.v1" }
+func (e BookingCompleted) OccurredAt() time.Time  { return e.BookingCompleted.GetOccurredAt().AsTime() }
 func (e BookingCompleted) ToProto() proto.Message { return e.BookingCompleted }

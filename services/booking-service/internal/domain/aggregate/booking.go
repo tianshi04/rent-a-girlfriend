@@ -307,7 +307,6 @@ func (b *Booking) CancelReserving(reason string, now time.Time) error {
 	return nil
 }
 
-
 // --- Getters ---
 
 func (b *Booking) ID() vo.BookingID              { return b.id }

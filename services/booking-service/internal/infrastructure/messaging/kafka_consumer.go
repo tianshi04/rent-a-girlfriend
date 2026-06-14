@@ -12,9 +12,9 @@ import (
 	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 
+	disputev1events "github.com/rent-a-girlfriend/booking-service/gen/proto/disputev1/events"
 	financev1events "github.com/rent-a-girlfriend/booking-service/gen/proto/financev1/events"
 	interactionv1events "github.com/rent-a-girlfriend/booking-service/gen/proto/interactionv1/events"
-	disputev1events "github.com/rent-a-girlfriend/booking-service/gen/proto/disputev1/events"
 	"github.com/rent-a-girlfriend/booking-service/internal/application/command"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
 	"github.com/rent-a-girlfriend/booking-service/internal/infrastructure/persistence"
@@ -27,8 +27,6 @@ type inboundEvent struct {
 	Type        string          `json:"type"`
 	Data        json.RawMessage `json:"data"`
 }
-
-
 
 // KafkaConsumer listens to finance-events and interaction-events topics and
 // routes received CloudEvents to the SagaCoordinator.
