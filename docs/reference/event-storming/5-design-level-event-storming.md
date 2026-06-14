@@ -253,16 +253,14 @@ Trong thiết kế Microservices/DDD, các Aggregates ở trên (Write Model) đ
   "type": "booking.booking-accepted.v1",
   "datacontenttype": "application/json",
   "time": "2023-10-27T10:00:00Z",
+  "correlationid": "req_xyz789", // Thuộc tính mở rộng ở root (lowercase) dùng để trace log toàn hệ thống
   "data": {
     "bookingId": "bk_999",
     "sagaId": "saga_555",
     "companionId": "cmp_123",
     "price": 500
-  },
-  "extensions": {
-    "correlationId": "req_xyz789" // Dùng để trace log toàn hệ thống
   }
 }
 ```
 *   **`type`**: Có đánh version (`.v1`) để hỗ trợ nâng cấp cấu trúc payload sau này mà không làm gãy các Consumer cũ.
-*   **`correlationId`**: Truyền xuyên suốt từ API Gateway đến tất cả các Context để Debug trên Kibana/Datadog.
+*   **`correlationid`**: Truyền ở cấp độ gốc (root) xuyên suốt từ API Gateway đến tất cả các Context để Debug trên Kibana/Datadog.

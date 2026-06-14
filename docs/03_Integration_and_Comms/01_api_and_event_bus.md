@@ -39,7 +39,11 @@ Tất cả các consumer đều áp dụng cơ chế chủ động **kéo (Pull)
 
 ## 4. CHUẨN ĐỊNH DẠNG SỰ KIỆN (CLOUDEVENTS FORMAT)
 
-Để các Bounded Context giao tiếp an toàn, mọi Event đẩy lên Kafka phải tuân thủ chuẩn "Envelope" của **CloudEvents**.
+Để các Bounded Context giao tiếp an toàn, mọi Event đẩy lên Kafka phải tuân thủ chuẩn "Envelope" của **CloudEvents** ở chế độ **Structured Content Mode** (cả envelope và data được gửi trong Message Value).
+
+> [!NOTE]
+> Đặc tả chi tiết cách mapping CloudEvents sang Kafka message được tuân thủ theo chuẩn: [CloudEvents Kafka Protocol Binding v1.0.2](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/bindings/kafka-protocol-binding.md).
+
 
 **Cấu trúc ví dụ cho `BookingAccepted`:**
 ```json
@@ -50,14 +54,12 @@ Tất cả các consumer đều áp dụng cơ chế chủ động **kéo (Pull)
   "type": "booking.booking-accepted.v1",
   "datacontenttype": "application/json",
   "time": "2023-10-27T10:00:00Z",
+  "correlationid": "req_xyz789",
   "data": {
     "bookingId": "bk_999",
     "sagaId": "saga_555",
     "companionId": "cmp_123",
     "price": 500
-  },
-  "extensions": {
-    "correlationId": "req_xyz789"
   }
 }
 ```
@@ -66,9 +68,24 @@ Tất cả các consumer đều áp dụng cơ chế chủ động **kéo (Pull)
 *   `id`: UUID duy nhất cho từng event. Dùng để làm Idempotency Key ở Consumer.
 *   `type`: Có định dạng `<domain>.<event-name>.v<version>` (trong đó `<domain>` là chữ thường, `<event-name>` viết ở dạng `kebab-case`, và `v<version>` là phiên bản, ví dụ: `booking.booking-accepted.v1`). Versioning (`v1`) hỗ trợ nâng cấp cấu trúc payload mà không làm gãy các Consumer cũ.
 *   `data`: Payload nghiệp vụ thực tế chứa các thông tin cần thiết.
-*   `correlationId` (Extensions): Truyền xuyên suốt từ API Gateway đến tất cả các Context để Debug/Trace log trên hệ thống (Kibana/Datadog).
-*   `sagaId` (Trong data hoặc extensions): Định danh của phiên giao dịch phân tán nếu event thuộc một phần của luồng SAGA.
+*   `correlationid`: Thuộc tính mở rộng (extension attribute) nằm ở mức gốc (root), viết thường toàn bộ. Truyền xuyên suốt từ API Gateway đến tất cả các Context để phục vụ Distributed Tracing (Kibana/Datadog).
+*   `sagaId` (Trong data): Định danh của phiên giao dịch phân tán nếu event thuộc một phần của luồng SAGA.
 
 ### 4.1. Quy chuẩn đặt tên trường trong JSON Payload (Casing Standard)
 
-Để đảm bảo khả năng tương thích 100% giữa các ngôn ngữ lập trình khác nhau (Go, Rust, Python, Java) và tuân thủ đặc tả Protobuf JSON Mapping của Google, toàn bộ các trường dữ liệu bên trong JSON payload (cụ thể là trường `data` của CloudEvents và các REST APIs) **bắt buộc phải đặt tên theo định dạng `camelCase`**.
+Để đảm bảo khả năng tương thích 100% giữa các ngôn ngữ lập trình khác nhau (Go, Rust, Python, Java) và tuân thủ đặc tả Protobuf JSON Mapping của Google, toàn bộ các trường dữ liệu bên trong JSON payload (cụ thể là trường `data` của CloudEvents và các REST APIs) **bắt buộc phải đặt tên theo định dạng `camelCase`**. Riêng các trường mở rộng ngoài envelope (như `correlationid`) phải viết thường hoàn bộ ở root.
+
+### 4.2. Chiến lược phân vùng và khóa tin nhắn (Kafka Message Keying)
+
+Để đảm bảo Kafka bảo toàn thứ tự xử lý nghiệp vụ trên từng phân vùng (Partition Order Guarantee):
+*   Khi publish sự kiện, dịch vụ phát bắt buộc phải chọn **ID của Aggregate Root chính** của sự kiện đó (ví dụ: `bookingId`, `userId`, `companionId`) làm **Kafka Message Key** (định dạng string/bytes).
+*   Tuyệt đối không để trống Key hoặc dùng ngẫu nhiên trừ khi nghiệp vụ không yêu cầu thứ tự xử lý.
+
+### 4.3. Khuyến nghị sử dụng CloudEvents SDK
+
+Để đảm bảo tính nhất quán của phong bì tin nhắn, tự động kiểm tra tính hợp lệ của spec (validation), và giảm thiểu mã nguồn tự định nghĩa thủ công, các dịch vụ được khuyến nghị sử dụng SDK chính thức của CloudEvents:
+*   **Go**: [cloudevents/sdk-go](https://github.com/cloudevents/sdk-go)
+*   **Java (Spring Boot)**: [cloudevents/sdk-java](https://github.com/cloudevents/sdk-java)
+*   **Python**: [cloudevents/sdk-python](https://github.com/cloudevents/sdk-python)
+*   **Rust**: [cloudevents/sdk-rust](https://github.com/cloudevents/sdk-rust)
+
