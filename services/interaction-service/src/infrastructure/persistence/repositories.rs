@@ -97,14 +97,15 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         let now = Utc::now();
         sqlx::query(
             r#"
-            INSERT INTO outbox (event_id, event_type, payload, processed, created_at)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO outbox (event_id, event_type, payload, booking_id, processed, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (event_id) DO NOTHING
             "#,
         )
         .bind(event_id)
         .bind(event_type)
         .bind(payload_str)
+        .bind(&chat_room.booking_id)
         .bind(false)
         .bind(now)
         .execute(&mut *tx)
@@ -307,13 +308,14 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
 
             sqlx::query(
                 r#"
-                INSERT INTO outbox (event_id, event_type, payload, processed, created_at)
-                VALUES ($1, $2, $3, $4, $5)
+                INSERT INTO outbox (event_id, event_type, payload, booking_id, processed, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 "#,
             )
             .bind(event_id)
             .bind(event_type)
             .bind(payload_str)
+            .bind(&booking_id)
             .bind(false)
             .bind(now_utc)
             .execute(&mut *tx)
@@ -350,14 +352,15 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
 
         sqlx::query(
             r#"
-            INSERT INTO outbox (event_id, event_type, payload, processed, created_at)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO outbox (event_id, event_type, payload, booking_id, processed, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (event_id) DO NOTHING
             "#,
         )
         .bind(event_id)
         .bind(event_type)
         .bind(payload_str)
+        .bind(booking_id)
         .bind(false)
         .bind(now_utc)
         .execute(&self.pool)
@@ -452,14 +455,15 @@ impl ReviewRepository for SqlxReviewRepository {
         let now = Utc::now();
         sqlx::query(
             r#"
-            INSERT INTO outbox (event_id, event_type, payload, processed, created_at)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO outbox (event_id, event_type, payload, booking_id, processed, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (event_id) DO NOTHING
             "#,
         )
         .bind(event_id)
         .bind(event_type)
         .bind(payload_str)
+        .bind(&review.booking_id)
         .bind(false)
         .bind(now)
         .execute(&mut *tx)
