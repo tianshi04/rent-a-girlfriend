@@ -2,9 +2,11 @@ package com.rentagf.notification.interfaces.event;
 
 import com.rentagf.notification.application.port.inbound.ProcessInboundEventUseCase;
 import com.rentagf.notification.domain.aggregate.Notification;
+import io.cloudevents.CloudEvent;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
@@ -60,7 +62,19 @@ public class KafkaEventConsumer {
       // 1. Parse JSON thô thành CloudEvent (Fail-Fast nếu sai cấu trúc)
       CloudEvent cloudEvent = cloudEventsParser.parse(message);
       eventId = cloudEvent.getId();
-      log.info("Successfully parsed CloudEvent. Id: {}, Type: {}", eventId, cloudEvent.getType());
+
+      // Trích xuất correlationid và thiết lập MDC context
+      Object correlationIdObj = cloudEvent.getExtension("correlationid");
+      String correlationId = correlationIdObj != null ? correlationIdObj.toString() : null;
+      if (correlationId != null) {
+        MDC.put("correlationId", correlationId);
+      }
+
+      log.info(
+          "Successfully parsed CloudEvent. Id: {}, Type: {}, CorrelationId: {}",
+          eventId,
+          cloudEvent.getType(),
+          correlationId);
 
       // 2. Dịch CloudEvent thành danh sách Notification domain (Fail-Fast nếu thiếu template biến)
       List<Notification> notifications = eventTranslator.translate(cloudEvent);
@@ -80,7 +94,8 @@ public class KafkaEventConsumer {
       // Lỗi hệ thống ngoài dự kiến
       log.error("Unexpected system error consuming event. EventId: {}", eventId, e);
     } finally {
-      // Luôn commit offset để tránh lặp vô tận tin nhắn lỗi
+      MDC.clear();
+      // Luôn commit offset để tránh lặp vô chậm tin nhắn lỗi
       if (acknowledgment != null) {
         acknowledgment.acknowledge();
       }

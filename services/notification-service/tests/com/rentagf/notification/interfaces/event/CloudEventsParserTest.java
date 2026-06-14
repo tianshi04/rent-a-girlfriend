@@ -2,7 +2,11 @@ package com.rentagf.notification.interfaces.event;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.time.Instant;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.cloudevents.CloudEvent;
+import java.net.URI;
+import java.time.OffsetDateTime;
 import java.util.Map;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -11,9 +15,10 @@ import org.junit.jupiter.api.Test;
 public class CloudEventsParserTest {
 
   private final CloudEventsParser parser = new CloudEventsParser();
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
-  public void testParseValidCloudEventSuccessfully() {
+  public void testParseValidCloudEventSuccessfully() throws Exception {
     String json =
         """
             {
@@ -23,6 +28,7 @@ public class CloudEventsParserTest {
               "id": "a5d89f81-81f1-4db5-9e67-d86161726a45",
               "time": "2026-05-23T10:00:00Z",
               "datacontenttype": "application/json",
+              "correlationid": "corr-test-123",
               "data": {
                 "bookingId": "booking-123",
                 "clientId": "c1111111-1111-1111-1111-111111111111",
@@ -34,14 +40,18 @@ public class CloudEventsParserTest {
     CloudEvent event = parser.parse(json);
 
     assertNotNull(event);
-    assertEquals("1.0", event.getSpecversion());
+    assertEquals("1.0", event.getSpecVersion().toString());
     assertEquals("booking.booking-requested.v1", event.getType());
-    assertEquals("/services/booking", event.getSource());
+    assertEquals(URI.create("/services/booking"), event.getSource());
     assertEquals("a5d89f81-81f1-4db5-9e67-d86161726a45", event.getId());
-    assertEquals(Instant.parse("2026-05-23T10:00:00Z"), event.getTime());
-    assertEquals("application/json", event.getDatacontenttype());
+    assertEquals(OffsetDateTime.parse("2026-05-23T10:00:00Z"), event.getTime());
+    assertEquals("application/json", event.getDataContentType());
+    assertEquals("corr-test-123", event.getExtension("correlationid"));
 
-    Map<String, Object> data = event.getData();
+    assertNotNull(event.getData());
+    Map<String, Object> data =
+        objectMapper.readValue(
+            event.getData().toBytes(), new TypeReference<Map<String, Object>>() {});
     assertNotNull(data);
     assertEquals("booking-123", data.get("bookingId"));
     assertEquals("c1111111-1111-1111-1111-111111111111", data.get("clientId"));

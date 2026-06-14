@@ -1,8 +1,11 @@
 package com.rentagf.notification.interfaces.event;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rentagf.notification.domain.aggregate.Notification;
 import com.rentagf.notification.domain.vo.enums.NotificationPriority;
 import com.rentagf.notification.domain.vo.enums.NotificationType;
+import io.cloudevents.CloudEvent;
 import java.util.*;
 import org.springframework.stereotype.Component;
 
@@ -16,11 +19,15 @@ public class EventTranslator {
 
   private final TemplateEngine templateEngine;
   private final RecipientResolverRegistry recipientResolverRegistry;
+  private final ObjectMapper objectMapper;
 
   public EventTranslator(
-      TemplateEngine templateEngine, RecipientResolverRegistry recipientResolverRegistry) {
+      TemplateEngine templateEngine,
+      RecipientResolverRegistry recipientResolverRegistry,
+      ObjectMapper objectMapper) {
     this.templateEngine = templateEngine;
     this.recipientResolverRegistry = recipientResolverRegistry;
+    this.objectMapper = objectMapper;
   }
 
   /**
@@ -37,7 +44,18 @@ public class EventTranslator {
 
     String eventType = event.getType();
     String eventId = event.getId();
-    Map<String, Object> data = event.getData();
+
+    Map<String, Object> data = null;
+    if (event.getData() != null) {
+      try {
+        data =
+            objectMapper.readValue(
+                event.getData().toBytes(), new TypeReference<Map<String, Object>>() {});
+      } catch (Exception e) {
+        throw new IllegalArgumentException(
+            "Failed to parse CloudEvent data payload: " + e.getMessage(), e);
+      }
+    }
 
     if (eventType == null || eventId == null || data == null) {
       throw new IllegalArgumentException(

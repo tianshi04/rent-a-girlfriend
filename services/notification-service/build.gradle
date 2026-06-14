@@ -39,6 +39,10 @@ dependencies {
 	// Kafka
 	implementation 'org.springframework.kafka:spring-kafka'
 
+	// CloudEvents SDK
+	implementation 'io.cloudevents:cloudevents-core:4.0.1'
+	implementation 'io.cloudevents:cloudevents-json-jackson:4.0.1'
+
 	// Database Migration
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'
@@ -102,7 +106,7 @@ sourceSets {
 spotless {
 	java {
 		target 'internal/**/*.java', 'tests/**/*.java'
-		googleJavaFormat('1.22.0')
+		googleJavaFormat('1.27.0')
 		removeUnusedImports()
 		trimTrailingWhitespace()
 		endWithNewline()
