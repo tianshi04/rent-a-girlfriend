@@ -21,6 +21,18 @@ func validBookingParams(t *testing.T) (vo.ClientID, vo.CompanionID, vo.ScenarioS
 	return clientID, companionID, scenario, timeRange, now
 }
 
+func createPendingBooking(clientID vo.ClientID, companionID vo.CompanionID, scenario vo.ScenarioSnapshot, timeRange vo.TimeRange, now time.Time) (*aggregate.Booking, error) {
+	b, err := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	if err != nil {
+		return nil, err
+	}
+	err = b.ConfirmReserved(now)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
 func TestNewBooking_Success(t *testing.T) {
 	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
 
@@ -28,8 +40,8 @@ func TestNewBooking_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if booking.Status() != vo.StatusPending {
-		t.Errorf("expected status PENDING, got %s", booking.Status())
+	if booking.Status() != vo.StatusPendingReserving {
+		t.Errorf("expected status PENDING_RESERVING, got %s", booking.Status())
 	}
 	if booking.ID().IsZero() {
 		t.Error("expected non-zero booking ID")
@@ -78,7 +90,7 @@ func TestNewBooking_INV_B02_DurationMismatch(t *testing.T) {
 
 func TestAccept_INV_B03_Success(t *testing.T) {
 	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	_ = booking.Events() // clear
 
 	err := booking.Accept(companionID, now)
@@ -92,7 +104,7 @@ func TestAccept_INV_B03_Success(t *testing.T) {
 
 func TestAccept_INV_B03_WrongStatus(t *testing.T) {
 	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	_ = booking.Accept(companionID, now) // PENDING -> ACCEPTED
 
 	// Try to accept again (now ACCEPTED, should fail)
@@ -104,7 +116,7 @@ func TestAccept_INV_B03_WrongStatus(t *testing.T) {
 
 func TestAccept_WrongCompanion(t *testing.T) {
 	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 
 	otherCompanion, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440099")
 	err := booking.Accept(otherCompanion, now)
@@ -115,7 +127,7 @@ func TestAccept_WrongCompanion(t *testing.T) {
 
 func TestReject_INV_B03_Success(t *testing.T) {
 	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	_ = booking.Events()
 
 	err := booking.Reject(companionID, "declined", now)
@@ -129,7 +141,7 @@ func TestReject_INV_B03_Success(t *testing.T) {
 
 func TestCancel_INV_B05_Success(t *testing.T) {
 	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	_ = booking.Events()
 
 	err := booking.Cancel(vo.RoleClient, now)
@@ -175,7 +187,7 @@ func TestCancel_LateCancellation(t *testing.T) {
 	end := start.Add(120 * time.Minute)
 	timeRange, _ := vo.NewTimeRange(start, end)
 
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	_ = booking.Accept(companionID, now)
 	_ = booking.Events()
 
@@ -204,7 +216,7 @@ func TestCancel_EarlyCancellation(t *testing.T) {
 	end := start.Add(120 * time.Minute)
 	timeRange, _ := vo.NewTimeRange(start, end)
 
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	_ = booking.Events()
 
 	_ = booking.Cancel(vo.RoleClient, now)
@@ -229,7 +241,7 @@ func TestCancel_ClientEarly(t *testing.T) {
 	end := start.Add(120 * time.Minute)
 	timeRange, _ := vo.NewTimeRange(start, end)
 
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	_ = booking.Accept(companionID, now)
 	_ = booking.Events()
 	_ = booking.Cancel(vo.RoleClient, now)
@@ -255,7 +267,7 @@ func TestCancel_ClientLate(t *testing.T) {
 	end := start.Add(120 * time.Minute)
 	timeRange, _ := vo.NewTimeRange(start, end)
 
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	_ = booking.Accept(companionID, now)
 	_ = booking.Events()
 	_ = booking.Cancel(vo.RoleClient, now)
@@ -281,7 +293,7 @@ func TestCancel_CompanionEarly(t *testing.T) {
 	end := start.Add(120 * time.Minute)
 	timeRange, _ := vo.NewTimeRange(start, end)
 
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	_ = booking.Accept(companionID, now)
 	_ = booking.Events()
 	_ = booking.Cancel(vo.RoleCompanion, now)
@@ -307,7 +319,7 @@ func TestCancel_CompanionLate(t *testing.T) {
 	end := start.Add(120 * time.Minute)
 	timeRange, _ := vo.NewTimeRange(start, end)
 
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	_ = booking.Accept(companionID, now)
 	_ = booking.Events()
 	_ = booking.Cancel(vo.RoleCompanion, now)
@@ -333,7 +345,7 @@ func TestCancel_CancelPendingBooking(t *testing.T) {
 	end := start.Add(120 * time.Minute)
 	timeRange, _ := vo.NewTimeRange(start, end)
 
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	_ = booking.Events()
 	_ = booking.Cancel(vo.RoleClient, now)
 
@@ -357,7 +369,7 @@ func TestCancel_FailTechnical(t *testing.T) {
 	end := start.Add(120 * time.Minute)
 	timeRange, _ := vo.NewTimeRange(start, end)
 
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	booking.FailTechnical(now)
 
 	if booking.Status() != vo.StatusCancelled {
@@ -370,7 +382,7 @@ func TestCancel_FailTechnical(t *testing.T) {
 
 func TestSystemComplete_Success(t *testing.T) {
 	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	_ = booking.Accept(companionID, now)
 	_ = booking.Events() // clear
 
@@ -391,7 +403,7 @@ func TestSystemComplete_Success(t *testing.T) {
 
 func TestSystemComplete_InvalidStatus(t *testing.T) {
 	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now) // PENDING state
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now) // PENDING state
 
 	err := booking.SystemComplete(now)
 	if err == nil {
@@ -401,7 +413,7 @@ func TestSystemComplete_InvalidStatus(t *testing.T) {
 
 func TestDispute_Success(t *testing.T) {
 	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	_ = booking.Accept(companionID, now)
 	_ = booking.Events() // clear
 
@@ -422,7 +434,7 @@ func TestDispute_Success(t *testing.T) {
 
 func TestDispute_InvalidStatus(t *testing.T) {
 	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now) // PENDING state
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now) // PENDING state
 
 	err := booking.Dispute(now)
 	if err == nil {
@@ -432,7 +444,7 @@ func TestDispute_InvalidStatus(t *testing.T) {
 
 func TestResolve_Success(t *testing.T) {
 	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now)
 	_ = booking.Accept(companionID, now)
 	_ = booking.Dispute(now)
 	_ = booking.Events() // clear
@@ -449,10 +461,39 @@ func TestResolve_Success(t *testing.T) {
 
 func TestResolve_InvalidStatus(t *testing.T) {
 	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
-	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now) // PENDING state
+	booking, _ := createPendingBooking(clientID, companionID, scenario, timeRange, now) // PENDING state
 
 	err := booking.Resolve(now)
 	if err == nil {
 		t.Fatal("expected error for resolving pending booking")
+	}
+}
+
+func TestConfirmReserved_Success(t *testing.T) {
+	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
+	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+
+	err := booking.ConfirmReserved(now)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if booking.Status() != vo.StatusPending {
+		t.Errorf("expected status PENDING, got %s", booking.Status())
+	}
+}
+
+func TestCancelReserving_Success(t *testing.T) {
+	clientID, companionID, scenario, timeRange, now := validBookingParams(t)
+	booking, _ := aggregate.NewBooking(clientID, companionID, scenario, timeRange, now)
+
+	err := booking.CancelReserving("test reason", now)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if booking.Status() != vo.StatusCancelled {
+		t.Errorf("expected status CANCELLED, got %s", booking.Status())
+	}
+	if booking.CancelledByRole() != vo.ActorRole("SYSTEM") {
+		t.Errorf("expected cancelled by SYSTEM, got %s", booking.CancelledByRole())
 	}
 }

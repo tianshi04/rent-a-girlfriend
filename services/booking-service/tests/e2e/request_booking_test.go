@@ -57,8 +57,8 @@ func TestE2E_RequestBooking_SuccessAndFailure(t *testing.T) {
 	if successResp.BookingId == "" {
 		t.Error("expected a non-empty booking ID")
 	}
-	if successResp.Status != "BOOKING_STATUS_PENDING" {
-		t.Errorf("expected booking status BOOKING_STATUS_PENDING, got %s", successResp.Status)
+	if successResp.Status != "BOOKING_STATUS_PENDING_RESERVING" {
+		t.Errorf("expected booking status BOOKING_STATUS_PENDING_RESERVING, got %s", successResp.Status)
 	}
 
 	// Verify that the booking is saved in repository
@@ -70,12 +70,13 @@ func TestE2E_RequestBooking_SuccessAndFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("booking was not saved in repository: %v", err)
 	}
-	if bookingInDB.Status() != vo.StatusPending {
-		t.Errorf("expected booking status in DB to be PENDING, got %s", bookingInDB.Status())
+	if bookingInDB.Status() != vo.StatusPendingReserving {
+		t.Errorf("expected booking status in DB to be PENDING_RESERVING, got %s", bookingInDB.Status())
 	}
 
 	// --- 2. FAILURE PATH: Insufficient Funds ---
-	// "expensive" scenario triggers price = 5000 in mock profile service, which exceeds 4000 limit for mock finance service.
+	// "expensive" scenario triggers price = 5000 in mock profile service.
+	// Since coin freeze is now asynchronous, it will succeed at the HTTP level with 200 OK and status PENDING_RESERVING.
 	reqBodyFailure := map[string]interface{}{
 		"clientId":    "00000000-0000-0000-0000-000000000123",
 		"companionId": "00000000-0000-0000-0000-000000000456",
@@ -95,8 +96,7 @@ func TestE2E_RequestBooking_SuccessAndFailure(t *testing.T) {
 	}
 	defer func() { _ = respFail.Body.Close() }()
 
-	// Insufficient funds returns error which gateway maps to non-200 status code
-	if respFail.StatusCode == http.StatusOK {
-		t.Errorf("expected failure status code for insufficient funds, got %d", respFail.StatusCode)
+	if respFail.StatusCode != http.StatusOK {
+		t.Errorf("expected 200 OK for async booking request, got %d", respFail.StatusCode)
 	}
 }

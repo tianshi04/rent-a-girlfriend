@@ -24,34 +24,37 @@ const (
 type BookingStatus int32
 
 const (
-	BookingStatus_BOOKING_STATUS_UNSPECIFIED BookingStatus = 0
-	BookingStatus_BOOKING_STATUS_PENDING     BookingStatus = 1
-	BookingStatus_BOOKING_STATUS_ACCEPTED    BookingStatus = 2
-	BookingStatus_BOOKING_STATUS_COMPLETED   BookingStatus = 3
-	BookingStatus_BOOKING_STATUS_CANCELLED   BookingStatus = 4
-	BookingStatus_BOOKING_STATUS_DISPUTED    BookingStatus = 5
-	BookingStatus_BOOKING_STATUS_RESOLVED    BookingStatus = 6
+	BookingStatus_BOOKING_STATUS_UNSPECIFIED       BookingStatus = 0
+	BookingStatus_BOOKING_STATUS_PENDING_RESERVING BookingStatus = 1
+	BookingStatus_BOOKING_STATUS_PENDING           BookingStatus = 2
+	BookingStatus_BOOKING_STATUS_ACCEPTED          BookingStatus = 3
+	BookingStatus_BOOKING_STATUS_COMPLETED         BookingStatus = 4
+	BookingStatus_BOOKING_STATUS_CANCELLED         BookingStatus = 5
+	BookingStatus_BOOKING_STATUS_DISPUTED          BookingStatus = 6
+	BookingStatus_BOOKING_STATUS_RESOLVED          BookingStatus = 7
 )
 
 // Enum value maps for BookingStatus.
 var (
 	BookingStatus_name = map[int32]string{
 		0: "BOOKING_STATUS_UNSPECIFIED",
-		1: "BOOKING_STATUS_PENDING",
-		2: "BOOKING_STATUS_ACCEPTED",
-		3: "BOOKING_STATUS_COMPLETED",
-		4: "BOOKING_STATUS_CANCELLED",
-		5: "BOOKING_STATUS_DISPUTED",
-		6: "BOOKING_STATUS_RESOLVED",
+		1: "BOOKING_STATUS_PENDING_RESERVING",
+		2: "BOOKING_STATUS_PENDING",
+		3: "BOOKING_STATUS_ACCEPTED",
+		4: "BOOKING_STATUS_COMPLETED",
+		5: "BOOKING_STATUS_CANCELLED",
+		6: "BOOKING_STATUS_DISPUTED",
+		7: "BOOKING_STATUS_RESOLVED",
 	}
 	BookingStatus_value = map[string]int32{
-		"BOOKING_STATUS_UNSPECIFIED": 0,
-		"BOOKING_STATUS_PENDING":     1,
-		"BOOKING_STATUS_ACCEPTED":    2,
-		"BOOKING_STATUS_COMPLETED":   3,
-		"BOOKING_STATUS_CANCELLED":   4,
-		"BOOKING_STATUS_DISPUTED":    5,
-		"BOOKING_STATUS_RESOLVED":    6,
+		"BOOKING_STATUS_UNSPECIFIED":       0,
+		"BOOKING_STATUS_PENDING_RESERVING": 1,
+		"BOOKING_STATUS_PENDING":           2,
+		"BOOKING_STATUS_ACCEPTED":          3,
+		"BOOKING_STATUS_COMPLETED":         4,
+		"BOOKING_STATUS_CANCELLED":         5,
+		"BOOKING_STATUS_DISPUTED":          6,
+		"BOOKING_STATUS_RESOLVED":          7,
 	}
 )
 
@@ -202,15 +205,16 @@ var File_common_v1_enums_proto protoreflect.FileDescriptor
 
 const file_common_v1_enums_proto_rawDesc = "" +
 	"\n" +
-	"\x15common/v1/enums.proto\x12\tcommon.v1*\xde\x01\n" +
+	"\x15common/v1/enums.proto\x12\tcommon.v1*\x84\x02\n" +
 	"\rBookingStatus\x12\x1e\n" +
-	"\x1aBOOKING_STATUS_UNSPECIFIED\x10\x00\x12\x1a\n" +
-	"\x16BOOKING_STATUS_PENDING\x10\x01\x12\x1b\n" +
-	"\x17BOOKING_STATUS_ACCEPTED\x10\x02\x12\x1c\n" +
-	"\x18BOOKING_STATUS_COMPLETED\x10\x03\x12\x1c\n" +
-	"\x18BOOKING_STATUS_CANCELLED\x10\x04\x12\x1b\n" +
-	"\x17BOOKING_STATUS_DISPUTED\x10\x05\x12\x1b\n" +
-	"\x17BOOKING_STATUS_RESOLVED\x10\x06*\xfd\x01\n" +
+	"\x1aBOOKING_STATUS_UNSPECIFIED\x10\x00\x12$\n" +
+	" BOOKING_STATUS_PENDING_RESERVING\x10\x01\x12\x1a\n" +
+	"\x16BOOKING_STATUS_PENDING\x10\x02\x12\x1b\n" +
+	"\x17BOOKING_STATUS_ACCEPTED\x10\x03\x12\x1c\n" +
+	"\x18BOOKING_STATUS_COMPLETED\x10\x04\x12\x1c\n" +
+	"\x18BOOKING_STATUS_CANCELLED\x10\x05\x12\x1b\n" +
+	"\x17BOOKING_STATUS_DISPUTED\x10\x06\x12\x1b\n" +
+	"\x17BOOKING_STATUS_RESOLVED\x10\a*\xfd\x01\n" +
 	"\x12CancellationReason\x12#\n" +
 	"\x1fCANCELLATION_REASON_UNSPECIFIED\x10\x00\x12$\n" +
 	" CANCELLATION_REASON_CLIENT_EARLY\x10\x01\x12#\n" +

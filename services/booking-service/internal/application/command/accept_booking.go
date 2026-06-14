@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	financev1 "github.com/rent-a-girlfriend/booking-service/gen/proto/financev1"
 	"github.com/rent-a-girlfriend/booking-service/internal/application/port"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/aggregate"
 	domainerr "github.com/rent-a-girlfriend/booking-service/internal/domain/errors"
@@ -88,11 +89,12 @@ func (h *AcceptBookingHandler) Handle(ctx context.Context, cmd AcceptBookingCmd)
 	saga.UpdateState(vo.SagaStateWaitingForEscrow, time.Now())
 
 	cmd2 := event.TransferToEscrowCommand{
-		BookingID:   booking.ID().String(),
-		ClientID:    booking.ClientID().String(),
-		CompanionID: booking.CompanionID().String(),
-		Amount:      booking.Scenario().Price().Amount(),
-		Timestamp:   time.Now(),
+		TransferToEscrowRequest: &financev1.TransferToEscrowRequest{
+			BookingId: booking.ID().String(),
+			UserId:    booking.ClientID().String(),
+			Amount:    booking.Scenario().Price().Amount(),
+		},
+		Timestamp: time.Now(),
 	}
 
 	if h.db != nil {
