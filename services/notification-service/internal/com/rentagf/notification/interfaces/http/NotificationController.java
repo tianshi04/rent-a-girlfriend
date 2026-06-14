@@ -35,14 +35,14 @@ public class NotificationController {
 
   /**
    * Tải danh sách thông báo phân trang cursor-based của người dùng. GET
-   * /v1/notifications?cursor=...&limit=20&unread_only=false
+   * /v1/notifications?cursor=...&limit=20&unreadOnly=false
    */
   @GetMapping
   public ResponseEntity<FetchInboxResponse> fetchInbox(
       @RequestHeader("user-id") String userIdHeader,
       @RequestParam(name = "cursor", required = false) String cursor,
       @RequestParam(name = "limit", defaultValue = "20") int limit,
-      @RequestParam(name = "unread_only", defaultValue = "false") boolean unreadOnly) {
+      @RequestParam(name = "unreadOnly", defaultValue = "false") boolean unreadOnly) {
     UUID userId = getAndValidateUserId(userIdHeader);
     if (limit <= 0 || limit > 100) {
       throw new IllegalArgumentException("Limit must be between 1 and 100");

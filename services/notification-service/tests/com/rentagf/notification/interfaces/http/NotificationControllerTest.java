@@ -71,7 +71,7 @@ class NotificationControllerTest {
             get("/v1/notifications")
                 .header("user-id", userId.toString())
                 .param("limit", "20")
-                .param("unread_only", "false"))
+                .param("unreadOnly", "false"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data").isArray())
         .andExpect(jsonPath("$.data[0].eventId").value("evt_123"))

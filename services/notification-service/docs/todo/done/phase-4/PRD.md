@@ -10,7 +10,7 @@ Dịch vụ được xây dựng trên nền tảng **Java 21**, **Spring Boot 3
 
 ### 1. Phạm vi thực hiện (In-scope)
 * **REST APIs Endpoints**:
-  * `GET /v1/notifications`: Tải danh sách thông báo phân trang cursor-based, hỗ trợ tham số lọc `unread_only` và hiệu chỉnh giới hạn `limit`.
+  * `GET /v1/notifications`: Tải danh sách thông báo phân trang cursor-based, hỗ trợ tham số lọc `unreadOnly` và hiệu chỉnh giới hạn `limit`.
   * `PATCH /v1/notifications/{id}/read`: Đánh dấu đã đọc cho một thông báo cụ thể.
   * `PATCH /v1/notifications/read-all`: Đánh dấu đã đọc toàn bộ thông báo chưa đọc của người dùng.
 * **Tactical DDD & Phân trang**:
@@ -173,19 +173,22 @@ WHERE read_at IS NULL;
   "data": [
     {
       "id": "e48d3c12-3211-47bb-84a1-b847a95015b6",
+      "userId": "22222222-3333-4444-5555-666666666666",
+      "eventId": "evt_123",
       "type": "TRANSACTIONAL",
       "priority": "HIGH",
       "payload": {
         "title": "Thanh toán thành công"
       },
-      "is_read": false,
-      "created_at": "2026-05-24T09:30:00Z"
+      "status": "PENDING",
+      "readAt": null,
+      "createdAt": "2026-05-24T09:30:00Z",
+      "updatedAt": "2026-05-24T09:30:00Z"
     }
   ],
-  "meta": {
-    "next_cursor": "eyAiY3JlYXRlZEF0IjogIi4uLiIsICJpZCI6ICIuLi4iIH0",
-    "has_more": true,
-    "unread_count": 1
+  "paging": {
+    "nextCursor": "eyAiY3JlYXRlZEF0IjogIi4uLiIsICJpZCI6ICIuLi4iIH0",
+    "hasMore": true
   }
 }
 ```
@@ -215,7 +218,7 @@ sequenceDiagram
     alt rows_affected == 1
         Repo-->>Service: Return SUCCESS
         Service-->>Controller: Void/Success
-        Controller-->>Client: 200 OK {"data": {"success": true}}
+        Controller-->>Client: 204 No Content
     else rows_affected == 0
         Service->>Repo: existsByIdAndUserId(id, userId)
         Repo->>DB: SELECT EXISTS (...)
@@ -227,7 +230,7 @@ sequenceDiagram
         else Exists == true (Idempotent)
             Repo-->>Service: true
             Service-->>Controller: Void/Success (Already read)
-            Controller-->>Client: 200 OK {"data": {"success": true}}
+            Controller-->>Client: 204 No Content
         end
     end
 ```
