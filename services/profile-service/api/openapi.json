@@ -47,7 +47,7 @@
             }
           },
           {
-            "name": "min_price",
+            "name": "minPrice",
             "in": "query",
             "required": false,
             "schema": {
@@ -59,11 +59,11 @@
                   "type": "null"
                 }
               ],
-              "title": "Min Price"
+              "title": "Minprice"
             }
           },
           {
-            "name": "max_price",
+            "name": "maxPrice",
             "in": "query",
             "required": false,
             "schema": {
@@ -75,7 +75,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Max Price"
+              "title": "Maxprice"
             }
           },
           {
@@ -90,7 +90,7 @@
             }
           },
           {
-            "name": "page_size",
+            "name": "pageSize",
             "in": "query",
             "required": false,
             "schema": {
@@ -98,7 +98,7 @@
               "maximum": 50,
               "minimum": 1,
               "default": 10,
-              "title": "Page Size"
+              "title": "Pagesize"
             }
           }
         ],

@@ -85,10 +85,10 @@ def get_auth_info(
 async def search_companions(
     name: Optional[str] = Query(None),
     city: Optional[str] = Query(None),
-    min_price: Optional[int] = Query(None),
-    max_price: Optional[int] = Query(None),
+    min_price: Optional[int] = Query(None, alias="minPrice"),
+    max_price: Optional[int] = Query(None, alias="maxPrice"),
     page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=50),
+    page_size: int = Query(10, ge=1, le=50, alias="pageSize"),
     query_service: ProfileQueryService = Depends(get_query_service),
 ):
     try:
