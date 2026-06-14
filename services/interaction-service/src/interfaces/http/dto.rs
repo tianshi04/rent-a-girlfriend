@@ -6,6 +6,7 @@ pub struct SendMessageRequest {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChatMessageResponse {
     pub message_id: String,
     pub room_id: String,
@@ -15,6 +16,7 @@ pub struct ChatMessageResponse {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReviewResponse {
     pub review_id: String,
     pub booking_id: String,
