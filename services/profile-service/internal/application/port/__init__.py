@@ -22,6 +22,14 @@ class IStoragePort(ABC):
         """
         pass
 
+    @abstractmethod
+    def generate_presigned_get_url(self, key: str, expires_in: int = 300) -> str:
+        """
+        Generate S3 presigned GET URL for downloading/streaming objects.
+        Valid for expires_in seconds.
+        """
+        pass
+
 
 class IEventPublisher(ABC):
     @abstractmethod

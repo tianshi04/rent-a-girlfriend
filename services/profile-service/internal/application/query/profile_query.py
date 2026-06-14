@@ -11,16 +11,21 @@ from internal.domain.repository import (
 )
 
 
+from internal.application.port import IStoragePort
+
+
 class ProfileQueryService:
     def __init__(
         self,
         profile_repo: ICompanionProfileRepository,
         scenario_repo: IScenarioRepository,
         media_repo: IMediaAssetRepository,
+        storage: IStoragePort,
     ):
         self.profile_repo = profile_repo
         self.scenario_repo = scenario_repo
         self.media_repo = media_repo
+        self.storage = storage
 
     async def get_my_profile(self, user_id: str) -> Dict[str, Any]:
         profile = await self.profile_repo.find_by_user_id(user_id)
@@ -50,7 +55,16 @@ class ProfileQueryService:
             companion_id, "ALBUM"
         )
 
-        voice_url = voice_intros[0].file_url.url if voice_intros else None
+        voice_url = None
+        if voice_intros:
+            raw_url = voice_intros[0].file_url.url
+            from urllib.parse import urlparse
+
+            parsed = urlparse(raw_url)
+            key = parsed.path.lstrip("/")
+            # Generate 5-minute presigned GET URL
+            voice_url = self.storage.generate_presigned_get_url(key, expires_in=300)
+
         album_urls = [asset.file_url.url for asset in albums]
 
         return {
