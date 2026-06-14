@@ -57,6 +57,15 @@ financeProtos=(
     "finance/v1/messages/process_payout_request.proto"
     "finance/v1/messages/refund_escrow_request.proto"
     "finance/v1/messages/transfer_to_escrow_request.proto"
+    "finance/v1/events/coins_freeze_failed.proto"
+    "finance/v1/events/coins_frozen.proto"
+    "finance/v1/events/coins_unfrozen.proto"
+    "finance/v1/events/escrow_created.proto"
+    "finance/v1/events/escrow_failed.proto"
+    "finance/v1/events/escrow_refunded.proto"
+    "finance/v1/events/payout_processed.proto"
+    "finance/v1/events/refund_failed.proto"
+    "finance/v1/events/wallet_topped_up.proto"
 )
 
 profileProtos=(
@@ -77,7 +86,27 @@ profileProtos=(
     "profile/v1/messages/media_command_response.proto"
 )
 
-protoFiles=("${bookingProtos[@]}" "${financeProtos[@]}" "${profileProtos[@]}")
+interactionProtos=(
+    "interaction/v1/service/interaction_service.proto"
+    "interaction/v1/messages/chat_command_response.proto"
+    "interaction/v1/messages/create_chat_room_request.proto"
+    "interaction/v1/messages/hide_review_request.proto"
+    "interaction/v1/messages/lock_chat_room_request.proto"
+    "interaction/v1/messages/review_command_response.proto"
+    "interaction/v1/messages/submit_review_request.proto"
+    "interaction/v1/events/chat_room_created.proto"
+    "interaction/v1/events/chat_room_creation_failed.proto"
+    "interaction/v1/events/chat_room_locked.proto"
+    "interaction/v1/events/review_hidden.proto"
+    "interaction/v1/events/review_submitted.proto"
+)
+
+disputeProtos=(
+    "dispute/v1/events/dispute_created.proto"
+    "dispute/v1/events/dispute_resolved.proto"
+)
+
+protoFiles=("${bookingProtos[@]}" "${financeProtos[@]}" "${profileProtos[@]}" "${interactionProtos[@]}" "${disputeProtos[@]}")
 
 fullPaths=()
 for f in "${protoFiles[@]}"; do
@@ -87,14 +116,45 @@ done
 go_opts=(--go_opt=module="$module" --go_opt="Mcommon/v1/enums.proto=github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1")
 go_grpc_opts=(--go-grpc_opt=module="$module" --go-grpc_opt="Mcommon/v1/enums.proto=github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1")
 
+# Clean output directories to avoid stale files
+rm -rf "$serviceRoot/gen/proto/financev1"
+rm -rf "$serviceRoot/gen/proto/profilev1"
+rm -rf "$serviceRoot/gen/proto/interactionv1"
+rm -rf "$serviceRoot/gen/proto/disputev1"
+
 for f in "${financeProtos[@]}"; do
-    go_opts+=(--go_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/financev1")
-    go_grpc_opts+=(--go-grpc_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/financev1")
+    if [[ "$f" == *"finance/v1/events/"* ]]; then
+        targetPkg="github.com/rent-a-girlfriend/booking-service/gen/proto/financev1/events"
+    else
+        targetPkg="github.com/rent-a-girlfriend/booking-service/gen/proto/financev1"
+    fi
+    go_opts+=(--go_opt="M$f=$targetPkg")
+    go_grpc_opts+=(--go-grpc_opt="M$f=$targetPkg")
 done
 
 for f in "${profileProtos[@]}"; do
     go_opts+=(--go_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/profilev1")
     go_grpc_opts+=(--go-grpc_opt="M$f=github.com/rent-a-girlfriend/booking-service/gen/proto/profilev1")
+done
+
+for f in "${interactionProtos[@]}"; do
+    if [[ "$f" == *"interaction/v1/events/"* ]]; then
+        targetPkg="github.com/rent-a-girlfriend/booking-service/gen/proto/interactionv1/events"
+    else
+        targetPkg="github.com/rent-a-girlfriend/booking-service/gen/proto/interactionv1"
+    fi
+    go_opts+=(--go_opt="M$f=$targetPkg")
+    go_grpc_opts+=(--go-grpc_opt="M$f=$targetPkg")
+done
+
+for f in "${disputeProtos[@]}"; do
+    if [[ "$f" == *"dispute/v1/events/"* ]]; then
+        targetPkg="github.com/rent-a-girlfriend/booking-service/gen/proto/disputev1/events"
+    else
+        targetPkg="github.com/rent-a-girlfriend/booking-service/gen/proto/disputev1"
+    fi
+    go_opts+=(--go_opt="M$f=$targetPkg")
+    go_grpc_opts+=(--go-grpc_opt="M$f=$targetPkg")
 done
 
 # 1. Sinh gRPC code

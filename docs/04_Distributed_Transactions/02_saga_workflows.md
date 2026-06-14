@@ -4,7 +4,39 @@ Hệ thống sử dụng mẫu thiết kế SAGA (cả Orchestration và Choreog
 
 ---
 
-## 1. LUỒNG BOOKING CREATION (COMPANION ACCEPT)
+## 1. LUỒNG BOOKING REQUEST (COIN FREEZE SAGA)
+*   **Mô hình:** **SAGA Choreography** (Tự điều phối phân tán).
+*   **Chủ thể:** `Booking Context` và `Finance Context`.
+*   **Đặc điểm:** Khi Client yêu cầu đặt lịch hẹn, giao dịch đóng băng tiền cọc (Freeze Coin) được thực hiện bất đồng bộ. Điều này giúp giảm độ trễ (latency) của API đặt lịch và đảm bảo khả năng chịu tải tốt hơn.
+
+### Sequence Diagram
+```mermaid
+sequenceDiagram
+    participant CL as Client
+    participant BA as Booking Context
+    participant FA as Finance Context
+
+    CL->>BA: RequestBooking()
+    BA->>BA: Save Booking (State: PENDING_RESERVING)
+    BA->>BA: Publish event: booking.booking-requested.v1
+    BA-->>CL: Response: 200 OK (PENDING_RESERVING)
+
+    FA->>FA: Consume: BookingRequested
+    FA->>FA: Execute: freeze_coin()
+    alt Freeze Thành công (Đủ ví khả dụng)
+        FA->>FA: Publish event: finance.coins-frozen.v1
+        BA->>BA: Consume: CoinsFrozen
+        BA->>BA: ConfirmReserved() -> State: PENDING (Sẵn sàng để Accept)
+    else Freeze Thất bại (Không đủ tiền hoặc lỗi)
+        FA->>FA: Publish event: finance.coins-freeze-failed.v1
+        BA->>BA: Consume: CoinsFreezeFailed
+        BA->>BA: CancelReserving() -> State: CANCELLED (SYSTEM)
+    end
+```
+
+---
+
+## 2. LUỒNG BOOKING ACCEPT (COMPANION ACCEPT)
 *   **Mô hình:** **SAGA Orchestration** (Điều phối trung tâm).
 *   **Orchestrator:** `Booking Context`.
 *   **Đặc điểm:** Yêu cầu tính nhất quán cao giữa Tiền (`Escrow`) và Quyền lợi (`ChatRoom`). Nếu tiền không vào quỹ đảm bảo thành công, tuyệt đối không được mở chat. Nếu mở Chat thất bại, tiền phải được hoàn trả về Ví.

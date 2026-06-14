@@ -43,7 +43,7 @@ func TestKafkaConsumer_Dispatch_MissingBookingID(t *testing.T) {
 		"specversion": "1.0",
 		"id":          "event-123",
 		"source":      "test",
-		"type":        "finance.coin-escrowed.v1",
+		"type":        "finance.escrow-created.v1",
 		"data":        json.RawMessage(dataBytes),
 	}
 	ceBytes, _ := json.Marshal(ce)
@@ -68,7 +68,7 @@ func TestKafkaConsumer_Dispatch_InvalidBookingID(t *testing.T) {
 		"specversion": "1.0",
 		"id":          "event-123",
 		"source":      "test",
-		"type":        "finance.coin-escrowed.v1",
+		"type":        "finance.escrow-created.v1",
 		"data":        json.RawMessage(dataBytes),
 	}
 	ceBytes, _ := json.Marshal(ce)

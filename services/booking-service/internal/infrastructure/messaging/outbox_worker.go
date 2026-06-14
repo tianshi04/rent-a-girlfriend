@@ -134,11 +134,6 @@ func (w *OutboxWorker) processBatch(ctx context.Context) {
 }
 
 func (w *OutboxWorker) publishEvent(ctx context.Context, model persistence.OutboxModel) error {
-	var rawData interface{}
-	if err := json.Unmarshal([]byte(model.Payload), &rawData); err != nil {
-		return err
-	}
-
 	ce := CloudEvent{
 		SpecVersion:     "1.0",
 		ID:              model.ID,
@@ -146,7 +141,7 @@ func (w *OutboxWorker) publishEvent(ctx context.Context, model persistence.Outbo
 		Type:            model.EventType,
 		DataContentType: "application/json",
 		Time:            model.CreatedAt,
-		Data:            rawData,
+		Data:            json.RawMessage(model.Payload),
 	}
 
 	return w.publisher.PublishEvent(ctx, w.topic, ce)

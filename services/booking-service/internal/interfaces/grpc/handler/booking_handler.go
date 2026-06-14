@@ -296,6 +296,8 @@ func (h *BookingGRPCHandler) ListBookings(ctx context.Context, req *bookingv1.Li
 
 func mapBookingStatus(status vo.BookingStatus) bookingv1.BookingStatus {
 	switch status {
+	case vo.StatusPendingReserving:
+		return bookingv1.BookingStatus_BOOKING_STATUS_PENDING_RESERVING
 	case vo.StatusPending:
 		return bookingv1.BookingStatus_BOOKING_STATUS_PENDING
 	case vo.StatusAccepted:
