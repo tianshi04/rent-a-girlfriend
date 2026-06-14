@@ -16,6 +16,7 @@ struct OutboxEvent {
     event_id: String,
     event_type: String,
     payload: String,
+    booking_id: Option<String>,
     created_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -109,7 +110,7 @@ impl OutboxWorker {
         // 1. Fetch unprocessed and unlocked (or lock-expired) rows in FIFO order
         let rows = sqlx::query(
             r#"
-            SELECT id, event_id, event_type, payload, created_at
+            SELECT id, event_id, event_type, payload, booking_id, created_at
             FROM outbox
             WHERE processed = false AND (locked_until IS NULL OR locked_until < $1)
             ORDER BY id ASC
@@ -150,6 +151,7 @@ impl OutboxWorker {
                 event_id: row.get("event_id"),
                 event_type: row.get("event_type"),
                 payload: row.get("payload"),
+                booking_id: row.get("booking_id"),
                 created_at: row.get("created_at"),
             })
             .collect();
@@ -164,13 +166,16 @@ impl OutboxWorker {
             // Parse event data from outbox payload
             let data: Value = serde_json::from_str(&event.payload).unwrap_or(Value::Null);
 
-            // Construct standard CloudEvents envelope using the official SDK
+            // Construct standard CloudEvents envelope using the official SDK.
+            // correlationid is set to the event UUID and placed at the root of the
+            // envelope per the CloudEvents extension attributes specification.
             let source_url = Url::parse("http://rent-a-gf/interaction-service").unwrap();
             let cloudevent = EventBuilderV10::new()
                 .id(&event.event_id)
                 .source(source_url)
                 .ty(&event.event_type)
                 .time(event.created_at)
+                .extension("correlationid", event.event_id.clone())
                 .data("application/json", data)
                 .build()
                 .map_err(|e| sqlx::Error::Protocol(e.to_string()))?;
@@ -178,9 +183,16 @@ impl OutboxWorker {
             let cloudevent_str = serde_json::to_string(&cloudevent)
                 .map_err(|e| sqlx::Error::Protocol(e.to_string()))?;
 
-            // 3. Publish to Kafka topic asynchronously (completely outside DB transaction)
+            // 3. Publish to Kafka topic asynchronously (completely outside DB transaction).
+            // Use booking_id as the partition key (Aggregate Root ID) for ordering guarantees.
+            // Fall back to event_id if booking_id is absent (e.g., legacy rows).
+            let partition_key = event
+                .booking_id
+                .as_deref()
+                .unwrap_or(&event.event_id)
+                .to_string();
             let record = FutureRecord::to(&self.topic)
-                .key(&event.event_id)
+                .key(&partition_key)
                 .payload(&cloudevent_str);
 
             match producer.send(record, Duration::from_secs(3)).await {
