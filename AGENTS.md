@@ -96,20 +96,7 @@
 
 ## 10. Architecture Decision Records (ADR)
 - **Architecture Decision Records (ADRs)**: Proactively create/update ADRs when aligning on technical design, architecture, or technology stack (database, libraries, main flows, etc.).
-- **Storage Location**:
-  - **Service level**: `services/<service-name>/docs/adr/` (local impact).
-  - **Global level**: `docs/adr/` at the root directory (system-wide/cross-service impact).
-- **Naming Convention**: `XXXX-slug-decision-name.md` (e.g., `0006-use-outbox-pattern.md`). `XXXX` is a sequential number starting from `0001`.
-- **Standard ADR Structure**:
-  - `# ADR XXXX: [Decision Name]`
-  - `**Status:** Accepted | Proposed | Rejected`
-  - `**Date:** YYYY-MM-DD`
-  - `## Context`: Context, technical constraints, and considered alternatives.
-  - `## Decision`: Selected solution and rationale.
-  - `## Consequences`: Positive outcomes and trade-offs.
-- **Execution Process**:
-  - Draft the ADR immediately after finalizing the approach and propose saving the file.
-  - Never modify an `Accepted` ADR. When changes occur, mark the old ADR as `Superseded by ADR XXXX` and create a new ADR.
+- **Implementation & Conventions**: Refer to and strictly follow the templates and rules defined in the `architecture-decision-records` skill.
 
 ## 11. DDD & Business Logic Conventions
 - **Ubiquitous Language**: Always use terms defined in `docs/BRD.md` (Kano-Coin, Scenario, Companion, Client, Escrow).
