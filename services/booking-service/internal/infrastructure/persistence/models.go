@@ -36,6 +36,7 @@ type OutboxModel struct {
 	AggregateID   string     `gorm:"column:aggregate_id;type:uuid;not null"`
 	EventType     string     `gorm:"column:event_type;type:varchar(100);not null"`
 	Payload       string     `gorm:"column:payload;type:jsonb;not null"`
+	CorrelationID string     `gorm:"column:correlation_id;type:varchar(100)"`
 	CreatedAt     time.Time  `gorm:"column:created_at;type:timestamptz;not null;autoCreateTime"`
 	Published     bool       `gorm:"column:published;default:false;index:idx_outbox_unpublished"`
 	PublishedAt   *time.Time `gorm:"column:published_at;type:timestamptz"`

@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS outbox (
     aggregate_id   UUID NOT NULL,
     event_type     VARCHAR(100) NOT NULL,
     payload        JSONB NOT NULL,
+    correlation_id VARCHAR(100),
     created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     published      BOOLEAN DEFAULT FALSE,
     published_at   TIMESTAMPTZ

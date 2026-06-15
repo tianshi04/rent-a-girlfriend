@@ -27,12 +27,18 @@ func (p *OutboxPublisher) Publish(ctx context.Context, evt event.DomainEvent) er
 		return err
 	}
 
+	correlationID := ""
+	if val, ok := ctx.Value(vo.CorrelationIDKey).(string); ok {
+		correlationID = val
+	}
+
 	outbox := OutboxModel{
 		ID:            uuid.New().String(),
 		AggregateType: "Booking",
 		AggregateID:   extractBookingID(evt), // defined in booking_repo_impl.go
 		EventType:     evt.EventType(),
 		Payload:       string(payload),
+		CorrelationID: correlationID,
 		Published:     false,
 		CreatedAt:     time.Now(),
 	}

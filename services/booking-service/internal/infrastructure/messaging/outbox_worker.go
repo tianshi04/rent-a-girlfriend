@@ -6,17 +6,13 @@ import (
 	"log"
 	"time"
 
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 
 	"github.com/rent-a-girlfriend/booking-service/internal/infrastructure/persistence"
 )
-
-// MessagePublisher is the interface for publishing CloudEvents to a topic.
-type MessagePublisher interface {
-	PublishEvent(ctx context.Context, topic string, event CloudEvent) error
-}
 
 // OutboxWorker polls the outbox table and publishes unpublished events to Kafka.
 type OutboxWorker struct {
@@ -134,15 +130,22 @@ func (w *OutboxWorker) processBatch(ctx context.Context) {
 }
 
 func (w *OutboxWorker) publishEvent(ctx context.Context, model persistence.OutboxModel) error {
-	ce := CloudEvent{
-		SpecVersion:     "1.0",
-		ID:              model.ID,
-		Source:          "/rent-a-girlfriend/booking-service",
-		Type:            model.EventType,
-		DataContentType: "application/json",
-		Time:            model.CreatedAt,
-		Data:            json.RawMessage(model.Payload),
+	event := cloudevents.NewEvent()
+	event.SetID(model.ID)
+	event.SetSource("/rent-a-girlfriend/booking-service")
+	event.SetType(model.EventType)
+	event.SetDataContentType(cloudevents.ApplicationJSON)
+	event.SetTime(model.CreatedAt)
+
+	corrID := model.CorrelationID
+	if corrID == "" {
+		corrID = model.ID // fallback to event ID
+	}
+	event.SetExtension("correlationid", corrID)
+
+	if err := event.SetData(cloudevents.ApplicationJSON, json.RawMessage(model.Payload)); err != nil {
+		return err
 	}
 
-	return w.publisher.PublishEvent(ctx, w.topic, ce)
+	return w.publisher.PublishEvent(ctx, w.topic, model.AggregateID, event)
 }

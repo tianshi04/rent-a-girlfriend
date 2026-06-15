@@ -22,10 +22,11 @@ import (
 
 // inboundEvent is the envelope expected from finance-events and interaction-events topics.
 type inboundEvent struct {
-	SpecVersion string          `json:"specversion"`
-	ID          string          `json:"id"`
-	Type        string          `json:"type"`
-	Data        json.RawMessage `json:"data"`
+	SpecVersion   string          `json:"specversion"`
+	ID            string          `json:"id"`
+	Type          string          `json:"type"`
+	CorrelationID string          `json:"correlationid"`
+	Data          json.RawMessage `json:"data"`
 }
 
 // KafkaConsumer listens to finance-events and interaction-events topics and
@@ -145,6 +146,12 @@ func (c *KafkaConsumer) dispatch(ctx context.Context, msg kafka.Message) error {
 		log.Printf("[KAFKA-CONSUMER] Failed to parse CloudEvent: %v", err)
 		return nil // skip malformed messages
 	}
+
+	corrID := ce.CorrelationID
+	if corrID == "" {
+		corrID = ce.ID
+	}
+	ctx = context.WithValue(ctx, vo.CorrelationIDKey, corrID)
 
 	switch ce.Type {
 	// Finance events

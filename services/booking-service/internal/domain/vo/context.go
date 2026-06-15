@@ -5,3 +5,6 @@ type ContextKey string
 
 // TxKey là khóa dùng để lưu trữ và truy vấn database transaction trong context.
 const TxKey ContextKey = "tx"
+
+// CorrelationIDKey là khóa dùng để lưu trữ và truy vấn trace correlation ID trong context.
+const CorrelationIDKey ContextKey = "correlation_id"
