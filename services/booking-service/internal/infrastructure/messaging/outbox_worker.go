@@ -13,6 +13,7 @@ import (
 
 	"github.com/rent-a-girlfriend/booking-service/internal/infrastructure/persistence"
 )
+
 // OutboxWorker polls the outbox table and publishes unpublished events to Kafka.
 type OutboxWorker struct {
 	db              *gorm.DB
