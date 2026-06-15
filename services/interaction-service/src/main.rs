@@ -11,6 +11,7 @@ use interaction_service::application::chat_use_cases::ChatUseCases;
 use interaction_service::application::review_use_cases::ReviewUseCases;
 use interaction_service::infrastructure::broker::OutboxWorker;
 use interaction_service::infrastructure::chat_lock_worker::ChatLockWorker;
+use interaction_service::infrastructure::db_cleanup_worker::DbCleanupWorker;
 use interaction_service::infrastructure::persistence::{
     SqlxChatRoomRepository, SqlxProcessedEventRepository, SqlxReviewRepository,
 };
@@ -58,6 +59,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or_else(|_| "50".to_string())
         .parse::<i64>()
         .unwrap_or(50);
+
+    let cleanup_interval_mins = std::env::var("DB_CLEANUP_INTERVAL_MINUTES")
+        .unwrap_or_else(|_| "30".to_string())
+        .parse::<u64>()
+        .unwrap_or(30);
+    let processed_events_retention_days = std::env::var("PROCESSED_EVENTS_RETENTION_DAYS")
+        .unwrap_or_else(|_| "7".to_string())
+        .parse::<i64>()
+        .unwrap_or(7);
+    let outbox_retention_days = std::env::var("OUTBOX_RETENTION_DAYS")
+        .unwrap_or_else(|_| "1".to_string())
+        .parse::<i64>()
+        .unwrap_or(1);
 
     info!("Configuration Loaded. Environment: {}", app_env);
 
@@ -139,6 +153,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         chat_lock_worker.start(chat_lock_shutdown_rx).await;
     });
 
+    // D. Database Cleanup Worker
+    let db_cleanup_worker = Arc::new(DbCleanupWorker::new(
+        pool.clone(),
+        Duration::from_secs(cleanup_interval_mins * 60),
+        chrono::Duration::days(processed_events_retention_days),
+        chrono::Duration::days(outbox_retention_days),
+    ));
+    let db_cleanup_shutdown_rx = shutdown_rx.clone();
+    let mut db_cleanup_handle = tokio::spawn(async move {
+        db_cleanup_worker.start(db_cleanup_shutdown_rx).await;
+    });
+
     // 6. Bind Interfaces
     // A. Axum HTTP Router & Server
     let app_state = AppState {
@@ -198,6 +224,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ = &mut chat_lock_handle => {
             warn!("Background Chat Lock worker exited unexpectedly.");
         }
+        _ = &mut db_cleanup_handle => {
+            warn!("Background Database Cleanup worker exited unexpectedly.");
+        }
         _ = shutdown_signal() => {
             info!("Shutdown signal received. Broadcasting shutdown to all tasks...");
             let _ = shutdown_tx.send(true);
@@ -206,7 +235,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             info!("Waiting for all tasks to complete gracefully...");
 
             let wait_all = async {
-                let _ = tokio::join!(http_handle, grpc_handle, outbox_handle, listener_handle, chat_lock_handle);
+                let _ = tokio::join!(
+                    http_handle,
+                    grpc_handle,
+                    outbox_handle,
+                    listener_handle,
+                    chat_lock_handle,
+                    db_cleanup_handle
+                );
             };
 
             tokio::select! {
