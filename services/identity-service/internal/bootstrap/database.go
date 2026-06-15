@@ -1,19 +1,19 @@
 package bootstrap
 
 import (
-	"embed"
 	"fmt"
 	"log"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
+
+	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/persistence"
 )
 
-//go:embed migrations/*.sql
-var migrationsFS embed.FS
-
-// InitDatabase initializes the GORM database connection and runs SQL migrations.
+// InitDatabase initializes the GORM database connection and runs GORM AutoMigrate.
 func InitDatabase(cfg DatabaseConfig) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
@@ -22,27 +22,43 @@ func InitDatabase(cfg DatabaseConfig) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	// Run SQL migrations automatically
-	if err := runMigrations(db); err != nil {
-		return nil, fmt.Errorf("failed to run migrations: %w", err)
+	// Run GORM AutoMigrate
+	if err := db.AutoMigrate(
+		&persistence.UserAccountModel{},
+		&persistence.RefreshTokenModel{},
+		&persistence.SigningKeyModel{},
+		&persistence.UpgradeRequestModel{},
+		&persistence.SystemConfigModel{},
+		&persistence.OutboxModel{},
+		&persistence.PKCEVerifierModel{},
+	); err != nil {
+		return nil, fmt.Errorf("failed to run AutoMigrate: %w", err)
 	}
 
-	log.Println("[DB] Connected to PostgreSQL and migrations applied successfully")
+	// Seed Initial Configuration Data
+	seedConfigs := []persistence.SystemConfigModel{
+		{
+			Key:       "violation_lock_threshold",
+			Value:     "3",
+			UpdatedAt: time.Now(),
+		},
+		{
+			Key:       "companion_upgrade_manual_approval",
+			Value:     "true",
+			UpdatedAt: time.Now(),
+		},
+	}
+
+	for _, seed := range seedConfigs {
+		err := db.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "key"}},
+			DoNothing: true,
+		}).Create(&seed).Error
+		if err != nil {
+			return nil, fmt.Errorf("failed to seed config key %s: %w", seed.Key, err)
+		}
+	}
+
+	log.Println("[DB] Connected to PostgreSQL, GORM AutoMigrate and seeding applied successfully")
 	return db, nil
-}
-
-func runMigrations(db *gorm.DB) error {
-	migrationPath := "migrations/000001_init_schema.up.sql"
-	log.Printf("[DB] Running migrations from embedded FS: %s", migrationPath)
-
-	sqlContent, err := migrationsFS.ReadFile(migrationPath)
-	if err != nil {
-		return fmt.Errorf("could not read embedded migration file: %w", err)
-	}
-
-	if err := db.Exec(string(sqlContent)).Error; err != nil {
-		return fmt.Errorf("could not execute migration SQL: %w", err)
-	}
-
-	return nil
 }

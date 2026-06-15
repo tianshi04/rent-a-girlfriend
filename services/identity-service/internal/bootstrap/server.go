@@ -133,6 +133,7 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 		grpc.ChainUnaryInterceptor(
 			grpcinterceptor.AuthInterceptor,
 			grpcinterceptor.AdminInterceptor,
+			grpcinterceptor.TracingInterceptor,
 		),
 	)
 	identityv1.RegisterIdentityServiceServer(gServer, grpcHandler)
