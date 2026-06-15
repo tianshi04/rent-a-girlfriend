@@ -190,7 +190,10 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 
 	// --- gRPC Server ---
 	gServer := grpc.NewServer(
-		grpc.UnaryInterceptor(grpcinterceptor.AuthInterceptor),
+		grpc.ChainUnaryInterceptor(
+			grpcinterceptor.AuthInterceptor,
+			grpcinterceptor.TracingInterceptor,
+		),
 	)
 	bookingv1.RegisterBookingServiceServer(gServer, grpcHandler)
 
