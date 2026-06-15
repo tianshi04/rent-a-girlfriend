@@ -85,6 +85,7 @@ public class KafkaConsumerIntegrationTest {
             + "\","
             + "\"time\":\"2026-05-23T12:00:00Z\","
             + "\"datacontenttype\":\"application/json\","
+            + "\"correlationid\":\"corr-1234\","
             + "\"data\":{"
             + "  \"userId\":\""
             + userId

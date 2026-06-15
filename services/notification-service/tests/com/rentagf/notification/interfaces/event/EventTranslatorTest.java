@@ -9,8 +9,11 @@ import com.rentagf.notification.domain.vo.enums.NotificationType;
 import com.rentagf.notification.interfaces.event.resolver.BookingCancelledResolver;
 import com.rentagf.notification.interfaces.event.resolver.DisputeResolvedResolver;
 import com.rentagf.notification.interfaces.event.resolver.SimpleRecipientResolver;
+import io.cloudevents.CloudEvent;
+import io.cloudevents.core.builder.CloudEventBuilder;
 import java.io.File;
-import java.time.Instant;
+import java.net.URI;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -22,6 +25,7 @@ import org.junit.jupiter.api.Test;
 public class EventTranslatorTest {
 
   private EventTranslator translator;
+  private ObjectMapper objectMapper;
 
   @BeforeEach
   public void setUp() throws Exception {
@@ -34,7 +38,7 @@ public class EventTranslatorTest {
 
     assertTrue(templateFile.exists(), "templates.yaml file must exist for testing");
 
-    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper = new ObjectMapper();
     SimpleRecipientResolver simpleFallbackResolver = new SimpleRecipientResolver();
 
     List<com.rentagf.notification.interfaces.event.resolver.RecipientResolver> resolverList =
@@ -45,22 +49,32 @@ public class EventTranslatorTest {
         new RecipientResolverRegistry(resolverList, simpleFallbackResolver);
     TemplateEngine templateEngine = new TemplateEngine(templateFile.getAbsolutePath());
 
-    translator = new EventTranslator(templateEngine, recipientResolverRegistry);
+    translator = new EventTranslator(templateEngine, recipientResolverRegistry, objectMapper);
+  }
+
+  private CloudEvent createDummyEvent(
+      String type, String source, String id, Map<String, Object> data) throws Exception {
+    byte[] dataBytes = objectMapper.writeValueAsBytes(data);
+    return CloudEventBuilder.v1()
+        .withId(id)
+        .withType(type)
+        .withSource(URI.create(source))
+        .withTime(OffsetDateTime.now())
+        .withDataContentType("application/json")
+        .withData(dataBytes)
+        .build();
   }
 
   @Test
-  public void testTranslateKanoCoinDepositedSuccessfully() {
+  public void testTranslateKanoCoinDepositedSuccessfully() throws Exception {
     UUID userId = UUID.randomUUID();
     String eventId = UUID.randomUUID().toString();
 
     CloudEvent event =
-        new CloudEvent(
-            "1.0",
+        createDummyEvent(
             "finance.kano-coin-deposited.v1",
             "/services/finance",
             eventId,
-            Instant.now(),
-            "application/json",
             Map.of("userId", userId.toString(), "amount", 500, "transactionId", "tx-999"));
 
     List<Notification> notifications = translator.translate(event);
@@ -80,19 +94,16 @@ public class EventTranslatorTest {
   }
 
   @Test
-  public void testTranslateBookingCancelledByClientResolvesDynamicRecipient() {
+  public void testTranslateBookingCancelledByClientResolvesDynamicRecipient() throws Exception {
     UUID clientId = UUID.randomUUID();
     UUID companionId = UUID.randomUUID();
     String eventId = UUID.randomUUID().toString();
 
     CloudEvent event =
-        new CloudEvent(
-            "1.0",
+        createDummyEvent(
             "booking.booking-cancelled.v1",
             "/services/booking",
             eventId,
-            Instant.now(),
-            "application/json",
             Map.of(
                 "bookingId",
                 "b-888",
@@ -116,19 +127,16 @@ public class EventTranslatorTest {
   }
 
   @Test
-  public void testTranslateDisputeResolvedSendsToBothParties() {
+  public void testTranslateDisputeResolvedSendsToBothParties() throws Exception {
     UUID reporterId = UUID.randomUUID();
     UUID accusedId = UUID.randomUUID();
     String eventId = UUID.randomUUID().toString();
 
     CloudEvent event =
-        new CloudEvent(
-            "1.0",
+        createDummyEvent(
             "dispute.dispute-resolved.v1",
             "/services/dispute",
             eventId,
-            Instant.now(),
-            "application/json",
             Map.of(
                 "disputeId", "d-777",
                 "bookingId", "b-555",
@@ -163,15 +171,12 @@ public class EventTranslatorTest {
   }
 
   @Test
-  public void testTranslateUnknownEventTypeThrowsIllegalArgumentException() {
+  public void testTranslateUnknownEventTypeThrowsIllegalArgumentException() throws Exception {
     CloudEvent unknownEvent =
-        new CloudEvent(
-            "1.0",
+        createDummyEvent(
             "unknown.event.v1",
             "/services/unknown",
             UUID.randomUUID().toString(),
-            Instant.now(),
-            "application/json",
             Map.of("userId", UUID.randomUUID().toString()));
 
     assertThrows(IllegalArgumentException.class, () -> translator.translate(unknownEvent));
