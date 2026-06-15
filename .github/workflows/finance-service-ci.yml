@@ -112,8 +112,28 @@ jobs:
 
       - name: Container Smoke Test
         run: |
-          echo "==> Starting container..."
-          docker run -d --name smoke-test -p 8080:8080 ${{ env.TEST_IMAGE }}
+          echo "==> Creating custom network..."
+          docker network create smoke-net
+
+          echo "==> Starting PostgreSQL..."
+          docker run -d --name postgres --network smoke-net \
+            -e POSTGRES_USER=finance_admin \
+            -e POSTGRES_PASSWORD=super_secure_password \
+            -e POSTGRES_DB=finance_service \
+            postgres:15-alpine
+
+          echo "==> Waiting 10 seconds for PostgreSQL to boot..."
+          sleep 10
+          
+          echo "==> Starting Finance Service container..."
+          docker run -d --name smoke-test --network smoke-net -p 8080:8080 \
+            -e APP_ENV=production \
+            -e DB_HOST=postgres \
+            -e DB_PORT=5432 \
+            -e DB_USER=finance_admin \
+            -e DB_PASSWORD=super_secure_password \
+            -e DB_NAME=finance_service \
+            ${{ env.TEST_IMAGE }}
           
           echo "==> Waiting 10 seconds for service to boot..."
           sleep 10

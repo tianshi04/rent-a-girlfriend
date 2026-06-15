@@ -2,13 +2,11 @@ import pytest
 import hmac
 import hashlib
 from typing import List
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
 from internal.domain.vo import Money
 from internal.domain.events import DomainEvent
 from internal.application.port import IEventPublisher
 from internal.application.command.finance import FinanceCommandService
-from internal.infrastructure.persistence.models import Base
 from internal.infrastructure.persistence.repositories import (
     WalletRepository,
     EscrowRepository,
@@ -30,23 +28,6 @@ class MockEventPublisher(IEventPublisher):
 
 
 # 2. Database test fixtures
-@pytest.fixture
-async def test_db_session():
-    # SQLite in-memory engine for async tests
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
-
-    # Create schema
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    SessionLocal = async_sessionmaker(
-        autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
-    )
-
-    async with SessionLocal() as session:
-        yield session
-
-    await engine.dispose()
 
 
 @pytest.fixture
@@ -65,10 +46,10 @@ def mock_publisher():
 
 
 @pytest.fixture
-def finance_service(test_db_session, mock_vnpay_adapter, mock_publisher):
-    wallet_repo = WalletRepository(test_db_session)
-    escrow_repo = EscrowRepository(test_db_session)
-    transaction_repo = TransactionRepository(test_db_session)
+def finance_service(db_session, mock_vnpay_adapter, mock_publisher):
+    wallet_repo = WalletRepository(db_session)
+    escrow_repo = EscrowRepository(db_session)
+    transaction_repo = TransactionRepository(db_session)
 
     return FinanceCommandService(
         wallet_repo=wallet_repo,

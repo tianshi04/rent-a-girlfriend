@@ -5,7 +5,6 @@ Covers error propagation for all [INV-F01..F05] violation cases at the Applicati
 
 import pytest
 from typing import List
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
 from internal.domain.vo import Money
 from internal.domain.events import DomainEvent
@@ -18,7 +17,6 @@ from internal.domain.errors import (
 )
 from internal.application.port import IEventPublisher
 from internal.application.command.finance import FinanceCommandService
-from internal.infrastructure.persistence.models import Base
 from internal.infrastructure.persistence.repositories import (
     WalletRepository,
     EscrowRepository,
@@ -44,25 +42,12 @@ class MockEventPublisher(IEventPublisher):
 
 
 @pytest.fixture
-async def test_db_session():
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    SessionLocal = async_sessionmaker(
-        autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
-    )
-    async with SessionLocal() as session:
-        yield session
-    await engine.dispose()
-
-
-@pytest.fixture
 def mock_publisher():
     return MockEventPublisher()
 
 
 @pytest.fixture
-def finance_service(test_db_session, mock_publisher):
+def finance_service(db_session, mock_publisher):
     vnpay = VNPayAdapter(
         tmn_code="TMN_TEST",
         hash_secret="SECRET_TEST",
@@ -70,9 +55,9 @@ def finance_service(test_db_session, mock_publisher):
         return_url="http://localhost:8080/return",
     )
     return FinanceCommandService(
-        wallet_repo=WalletRepository(test_db_session),
-        escrow_repo=EscrowRepository(test_db_session),
-        transaction_repo=TransactionRepository(test_db_session),
+        wallet_repo=WalletRepository(db_session),
+        escrow_repo=EscrowRepository(db_session),
+        transaction_repo=TransactionRepository(db_session),
         event_publisher=mock_publisher,
         vnpay_adapter=vnpay,
     )
