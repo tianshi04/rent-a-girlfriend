@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -15,7 +16,7 @@ import (
 )
 
 type MessagePublisher interface {
-	PublishEvent(ctx context.Context, topic string, event CloudEvent) error
+	PublishEvent(ctx context.Context, topic string, key string, event cloudevents.Event) error
 }
 
 type OutboxWorker struct {
@@ -141,15 +142,32 @@ func (w *OutboxWorker) publishEvent(ctx context.Context, model persistence.Outbo
 		return err
 	}
 
-	cloudEvent := CloudEvent{
-		SpecVersion:     "1.0",
-		ID:              model.ID.String(),
-		Source:          w.serviceSource,
-		Type:            model.EventType,
-		DataContentType: "application/json",
-		Time:            model.CreatedAt,
-		Data:            rawData,
+	// Extract userId from payload map for partition key
+	var payloadMap map[string]interface{}
+	_ = json.Unmarshal([]byte(model.Payload), &payloadMap)
+	keyStr := ""
+	if val, ok := payloadMap["userId"].(string); ok {
+		keyStr = val
+	} else if val, ok := payloadMap["user_id"].(string); ok {
+		keyStr = val
 	}
 
-	return w.publisher.PublishEvent(ctx, w.topic, cloudEvent)
+	event := cloudevents.NewEvent()
+	event.SetID(model.ID.String())
+	event.SetSource(w.serviceSource)
+	event.SetType(model.EventType)
+	event.SetDataContentType(cloudevents.ApplicationJSON)
+	event.SetTime(model.CreatedAt)
+
+	corrID := model.CorrelationID
+	if corrID == "" {
+		corrID = model.ID.String() // fallback to event ID
+	}
+	event.SetExtension("correlationid", corrID)
+
+	if err := event.SetData(cloudevents.ApplicationJSON, rawData); err != nil {
+		return err
+	}
+
+	return w.publisher.PublishEvent(ctx, w.topic, keyStr, event)
 }

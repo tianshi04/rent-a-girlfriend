@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -21,8 +22,8 @@ type MockPublisher struct {
 	mock.Mock
 }
 
-func (m *MockPublisher) PublishEvent(ctx context.Context, topic string, event messaging.CloudEvent) error {
-	args := m.Called(ctx, topic, event)
+func (m *MockPublisher) PublishEvent(ctx context.Context, topic string, key string, event cloudevents.Event) error {
+	args := m.Called(ctx, topic, key, event)
 	return args.Error(0)
 }
 
@@ -56,8 +57,9 @@ func TestOutboxWorker_WithMockKafka(t *testing.T) {
 	mockKafka.On("PublishEvent",
 		mock.Anything,
 		"test-topic",
-		mock.MatchedBy(func(ev messaging.CloudEvent) bool {
-			return ev.ID == eventID.String() && ev.Type == "test.event.v1"
+		mock.Anything,
+		mock.MatchedBy(func(ev cloudevents.Event) bool {
+			return ev.ID() == eventID.String() && ev.Type() == "test.event.v1"
 		}),
 	).Return(nil)
 
@@ -115,8 +117,9 @@ func TestKafkaOutbox_WithMockBroker(t *testing.T) {
 	mockKafka.On("PublishEvent",
 		mock.Anything,
 		"identity.events",
-		mock.MatchedBy(func(ev messaging.CloudEvent) bool {
-			return ev.ID == entry.ID.String() && ev.Type == testEvent.EventType()
+		mock.Anything,
+		mock.MatchedBy(func(ev cloudevents.Event) bool {
+			return ev.ID() == entry.ID.String() && ev.Type() == testEvent.EventType()
 		}),
 	).Return(nil)
 
@@ -160,8 +163,9 @@ func TestOutboxWorker_ConcurrencyRaceCondition(t *testing.T) {
 	mockKafka.On("PublishEvent",
 		mock.Anything,
 		"test-topic",
-		mock.MatchedBy(func(ev messaging.CloudEvent) bool {
-			return ev.ID == eventID.String() && ev.Type == "test.event.v1"
+		mock.Anything,
+		mock.MatchedBy(func(ev cloudevents.Event) bool {
+			return ev.ID() == eventID.String() && ev.Type() == "test.event.v1"
 		}),
 	).Return(nil)
 
