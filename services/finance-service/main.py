@@ -52,7 +52,7 @@ async def run_identity_event_listener():
     consumer = AIOKafkaConsumer(
         settings.KAFKA_TOPIC_IDENTITY,
         bootstrap_servers=settings.KAFKA_BROKERS,
-        group_id="finance-service-onboarder",
+        group_id=settings.KAFKA_GROUP_ID,
         value_deserializer=lambda m: json.loads(m.decode("utf-8")),
         auto_offset_reset="earliest",
     )
