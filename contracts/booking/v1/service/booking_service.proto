@@ -6,7 +6,7 @@ option go_package = "github.com/rent-a-girlfriend/booking-service/gen/proto;book
 
 import "google/protobuf/timestamp.proto";
 import "google/api/annotations.proto";
-import "common/v1/enums.proto";
+import "booking/v1/enums/booking_enums.proto";
 import "booking/v1/messages/request_booking_request.proto";
 import "booking/v1/messages/request_booking_response.proto";
 import "booking/v1/messages/accept_booking_request.proto";

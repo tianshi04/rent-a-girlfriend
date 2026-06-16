@@ -24,6 +24,7 @@ mkdir -p "$serviceRoot/gen/proto"
 
 bookingProtos=(
     "common/v1/enums.proto"
+    "booking/v1/enums/booking_enums.proto"
     "booking/v1/messages/request_booking_request.proto"
     "booking/v1/messages/request_booking_response.proto"
     "booking/v1/messages/accept_booking_request.proto"
