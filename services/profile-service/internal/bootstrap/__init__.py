@@ -119,7 +119,9 @@ def bootstrap_services(db_session: AsyncSession):
     )
 
     # Application Queries
-    query_service = ProfileQueryService(profile_repo, scenario_repo, media_repo)
+    query_service = ProfileQueryService(
+        profile_repo, scenario_repo, media_repo, storage_adapter
+    )
 
     return profile_cmd, scenario_cmd, media_cmd, query_service
 
