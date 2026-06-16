@@ -10,6 +10,7 @@ from internal.bootstrap import (
     settings,
     SessionLocal,
     outbox_worker,
+    db_cleanup_worker,
     app,
     init_db,
     bootstrap_services,
@@ -203,6 +204,12 @@ async def main():
             f"Outbox Worker failed to start: {e}. Check your Kafka configuration."
         )
 
+    # Start Database Cleanup Worker
+    try:
+        await db_cleanup_worker.start()
+    except Exception as e:
+        logger.warning(f"Database Cleanup Worker failed to start: {e}")
+
     # Start Identity Listener in background
     identity_listener_task = asyncio.create_task(run_identity_event_listener())
 
@@ -289,6 +296,10 @@ async def main():
     # 4. Stop Transactional Outbox Worker
     logger.info("Stopping Transactional Outbox Worker...")
     await outbox_worker.stop()
+
+    # 5. Stop Database Cleanup Worker
+    logger.info("Stopping Database Cleanup Worker...")
+    await db_cleanup_worker.stop()
 
     logger.info("Graceful shutdown completed successfully.")
 
