@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     KAFKA_TOPIC_FINANCE: str = "finance.events"
     KAFKA_TOPIC_IDENTITY: str = "identity.events"  # Lắng nghe UserRegistered từ đây
     KAFKA_TOPIC_BOOKING: str = "booking.events"  # Lắng nghe BookingRequested từ đây
+    KAFKA_GROUP_ID: str = "finance-service-group"
 
     OUTBOX_POLLING_INTERVAL_MS: int = 500
     OUTBOX_BATCH_SIZE: int = 50
