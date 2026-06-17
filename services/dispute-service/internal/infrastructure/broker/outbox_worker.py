@@ -92,7 +92,9 @@ class OutboxPublisherWorker:
                     attributes = {
                         "type": event.event_type,
                         "source": f"/rent-a-gf/dispute-service/{payload.get('disputeId') or payload.get('bookingId') or 'system'}",
-                        "correlationid": payload.get("correlationId") or payload.get("eventId") or event.event_id,
+                        "correlationid": payload.get("correlationId")
+                        or payload.get("eventId")
+                        or event.event_id,
                         "datacontenttype": "application/json",
                         "id": event.event_id,
                     }
@@ -100,15 +102,20 @@ class OutboxPublisherWorker:
                         attributes["time"] = event.created_at.isoformat()
                     else:
                         attributes["time"] = datetime.now(timezone.utc).isoformat()
-                        
+
                     ce = CloudEvent(attributes, payload)
-                    
+
                     # Convert CloudEvent to dict for JSON serialization
                     ce_dict = ce._attributes.copy()
                     ce_dict["data"] = ce.data
 
                     # Construct robust partition key
-                    partition_key = payload.get("disputeId") or payload.get("bookingId") or payload.get("reporterId") or event.event_id
+                    partition_key = (
+                        payload.get("disputeId")
+                        or payload.get("bookingId")
+                        or payload.get("reporterId")
+                        or event.event_id
+                    )
 
                     # Publish to Kafka
                     if self.producer:
