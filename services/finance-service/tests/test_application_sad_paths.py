@@ -12,7 +12,11 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from internal.domain.vo import Money
 from internal.domain.events import DomainEvent
 from internal.interfaces.grpc.servicer import FinanceServiceServicer
-from internal.infrastructure.persistence.models import OutboxModel, TransactionModel
+from internal.infrastructure.persistence.models import (
+    OutboxModel,
+    TransactionModel,
+    Base,
+)
 from internal.domain.errors import (
     WalletNotFoundError,
     EscrowNotFoundError,
