@@ -13,13 +13,11 @@ import pytest
 from typing import List
 from httpx import AsyncClient, ASGITransport
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
 from internal.domain.vo import Money
 from internal.domain.events import DomainEvent
 from internal.application.port import IEventPublisher
 from internal.application.command.finance import FinanceCommandService
-from internal.infrastructure.persistence.models import Base
 from internal.infrastructure.persistence.repositories import (
     WalletRepository,
     EscrowRepository,
@@ -75,22 +73,6 @@ def build_signed_ipn(params: dict, secret: str) -> dict:
 
 
 @pytest.fixture
-async def db_engine():
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield engine
-    await engine.dispose()
-
-
-@pytest.fixture
-async def session_factory(db_engine):
-    return async_sessionmaker(
-        autocommit=False, autoflush=False, bind=db_engine, class_=AsyncSession
-    )
-
-
-@pytest.fixture
 def mock_publisher():
     return MockEventPublisher()
 
@@ -106,22 +88,22 @@ def vnpay_adapter():
 
 
 @pytest.fixture
-async def test_app(session_factory, mock_publisher, vnpay_adapter):
+async def test_app(TestSessionLocal, mock_publisher, vnpay_adapter):
     """
     Reuse the bootstrap_app with dependencies overridden to use
     per-test isolated SQLite in-memory database.
     """
 
     async def override_get_db():
-        async with session_factory() as session:
+        async with TestSessionLocal() as db:
             try:
-                yield session
-                await session.commit()
+                yield db
+                await db.commit()
             except Exception:
-                await session.rollback()
+                await db.rollback()
                 raise
 
-    async def override_get_finance_cmd(db: AsyncSession = Depends(override_get_db)):
+    async def override_get_finance_cmd(db=Depends(override_get_db)):
         return FinanceCommandService(
             wallet_repo=WalletRepository(db),
             escrow_repo=EscrowRepository(db),
@@ -186,11 +168,11 @@ async def test_topup_negative_amount_rejected(client):
 
 
 async def test_vnpay_ipn_success_flow(
-    client, session_factory, mock_publisher, vnpay_adapter
+    client, TestSessionLocal, mock_publisher, vnpay_adapter
 ):
     """GET /vnpay-ipn with valid signature and correct amount credits wallet."""
     # 1. Initiate topup to create PENDING transaction (call service directly)
-    async with session_factory() as db:
+    async with TestSessionLocal() as db:
         svc = FinanceCommandService(
             wallet_repo=WalletRepository(db),
             escrow_repo=EscrowRepository(db),
@@ -240,10 +222,10 @@ async def test_vnpay_ipn_invalid_signature_returns_97(client):
 
 
 async def test_vnpay_ipn_duplicate_returns_02(
-    client, session_factory, mock_publisher, vnpay_adapter
+    client, TestSessionLocal, mock_publisher, vnpay_adapter
 ):
     """GET /vnpay-ipn called twice returns RspCode 02 on second call (idempotency)."""
-    async with session_factory() as db:
+    async with TestSessionLocal() as db:
         svc = FinanceCommandService(
             wallet_repo=WalletRepository(db),
             escrow_repo=EscrowRepository(db),
@@ -344,13 +326,13 @@ async def test_get_wallet_lazy_creates_wallet(client):
 
 
 async def test_get_wallet_returns_existing_wallet(
-    client, session_factory, mock_publisher, vnpay_adapter
+    client, TestSessionLocal, mock_publisher, vnpay_adapter
 ):
     """GET /wallet returns correct balance for existing wallet."""
     user_id = "user-http-wallet-2"
 
-    # Pre-seed wallet with coins via the same test session_factory
-    async with session_factory() as db:
+    # Pre-seed wallet with coins via the same test TestSessionLocal
+    async with TestSessionLocal() as db:
         svc = FinanceCommandService(
             wallet_repo=WalletRepository(db),
             escrow_repo=EscrowRepository(db),

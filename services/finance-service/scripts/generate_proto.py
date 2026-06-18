@@ -47,7 +47,11 @@ def main():
         print("No .proto files found!")
         sys.exit(1)
 
-    third_party_dir = os.path.join(workspace_dir, "third_party", "googleapis")
+    third_party_dir = os.environ.get("THIRD_PARTY_PATH")
+    if not third_party_dir:
+        third_party_dir = os.path.join(workspace_dir, "third_party", "googleapis")
+        if not os.path.exists(third_party_dir):
+            third_party_dir = os.path.join(service_dir, "third_party", "googleapis")
 
     # Compile
     for proto_file in proto_files:

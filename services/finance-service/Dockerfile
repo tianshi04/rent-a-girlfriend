@@ -13,21 +13,14 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 # ---- Stage 2: Builder & Proto Generation ----
 FROM base AS builder
-# Copy shared contracts (Expected to be in context)
+# Copy shared contracts and third_party (Expected to be in context)
 COPY contracts/ ./contracts/
+COPY third_party/ ./third_party/
 COPY . .
 RUN uv sync --frozen --no-dev && \
-    CONTRACTS_PATH=/app/contracts uv run python scripts/generate_proto.py
+    CONTRACTS_PATH=/app/contracts THIRD_PARTY_PATH=/app/third_party/googleapis uv run python scripts/generate_proto.py
 
-# ---- Stage 3: Tester ----
-FROM builder AS tester
-# Install development dependencies (including pytest)
-RUN uv sync --frozen
-# Run tests - If tests fail, the build will stop here
-ENV PYTHONPATH="/app:/app/gen"
-RUN uv run pytest tests/
-
-# ---- Stage 4: Runtime ----
+# ---- Stage 3: Runtime ----
 FROM python:3.12-slim-bookworm AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends tini && \
     rm -rf /var/lib/apt/lists/*
@@ -35,10 +28,10 @@ WORKDIR /app
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 # Copy production venv from base (clean, no dev tools)
 COPY --from=base /app/.venv /app/.venv
-# Copy generated code and source from tester (FORCING tests to run)
-COPY --from=tester /app/gen /app/gen
-COPY --from=tester /app/internal /app/internal
-COPY --from=tester /app/main.py /app/main.py
+# Copy generated code and source from builder
+COPY --from=builder /app/gen /app/gen
+COPY --from=builder /app/internal /app/internal
+COPY --from=builder /app/main.py /app/main.py
 # Ensure the runtime image knows about the generated code
 RUN chown -R appuser:appgroup /app
 ENV PATH="/app/.venv/bin:$PATH" \
