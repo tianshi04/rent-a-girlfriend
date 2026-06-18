@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/event"
+	"github.com/rent-a-girlfriend/identity-service/internal/domain/vo"
 )
 
 type OutboxPublisher struct {
@@ -26,12 +27,18 @@ func (p *OutboxPublisher) Publish(ctx context.Context, evt event.DomainEvent) er
 		return err
 	}
 
+	correlationID := ""
+	if val, ok := ctx.Value(vo.CorrelationIDKey).(string); ok {
+		correlationID = val
+	}
+
 	outbox := OutboxModel{
-		ID:        uuid.New(),
-		EventType: evt.EventType(),
-		Payload:   string(payload),
-		Published: false,
-		CreatedAt: time.Now(),
+		ID:            uuid.New(),
+		EventType:     evt.EventType(),
+		Payload:       string(payload),
+		CorrelationID: correlationID,
+		Published:     false,
+		CreatedAt:     time.Now(),
 	}
 
 	// Use transaction from context if available (standard GORM practice with DDD)

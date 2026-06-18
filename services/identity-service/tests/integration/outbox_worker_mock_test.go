@@ -2,9 +2,11 @@ package integration
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -20,8 +22,8 @@ type MockPublisher struct {
 	mock.Mock
 }
 
-func (m *MockPublisher) PublishEvent(ctx context.Context, topic string, event messaging.CloudEvent) error {
-	args := m.Called(ctx, topic, event)
+func (m *MockPublisher) PublishEvent(ctx context.Context, topic string, key string, event cloudevents.Event) error {
+	args := m.Called(ctx, topic, key, event)
 	return args.Error(0)
 }
 
@@ -55,8 +57,9 @@ func TestOutboxWorker_WithMockKafka(t *testing.T) {
 	mockKafka.On("PublishEvent",
 		mock.Anything,
 		"test-topic",
-		mock.MatchedBy(func(ev messaging.CloudEvent) bool {
-			return ev.ID == eventID.String() && ev.Type == "test.event.v1"
+		mock.Anything,
+		mock.MatchedBy(func(ev cloudevents.Event) bool {
+			return ev.ID() == eventID.String() && ev.Type() == "test.event.v1"
 		}),
 	).Return(nil)
 
@@ -114,8 +117,9 @@ func TestKafkaOutbox_WithMockBroker(t *testing.T) {
 	mockKafka.On("PublishEvent",
 		mock.Anything,
 		"identity.events",
-		mock.MatchedBy(func(ev messaging.CloudEvent) bool {
-			return ev.ID == entry.ID.String() && ev.Type == testEvent.EventType()
+		mock.Anything,
+		mock.MatchedBy(func(ev cloudevents.Event) bool {
+			return ev.ID() == entry.ID.String() && ev.Type() == testEvent.EventType()
 		}),
 	).Return(nil)
 
@@ -132,4 +136,73 @@ func TestKafkaOutbox_WithMockBroker(t *testing.T) {
 	err = db.Where("id = ?", entry.ID).First(&updated).Error
 	require.NoError(t, err)
 	assert.True(t, updated.Published, "DB row phải được mark là published")
+}
+
+func TestOutboxWorker_ConcurrencyRaceCondition(t *testing.T) {
+	db := testhelper.StartPostgresContainer(t)
+
+	// Xóa sạch outbox events để tránh nhiễu
+	err := db.Exec("DELETE FROM outbox_events").Error
+	require.NoError(t, err)
+
+	mockKafka := new(MockPublisher)
+
+	// Tạo 1 event chưa publish
+	eventID := uuid.New()
+	testPayload := `{"userId":"user-concurrent-123","email":"concurrent@test.com"}`
+	err = db.Create(&persistence.OutboxModel{
+		ID:        eventID,
+		EventType: "test.event.v1",
+		Payload:   testPayload,
+		Published: false,
+		CreatedAt: time.Now(),
+	}).Error
+	require.NoError(t, err)
+
+	// Setup mock expectation: Chỉ được phép publish duy nhất 1 lần
+	mockKafka.On("PublishEvent",
+		mock.Anything,
+		"test-topic",
+		mock.Anything,
+		mock.MatchedBy(func(ev cloudevents.Event) bool {
+			return ev.ID() == eventID.String() && ev.Type() == "test.event.v1"
+		}),
+	).Return(nil)
+
+	// Chạy đồng thời 3 workers cùng kéo và xử lý
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	for i := 0; i < 3; i++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+			// Sử dụng polling interval cực ngắn để kích hoạt xử lý nhanh
+			worker := messaging.NewOutboxWorker(
+				db,
+				mockKafka,
+				10*time.Millisecond,
+				10,
+				"test-topic",
+			)
+			worker.Start(ctx)
+		}(i)
+	}
+
+	// Đợi các worker chạy và hoàn thành xử lý
+	time.Sleep(1 * time.Second)
+	cancel() // Dừng tất cả worker
+	wg.Wait()
+
+	// Assertions: mockKafka.PublishEvent chỉ được gọi đúng 1 lần
+	mockKafka.AssertNumberOfCalls(t, "PublishEvent", 1)
+
+	// Đảm bảo trạng thái trong database là đã được published
+	var updated persistence.OutboxModel
+	err = db.Where("id = ?", eventID).First(&updated).Error
+	require.NoError(t, err)
+	assert.True(t, updated.Published)
+	assert.NotNil(t, updated.PublishedAt)
+	assert.Nil(t, updated.LockedUntil)
 }

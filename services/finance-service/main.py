@@ -10,6 +10,7 @@ from internal.bootstrap import (
     settings,
     SessionLocal,
     outbox_worker,
+    db_cleanup_worker,
     app,
     init_db,
     bootstrap_services,
@@ -51,7 +52,7 @@ async def run_identity_event_listener():
     consumer = AIOKafkaConsumer(
         settings.KAFKA_TOPIC_IDENTITY,
         bootstrap_servers=settings.KAFKA_BROKERS,
-        group_id="finance-service-onboarder",
+        group_id=settings.KAFKA_GROUP_ID,
         value_deserializer=lambda m: json.loads(m.decode("utf-8")),
         auto_offset_reset="earliest",
     )
@@ -104,6 +105,91 @@ async def run_identity_event_listener():
         logger.info("Identity Event Listener stopped.")
 
 
+async def run_booking_event_listener():
+    """
+    Background worker listening to Kafka booking.events.
+    Processes booking.booking-requested.v1 to freeze coins.
+    """
+    logger.info(
+        f"Starting Booking Event Listener on topic: {settings.KAFKA_TOPIC_BOOKING}..."
+    )
+    consumer = AIOKafkaConsumer(
+        settings.KAFKA_TOPIC_BOOKING,
+        bootstrap_servers=settings.KAFKA_BROKERS,
+        group_id="finance-service-booking-handler",
+        value_deserializer=lambda m: json.loads(m.decode("utf-8")),
+        auto_offset_reset="earliest",
+    )
+
+    # Try starting the consumer with a retry loop to prevent crashing if Kafka is down
+    retries = 5
+    while retries > 0:
+        try:
+            await consumer.start()
+            logger.info("Booking Event Listener connected to Kafka successfully.")
+            break
+        except Exception as e:
+            retries -= 1
+            logger.warning(
+                f"Failed to start Booking Event Listener: {e}. Retrying in 5 seconds... ({retries} retries left)"
+            )
+            await asyncio.sleep(5)
+
+    if retries == 0:
+        logger.error(
+            "Could not start Booking Event Listener because Kafka is unavailable."
+        )
+        return
+
+    try:
+        async for msg in consumer:
+            logger.info(f"Received booking event: {msg.value}")
+            try:
+                event_type = msg.value.get("type")
+                if event_type == "booking.booking-requested.v1":
+                    # CloudEvents structure wraps data inside 'data' field
+                    event_data = msg.value.get("data", {})
+                    booking_id = event_data.get("bookingId") or event_data.get(
+                        "booking_id"
+                    )
+                    client_id = event_data.get("clientId") or event_data.get(
+                        "client_id"
+                    )
+                    amount = event_data.get("price")
+
+                    if booking_id and client_id and amount is not None:
+                        logger.info(
+                            f"Processing booking reservation: booking_id={booking_id}, client_id={client_id}, amount={amount}"
+                        )
+                        async with SessionLocal() as session:
+                            cmd_service = bootstrap_services(session)
+                            try:
+                                await cmd_service.freeze_coin(
+                                    user_id=client_id,
+                                    amount=int(amount),
+                                    booking_id=booking_id,
+                                )
+                                await session.commit()
+                                logger.info(
+                                    f"Booking reservation processed successfully for booking_id={booking_id}"
+                                )
+                            except Exception as freeze_err:
+                                logger.warning(
+                                    f"Handled error while freezing coins for booking_id={booking_id}: {freeze_err}"
+                                )
+                    else:
+                        logger.warning(
+                            f"Missing required fields (bookingId, clientId, price) in event: {msg.value}"
+                        )
+            except Exception as e:
+                logger.error(f"Error processing booking event: {e}", exc_info=True)
+    except asyncio.CancelledError:
+        logger.info("Booking Event Listener task cancelled.")
+    finally:
+        await consumer.stop()
+        logger.info("Booking Event Listener stopped.")
+
+
 async def main():
     import signal
 
@@ -118,8 +204,17 @@ async def main():
             f"Outbox Worker failed to start: {e}. Check your Kafka configuration."
         )
 
+    # Start Database Cleanup Worker
+    try:
+        await db_cleanup_worker.start()
+    except Exception as e:
+        logger.warning(f"Database Cleanup Worker failed to start: {e}")
+
     # Start Identity Listener in background
     identity_listener_task = asyncio.create_task(run_identity_event_listener())
+
+    # Start Booking Listener in background
+    booking_listener_task = asyncio.create_task(run_booking_event_listener())
 
     # Setup Server Instances
     grpc_server = grpc.aio.server()
@@ -191,9 +286,20 @@ async def main():
     except asyncio.CancelledError:
         pass
 
+    logger.info("Stopping Booking Event Listener...")
+    booking_listener_task.cancel()
+    try:
+        await booking_listener_task
+    except asyncio.CancelledError:
+        pass
+
     # 4. Stop Transactional Outbox Worker
     logger.info("Stopping Transactional Outbox Worker...")
     await outbox_worker.stop()
+
+    # 5. Stop Database Cleanup Worker
+    logger.info("Stopping Database Cleanup Worker...")
+    await db_cleanup_worker.stop()
 
     logger.info("Graceful shutdown completed successfully.")
 

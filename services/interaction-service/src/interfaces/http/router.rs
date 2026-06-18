@@ -31,6 +31,7 @@ impl IntoResponse for ApiError {
             DomainError::ChatRoomAlreadyExists(_) => StatusCode::CONFLICT,
             DomainError::ChatRoomNotFound(_) => StatusCode::NOT_FOUND,
             DomainError::ReviewNotFound(_) => StatusCode::NOT_FOUND,
+            DomainError::DatabaseError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
         let body = Json(json!({
@@ -43,6 +44,7 @@ impl IntoResponse for ApiError {
                 DomainError::ChatRoomAlreadyExists(_) => "CHAT_ROOM_ALREADY_EXISTS",
                 DomainError::ChatRoomNotFound(_) => "CHAT_ROOM_NOT_FOUND",
                 DomainError::ReviewNotFound(_) => "REVIEW_NOT_FOUND",
+                DomainError::DatabaseError(_) => "INTERNAL_DATABASE_ERROR",
             }
         }));
 

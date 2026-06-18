@@ -86,13 +86,18 @@ def integration_deps(db_session, kafka):
     storage_mock.generate_presigned_put_url = lambda key, content_type, content_length: (
         f"https://mock-s3.com/{key}"
     )
+    storage_mock.generate_presigned_get_url = lambda key, expires_in=300: (
+        f"https://mock-s3.com/{key}?expires={expires_in}"
+    )
 
     profile_cmd = ProfileCommandService(profile_repo, event_publisher)
     scenario_cmd = ScenarioCommandService(profile_repo, scenario_repo, event_publisher)
     media_cmd = MediaCommandService(
         profile_repo, media_repo, storage_mock, event_publisher
     )
-    query_service = ProfileQueryService(profile_repo, scenario_repo, media_repo)
+    query_service = ProfileQueryService(
+        profile_repo, scenario_repo, media_repo, storage_mock
+    )
 
     app.dependency_overrides[get_query_service] = lambda: query_service
     app.dependency_overrides[get_media_cmd] = lambda: media_cmd

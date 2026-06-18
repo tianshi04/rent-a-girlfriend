@@ -26,7 +26,7 @@ type cloudEvent struct {
 }
 
 type bookingPayload struct {
-	BookingID string `json:"bookingId"`
+	BookingID string `json:"booking_id"`
 }
 
 // Payload structs for commands from Booking Service
@@ -139,7 +139,7 @@ func runInteractiveDriver(brokers string, reader *bufio.Reader) {
 
 			choice := getChoice(reader, 1, 2)
 			if choice == 1 {
-				publishResponseEvent(brokers, "finance.events", "finance.coin-escrowed.v1", payload.BookingID)
+				publishResponseEvent(brokers, "finance.events", "finance.escrow-created.v1", payload.BookingID)
 			} else {
 				publishResponseEvent(brokers, "finance.events", "finance.escrow-failed.v1", payload.BookingID)
 			}
@@ -186,7 +186,7 @@ func runInteractiveDriver(brokers string, reader *bufio.Reader) {
 
 			choice := getChoice(reader, 1, 2)
 			if choice == 1 {
-				publishResponseEvent(brokers, "finance.events", "finance.refund-success.v1", payload.BookingID)
+				publishResponseEvent(brokers, "finance.events", "finance.escrow-refunded.v1", payload.BookingID)
 			} else {
 				publishResponseEvent(brokers, "finance.events", "finance.refund-failed.v1", payload.BookingID)
 			}
@@ -205,11 +205,11 @@ func runManualPublisher(brokers string, reader *bufio.Reader) {
 		EventType string
 		Label     string
 	}{
-		{Topic: "finance.events", EventType: "finance.coin-escrowed.v1", Label: "CoinEscrowed (Saga Step 1: Client Escrow Success)"},
+		{Topic: "finance.events", EventType: "finance.escrow-created.v1", Label: "EscrowCreated (Saga Step 1: Client Escrow Success)"},
 		{Topic: "finance.events", EventType: "finance.escrow-failed.v1", Label: "EscrowFailed (Saga Step 1: Client Escrow Failed)"},
 		{Topic: "interaction.events", EventType: "interaction.chat-room-created.v1", Label: "ChatRoomCreated (Saga Step 2: Chat Room Created Success)"},
 		{Topic: "interaction.events", EventType: "interaction.chat-room-creation-failed.v1", Label: "ChatRoomCreationFailed (Saga Step 2: Chat Room Failed)"},
-		{Topic: "finance.events", EventType: "finance.refund-success.v1", Label: "RefundSuccess (Saga Compensation: Escrow Refund Success)"},
+		{Topic: "finance.events", EventType: "finance.escrow-refunded.v1", Label: "EscrowRefunded (Saga Compensation: Escrow Refund Success)"},
 		{Topic: "finance.events", EventType: "finance.refund-failed.v1", Label: "RefundFailed (Saga Compensation: Escrow Refund Failed - ALERT)"},
 		{Topic: "dispute.events", EventType: "dispute.dispute-created.v1", Label: "DisputeCreated (User Flow: Client opens a Dispute)"},
 	}

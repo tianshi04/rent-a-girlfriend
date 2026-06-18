@@ -4,7 +4,14 @@ import sys
 import grpc
 import uvicorn
 
-from internal.bootstrap import settings, SessionLocal, outbox_worker, app, init_db
+from internal.bootstrap import (
+    settings,
+    SessionLocal,
+    outbox_worker,
+    db_cleanup_worker,
+    app,
+    init_db,
+)
 from gen.profile.v1.service import profile_service_pb2_grpc
 from internal.interfaces.grpc.servicer import ProfileServiceServicer
 
@@ -27,6 +34,12 @@ async def main():
         logger.warning(
             f"Outbox Worker failed to start: {e}. Check your Kafka configuration."
         )
+
+    # Start DB Cleanup Worker
+    try:
+        await db_cleanup_worker.start()
+    except Exception as e:
+        logger.warning(f"DB Cleanup Worker failed to start: {e}.")
 
     # gRPC Server Setup
     grpc_server = grpc.aio.server()
@@ -113,6 +126,13 @@ async def main():
             await outbox_worker.stop()
         except Exception as e:
             logger.error(f"Error stopping Outbox Worker: {e}")
+
+        # 4. Stop DB Cleanup Worker
+        logger.info("Stopping DB Cleanup Worker...")
+        try:
+            await db_cleanup_worker.stop()
+        except Exception as e:
+            logger.error(f"Error stopping DB Cleanup Worker: {e}")
 
         logger.info("Server successfully stopped.")
 

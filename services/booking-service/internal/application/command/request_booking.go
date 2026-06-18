@@ -94,22 +94,14 @@ func (h *RequestBookingHandler) Handle(ctx context.Context, cmd RequestBookingCm
 		return nil, domainerr.ErrCompanionBookingOverlap
 	}
 
-	// 4. Freeze coin in Finance Service (sync call)
-	if err := h.financeService.FreezeCoin(ctx, clientID, snapshot.Price()); err != nil {
-		return nil, err
-	}
-
 	// 5. Create Booking aggregate (validates INV-B01, INV-B02)
 	booking, err := aggregate.NewBooking(clientID, companionID, *snapshot, timeRange, now)
 	if err != nil {
-		// Rollback: unfreeze coin if aggregate creation fails
-		_ = h.financeService.UnfreezeCoin(ctx, clientID, snapshot.Price())
 		return nil, err
 	}
 
 	// 6. Persist
 	if err := h.repo.Save(ctx, booking); err != nil {
-		_ = h.financeService.UnfreezeCoin(ctx, clientID, snapshot.Price())
 		return nil, err
 	}
 

@@ -21,6 +21,7 @@ pub trait ChatRoomRepository: Send + Sync {
         now: chrono::DateTime<chrono::Utc>,
         limit: i64,
     ) -> Result<Vec<String>, DomainError>;
+    async fn report_creation_failure(&self, booking_id: &str) -> Result<(), DomainError>;
 }
 
 #[cfg_attr(test, mockall::automock)]

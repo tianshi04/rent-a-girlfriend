@@ -23,7 +23,7 @@ echo "    output    : $SERVICE_ROOT/gen/proto/"
 echo ""
 
 PROTO_FILES=(
-    "common/common.proto"
+    "identity/v1/messages/responses/message_response.proto"
     "identity/v1/messages/requests/init_google_auth_request.proto"
     "identity/v1/messages/requests/login_google_request.proto"
     "identity/v1/messages/requests/refresh_token_request.proto"

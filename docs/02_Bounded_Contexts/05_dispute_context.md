@@ -23,8 +23,8 @@ Hỗ trợ Admin tiếp nhận khiếu nại (Report/Dispute) từ người dùn
 ## 5. THIẾT KẾ COMMAND & EVENT
 | Lệnh (Command) | Dữ liệu đầu vào (Payload) | Sự kiện phát ra (Event Payload) |
 | :--- | :--- | :--- |
-| `CreateReport` | `bookingId`, `reporterId`, `reason` | `ReportCreated` { disputeId, bookingId } |
-| `ResolveDisputeRefund`| `disputeId`, `adminId`, `notes` | `DisputeResolvedRefund` { disputeId, bookingId } |
+| `CreateReport` | `bookingId`, `reporterId`, `accusedId`, `reason` | `ReportCreated` { disputeId, bookingId, reporterId, accusedId, reason, occurredAt } |
+| `ResolveDispute` | `disputeId`, `adminId`, `resolution`, `notes` | `DisputeResolved` { disputeId, bookingId, resolution, occurredAt, resolvedBy, reporterId, accusedId } |
 
 ## 6. SAGA STATE (PROCESS MANAGERS)
 **Dispute Refund Saga**

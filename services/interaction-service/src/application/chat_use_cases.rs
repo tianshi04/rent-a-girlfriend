@@ -155,6 +155,10 @@ impl ChatUseCases {
         let messages = self.repo.get_messages(room_id, limit, offset).await?;
         Ok(messages)
     }
+
+    pub async fn report_creation_failure(&self, booking_id: &str) -> Result<(), DomainError> {
+        self.repo.report_creation_failure(booking_id).await
+    }
 }
 
 #[cfg(test)]
@@ -382,6 +386,22 @@ mod tests {
             )
             .await;
 
+        assert!(res.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_report_creation_failure() {
+        let mut mock_repo = MockChatRoomRepository::new();
+        let mock_processed_repo = MockProcessedEventRepository::new();
+
+        mock_repo
+            .expect_report_creation_failure()
+            .with(mockall::predicate::eq("booking-123"))
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let use_cases = ChatUseCases::new(Arc::new(mock_repo), Arc::new(mock_processed_repo));
+        let res = use_cases.report_creation_failure("booking-123").await;
         assert!(res.is_ok());
     }
 }

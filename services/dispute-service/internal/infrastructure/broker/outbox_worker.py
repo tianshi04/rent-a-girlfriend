@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy import select
 from aiokafka import AIOKafkaProducer
 from internal.infrastructure.persistence.models import OutboxModel
+from cloudevents.v1.http import CloudEvent
 
 logger = logging.getLogger("outbox_publisher")
 
@@ -87,28 +88,41 @@ class OutboxPublisherWorker:
                 for event in events:
                     payload = json.loads(event.payload)
 
-                    # Construct standard CloudEvent v1.0 payload
-                    cloudevent = {
-                        "specversion": "1.0",
-                        "id": event.event_id,
-                        "source": f"/rent-a-gf/dispute-service/{payload.get('dispute_id') or payload.get('booking_id')}",
+                    # Construct standard CloudEvent v1.0 payload using SDK
+                    attributes = {
                         "type": event.event_type,
+                        "source": f"/rent-a-gf/dispute-service/{payload.get('disputeId') or payload.get('bookingId') or 'system'}",
+                        "correlationid": payload.get("correlationId")
+                        or payload.get("eventId")
+                        or event.event_id,
                         "datacontenttype": "application/json",
-                        "time": event.created_at.isoformat()
-                        if hasattr(event, "created_at")
-                        else datetime.now(timezone.utc).isoformat(),
-                        "data": payload,
-                        "extensions": {
-                            "correlationId": payload.get("event_id", event.event_id)
-                        },
+                        "id": event.event_id,
                     }
+                    if hasattr(event, "created_at") and event.created_at:
+                        attributes["time"] = event.created_at.isoformat()
+                    else:
+                        attributes["time"] = datetime.now(timezone.utc).isoformat()
+
+                    ce = CloudEvent(attributes, payload)
+
+                    # Convert CloudEvent to dict for JSON serialization
+                    ce_dict = ce._attributes.copy()
+                    ce_dict["data"] = ce.data
+
+                    # Construct robust partition key
+                    partition_key = (
+                        payload.get("disputeId")
+                        or payload.get("bookingId")
+                        or payload.get("reporterId")
+                        or event.event_id
+                    )
 
                     # Publish to Kafka
                     if self.producer:
                         await self.producer.send_and_wait(
                             topic=self.topic,
-                            key=bytes(payload.get("dispute_id", ""), "utf-8"),
-                            value=cloudevent,
+                            key=bytes(str(partition_key), "utf-8"),
+                            value=ce_dict,
                         )
 
                     # Mark as processed

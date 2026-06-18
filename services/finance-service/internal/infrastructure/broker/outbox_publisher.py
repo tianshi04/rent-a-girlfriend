@@ -6,6 +6,8 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy import select
 from aiokafka import AIOKafkaProducer
+from cloudevents.v1.http import CloudEvent
+from cloudevents.v1.conversion import to_dict
 from internal.domain.events import DomainEvent
 from internal.application.port import IEventPublisher
 from internal.infrastructure.persistence.models import OutboxModel
@@ -13,11 +15,11 @@ from internal.infrastructure.persistence.models import OutboxModel
 logger = logging.getLogger("outbox_publisher")
 
 
-
 def _to_kebab_case(name: str) -> str:
     import re
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1-\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1-\2', s1).lower()
+
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1-\2", name)
+    return re.sub("([a-z0-9])([A-Z])", r"\1-\2", s1).lower()
 
 
 class DatabaseEventPublisher(IEventPublisher):
@@ -36,9 +38,9 @@ class DatabaseEventPublisher(IEventPublisher):
         # Map to protobuf
         proto_msg = EventMapper.to_protobuf(event)
 
-        # Convert to dictionary (preserving field names)
+        # Convert to dictionary (mapping fields to camelCase)
         payload_dict = MessageToDict(
-            proto_msg, preserving_proto_field_name=True, use_integers_for_enums=True
+            proto_msg, preserving_proto_field_name=False, use_integers_for_enums=True
         )
 
         event_id = str(uuid.uuid4())
@@ -126,26 +128,24 @@ class OutboxPublisherWorker:
                 for event in events:
                     payload = json.loads(event.payload)
 
-                    # Build Standard CloudEvent v1.0 payload
-                    cloudevent = {
-                        "specversion": "1.0",
-                        "id": event.event_id,
-                        "source": f"/rent-a-gf/finance-service/{payload.get('user_id') or payload.get('companion_id', 'system')}",
+                    # Build Standard CloudEvent v1.0 payload using official SDK
+                    attributes = {
                         "type": event.event_type,
-                        "datacontenttype": "application/json",
+                        "source": f"/rent-a-gf/finance-service/{payload.get('userId') or payload.get('companionId', 'system')}",
+                        "id": event.event_id,
                         "time": event.created_at.isoformat() + "Z"
                         if hasattr(event, "created_at")
                         else datetime.now(timezone.utc).isoformat(),
-                        "data": payload,
-                        "extensions": {
-                            "correlationId": payload.get("event_id", event.event_id)
-                        },
+                        "datacontenttype": "application/json",
+                        "correlationid": payload.get("eventId", event.event_id),
                     }
+                    ce = CloudEvent(attributes, payload)
+                    cloudevent = to_dict(ce)
 
                     if self.producer:
-                        # Direct key partitioning by booking_id or user_id for sequence preservation
+                        # Direct key partitioning by bookingId or userId for sequence preservation
                         key_str = (
-                            payload.get("booking_id") or payload.get("user_id") or ""
+                            payload.get("bookingId") or payload.get("userId") or ""
                         )
                         await self.producer.send_and_wait(
                             topic=self.topic,

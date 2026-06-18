@@ -29,7 +29,7 @@ Sử dụng **Cursor-based Pagination** (Theo ADR-0004) để hỗ trợ tính n
 - **Query Parameters**:
   - `limit` (int, optional): Số lượng bản ghi trả về. Mặc định `20`, tối đa `50`.
   - `cursor` (string, optional): Chuỗi Cursor lấy từ lần gọi trước để lấy trang tiếp theo. Để trống nếu tải lần đầu.
-  - `unread_only` (boolean, optional): Nếu `true`, chỉ trả về các tin nhắn chưa đọc. Mặc định `false`.
+  - `unreadOnly` (boolean, optional): Nếu `true`, chỉ trả về các tin nhắn chưa đọc. Mặc định `false`.
 
 **Response (200 OK):**
 ```json
@@ -37,6 +37,8 @@ Sử dụng **Cursor-based Pagination** (Theo ADR-0004) để hỗ trợ tính n
   "data": [
     {
       "id": "11111111-2222-3333-4444-555555555555",
+      "userId": "22222222-3333-4444-5555-666666666666",
+      "eventId": "evt_123",
       "type": "TRANSACTIONAL",
       "priority": "HIGH",
       "payload": {
@@ -45,11 +47,15 @@ Sử dụng **Cursor-based Pagination** (Theo ADR-0004) để hỗ trợ tính n
         "actionUrl": "rentagf://booking/detail/123",
         "imageUrl": "https://storage.rentagf.com/img.png"
       },
-      "is_read": false,
-      "created_at": "2026-05-10T14:00:00Z"
+      "status": "PENDING",
+      "readAt": null,
+      "createdAt": "2026-05-10T14:00:00Z",
+      "updatedAt": "2026-05-10T14:00:00Z"
     },
     {
       "id": "66666666-7777-8888-9999-000000000000",
+      "userId": "22222222-3333-4444-5555-666666666666",
+      "eventId": "evt_456",
       "type": "INTERACTION",
       "priority": "MEDIUM",
       "payload": {
@@ -57,18 +63,18 @@ Sử dụng **Cursor-based Pagination** (Theo ADR-0004) để hỗ trợ tính n
         "body": "Client Nam vừa gửi tin nhắn cho bạn.",
         "actionUrl": "rentagf://chat/room/456"
       },
-      "is_read": true,
-      "created_at": "2026-05-09T09:30:00Z"
+      "status": "PENDING",
+      "readAt": "2026-05-09T09:35:00Z",
+      "createdAt": "2026-05-09T09:30:00Z",
+      "updatedAt": "2026-05-09T09:35:00Z"
     }
   ],
-  "meta": {
-    "next_cursor": "YmFzZTY0LWVuY29kZWQtY3Vyc29yLXN0cmluZw==",
-    "has_more": true,
-    "unread_count": 5
+  "paging": {
+    "nextCursor": "YmFzZTY0LWVuY29kZWQtY3Vyc29yLXN0cmluZw==",
+    "hasMore": true
   }
 }
 ```
-*(Ghi chú: `unread_count` trả về tổng số tin nhắn chưa đọc của User để Frontend vẽ cái "badge đỏ" trên Icon Quả chuông).*
 
 ---
 
@@ -80,14 +86,7 @@ Khi user bấm vào một Notification để xem chi tiết.
   - `id` (UUID): ID của thông báo cần đánh dấu.
 - **Request Body**: (Không có)
 
-**Response (200 OK):**
-```json
-{
-  "data": {
-    "success": true
-  }
-}
-```
+**Response (204 No Content):** (Không có body)
 
 ---
 
@@ -100,9 +99,7 @@ Dùng cho nút "Mark all as read" trên UI.
 **Response (200 OK):**
 ```json
 {
-  "data": {
-    "updated_count": 5
-  }
+  "affectedRows": 5
 }
 ```
 

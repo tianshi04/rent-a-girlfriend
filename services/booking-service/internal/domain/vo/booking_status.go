@@ -4,13 +4,14 @@ package vo
 type BookingStatus string
 
 const (
-	StatusPending   BookingStatus = "PENDING"
-	StatusAccepted  BookingStatus = "ACCEPTED"
-	StatusRejected  BookingStatus = "REJECTED"
-	StatusCompleted BookingStatus = "COMPLETED"
-	StatusCancelled BookingStatus = "CANCELLED"
-	StatusDisputed  BookingStatus = "DISPUTED"
-	StatusResolved  BookingStatus = "RESOLVED"
+	StatusPendingReserving BookingStatus = "PENDING_RESERVING"
+	StatusPending          BookingStatus = "PENDING"
+	StatusAccepted         BookingStatus = "ACCEPTED"
+	StatusRejected         BookingStatus = "REJECTED"
+	StatusCompleted        BookingStatus = "COMPLETED"
+	StatusCancelled        BookingStatus = "CANCELLED"
+	StatusDisputed         BookingStatus = "DISPUTED"
+	StatusResolved         BookingStatus = "RESOLVED"
 )
 
 // CanAccept checks if the booking can transition to ACCEPTED. [INV-B03]

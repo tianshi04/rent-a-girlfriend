@@ -147,7 +147,10 @@ Hệ thống tập trung vào các cơ chế bảo vệ cơ bản cho giao dịc
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDING : Gửi request (Freeze Coin)
+    [*] --> PENDING_RESERVING : Gửi request (Emit BookingRequested)
+    
+    PENDING_RESERVING --> PENDING : CoinsFrozen (Đóng băng thành công)
+    PENDING_RESERVING --> CANCELLED : CoinsFreezeFailed (Đóng băng thất bại)
     
     PENDING --> ACCEPTED : accept (Escrow)
     PENDING --> REJECTED : reject / timeout 12h (Unfreeze)

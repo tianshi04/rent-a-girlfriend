@@ -5,7 +5,7 @@ package booking.v1;
 option go_package = "github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1";
 
 import "google/protobuf/timestamp.proto";
-import "common/v1/enums.proto";
+import "booking/v1/enums/booking_enums.proto";
 
 message BookingDetailResponse {
   string booking_id = 1;
@@ -15,6 +15,6 @@ message BookingDetailResponse {
   int64 duration_minutes = 5;
   google.protobuf.Timestamp start_time = 6;
   google.protobuf.Timestamp end_time = 7;
-  common.v1.BookingStatus status = 8;
+  BookingStatus status = 8;
   google.protobuf.Timestamp created_at = 9;
 }

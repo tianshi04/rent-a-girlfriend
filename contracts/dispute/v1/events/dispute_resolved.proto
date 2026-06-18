@@ -8,6 +8,11 @@ import "google/protobuf/timestamp.proto";
 
 message DisputeResolved {
   string dispute_id = 1;
-  string resolution = 2;
-  google.protobuf.Timestamp occurred_at = 3;
+  string booking_id = 2;
+  string resolution = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+  string resolved_by = 5;
+  string reporter_id = 6;
+  string accused_id = 7;
 }
+

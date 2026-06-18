@@ -11,11 +11,11 @@ def main():
 
     # Allow overriding via environment variable for Docker builds or different environments
     contracts_dir = os.environ.get("CONTRACTS_PATH")
-    
+
     if not contracts_dir:
         # Default logic for local development in monorepo structure
         contracts_dir = os.path.join(workspace_dir, "contracts")
-        
+
         # Fallback for standalone/Docker build context where contracts is copied into the service root
         if not os.path.exists(contracts_dir):
             contracts_dir = os.path.join(service_dir, "contracts")
@@ -38,9 +38,20 @@ def main():
             if file.endswith(".proto"):
                 proto_files.append(os.path.join(root, file))
 
+    for root, dirs, files in os.walk(os.path.join(contracts_dir, "booking")):
+        for file in files:
+            if file.endswith(".proto"):
+                proto_files.append(os.path.join(root, file))
+
     if not proto_files:
         print("No .proto files found!")
         sys.exit(1)
+
+    third_party_dir = os.environ.get("THIRD_PARTY_PATH")
+    if not third_party_dir:
+        third_party_dir = os.path.join(workspace_dir, "third_party", "googleapis")
+        if not os.path.exists(third_party_dir):
+            third_party_dir = os.path.join(service_dir, "third_party", "googleapis")
 
     # Compile
     for proto_file in proto_files:
@@ -48,6 +59,7 @@ def main():
         args = [
             "grpc_tools.protoc",
             f"-I{contracts_dir}",
+            f"-I{third_party_dir}",
             f"--python_out={gen_dir}",
             f"--pyi_out={gen_dir}",
             f"--grpc_python_out={gen_dir}",

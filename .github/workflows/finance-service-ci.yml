@@ -66,3 +66,128 @@ jobs:
       - name: Run Unit Tests
         working-directory: services/finance-service
         run: make test
+
+  build-image:
+    name: "Docker Build & Smoke Test"
+    needs: [lint-and-test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}/finance-service
+      IS_MAIN: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+      TEST_IMAGE: finance-service:test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get short SHA
+        id: vars
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ env.IS_MAIN == 'true' }}
+            type=raw,value=sha-${{ steps.vars.outputs.sha_short }}
+
+      - name: Prepare build context
+        run: |
+          cp -r contracts services/finance-service/contracts
+          cp -r third_party services/finance-service/third_party
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and load for Smoke Test
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/finance-service
+          file: services/finance-service/Dockerfile
+          load: true
+          tags: ${{ env.TEST_IMAGE }}
+          cache-from: type=gha,scope=finance-service
+
+      - name: Container Smoke Test
+        run: |
+          echo "==> Creating custom network..."
+          docker network create smoke-net
+
+          echo "==> Starting PostgreSQL..."
+          docker run -d --name postgres --network smoke-net \
+            -e POSTGRES_USER=finance_admin \
+            -e POSTGRES_PASSWORD=super_secure_password \
+            -e POSTGRES_DB=finance_service \
+            postgres:15-alpine
+
+          echo "==> Waiting 10 seconds for PostgreSQL to boot..."
+          sleep 10
+          
+          echo "==> Starting Finance Service container..."
+          docker run -d --name smoke-test --network smoke-net -p 8080:8080 \
+            -e APP_ENV=production \
+            -e DB_HOST=postgres \
+            -e DB_PORT=5432 \
+            -e DB_USER=finance_admin \
+            -e DB_PASSWORD=super_secure_password \
+            -e DB_NAME=finance_service \
+            ${{ env.TEST_IMAGE }}
+          
+          echo "==> Waiting 10 seconds for service to boot..."
+          sleep 10
+          
+          echo "==> Checking if container is still running..."
+          if ! docker ps | grep -q smoke-test; then
+            echo "❌ Container crashed!"
+            docker logs smoke-test
+            exit 1
+          fi
+          
+          echo "==> Hitting health check endpoint..."
+          if ! curl -f http://localhost:8080/health; then
+            echo "⚠️ /health failed, trying /docs as fallback..."
+            if ! curl -f http://localhost:8080/docs; then
+                echo "❌ Health check failed!"
+                docker logs smoke-test
+                exit 1
+            fi
+          fi
+          
+          echo "✅ Smoke test passed successfully!"
+
+      - name: Log in to GHCR
+        if: env.IS_MAIN == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push to GHCR
+        if: env.IS_MAIN == 'true'
+        id: push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/finance-service
+          file: services/finance-service/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=finance-service
+          cache-to: type=gha,mode=max,scope=finance-service
+
+      - name: Output Image Digest for GitOps
+        if: env.IS_MAIN == 'true'
+        run: |
+          echo "============================================="
+          echo "DOCKER IMAGE DIGEST FOR GITOPS:"
+          echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}"
+          echo "============================================="

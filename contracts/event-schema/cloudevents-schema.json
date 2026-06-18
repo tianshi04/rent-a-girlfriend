@@ -10,7 +10,8 @@
     "type",
     "datacontenttype",
     "time",
-    "data"
+    "data",
+    "correlationid"
   ],
   "properties": {
     "specversion": {
@@ -30,8 +31,8 @@
     },
     "type": {
       "type": "string",
-      "description": "Domain event type standard format: [domain].[context].[EventName].[version]",
-      "pattern": "^com\\.rentagf\\.[a-z]+\\.[A-Za-z]+(\\.v[0-9]+)$"
+      "description": "Domain event type standard format: [domain].[event-name].[version]",
+      "pattern": "^[a-z0-9\\-]+(\\.[a-z0-9\\-]+)+(\\.v[0-9]+)$"
     },
     "datacontenttype": {
       "type": "string",
@@ -42,6 +43,10 @@
     "time": {
       "type": "string",
       "format": "date-time"
+    },
+    "correlationid": {
+      "type": "string",
+      "description": "Used for cross-service distributed tracing. Stored at root per CloudEvents JSON spec."
     },
     "data": {
       "type": "object",
@@ -72,10 +77,16 @@
           "$ref": "#/definitions/CoinFrozenPayload"
         },
         {
+          "$ref": "#/definitions/CoinsFreezeFailedPayload"
+        },
+        {
           "$ref": "#/definitions/CoinEscrowedPayload"
         },
         {
           "$ref": "#/definitions/EscrowFailedPayload"
+        },
+        {
+          "$ref": "#/definitions/RefundFailedPayload"
         },
         {
           "$ref": "#/definitions/PayoutProcessedPayload"
@@ -128,18 +139,6 @@
         {
           "$ref": "#/definitions/AlbumImageUploadedPayload"
         }
-      ]
-    },
-    "extensions": {
-      "type": "object",
-      "properties": {
-        "correlationId": {
-          "type": "string",
-          "description": "Used for cross-service distributed tracing."
-        }
-      },
-      "required": [
-        "correlationId"
       ]
     }
   },
@@ -370,6 +369,33 @@
         }
       }
     },
+    "CoinsFreezeFailedPayload": {
+      "type": "object",
+      "required": [
+        "bookingId",
+        "userId",
+        "amount",
+        "reason"
+      ],
+      "description": "Emitted by Finance Service when coin freeze fails. Saga orchestrator listens to mark booking as failed.",
+      "properties": {
+        "bookingId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "amount": {
+          "type": "integer"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Technical failure reason."
+        }
+      }
+    },
     "EscrowFailedPayload": {
       "type": "object",
       "required": [
@@ -378,6 +404,29 @@
         "reason"
       ],
       "description": "Emitted by Finance Service when Escrow fails (SAGA compensating event). Booking Service listens to rollback booking status.",
+      "properties": {
+        "bookingId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "clientId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Technical failure reason."
+        }
+      }
+    },
+    "RefundFailedPayload": {
+      "type": "object",
+      "required": [
+        "bookingId",
+        "clientId",
+        "reason"
+      ],
+      "description": "Emitted by Finance Service when Escrow refund fails (SAGA compensating event). Booking Service listens to rollback/alert booking status.",
       "properties": {
         "bookingId": {
           "type": "string",
@@ -426,7 +475,9 @@
         "disputeId",
         "bookingId",
         "resolution",
-        "resolvedBy"
+        "resolvedBy",
+        "reporterId",
+        "accusedId"
       ],
       "description": "Emitted by Dispute Service when Admin resolves a dispute. Booking Service listens to finalize booking state. Finance Service listens for Payout or Refund.",
       "properties": {
@@ -443,11 +494,20 @@
           "format": "uuid",
           "description": "Admin user ID."
         },
+        "reporterId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accusedId": {
+          "type": "string",
+          "format": "uuid"
+        },
         "resolution": {
           "type": "string",
           "enum": [
             "PAYOUT_COMPANION",
-            "REFUND_CLIENT"
+            "REFUND_CLIENT",
+            "REJECT"
           ],
           "description": "PAYOUT_COMPANION: booking → COMPLETED, review stays VISIBLE (BR-08b). REFUND_CLIENT: booking → CANCELLED, review → HIDDEN (BR-08a)."
         }

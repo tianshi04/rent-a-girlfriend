@@ -41,7 +41,9 @@ class WalletRepository(IWalletRepository):
             return None
         return self._to_domain(model)
 
-    async def find_by_user_id(self, user_id: str, lock: bool = False) -> Optional[Wallet]:
+    async def find_by_user_id(
+        self, user_id: str, lock: bool = False
+    ) -> Optional[Wallet]:
         stmt = select(WalletModel).filter_by(user_id=user_id)
         if lock:
             stmt = stmt.with_for_update()
@@ -84,7 +86,9 @@ class EscrowRepository(IEscrowRepository):
             return None
         return self._to_domain(model)
 
-    async def find_by_booking_id(self, booking_id: str, lock: bool = False) -> Optional[Escrow]:
+    async def find_by_booking_id(
+        self, booking_id: str, lock: bool = False
+    ) -> Optional[Escrow]:
         stmt = select(EscrowModel).filter_by(booking_id=booking_id)
         if lock:
             stmt = stmt.with_for_update()
@@ -119,7 +123,9 @@ class TransactionRepository(ITransactionRepository):
         await self.session.merge(model)
         await self.session.flush()
 
-    async def find_by_id(self, transaction_id: str, lock: bool = False) -> Optional[Transaction]:
+    async def find_by_id(
+        self, transaction_id: str, lock: bool = False
+    ) -> Optional[Transaction]:
         stmt = select(TransactionModel).filter_by(transaction_id=transaction_id)
         if lock:
             stmt = stmt.with_for_update()
