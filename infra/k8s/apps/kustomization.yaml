@@ -3,3 +3,5 @@ kind: Kustomization
 resources:
   - identity-service-hr.yaml
   - booking-service-hr.yaml
+  - dispute-service-hr.yaml
+  - finance-service-hr.yaml
