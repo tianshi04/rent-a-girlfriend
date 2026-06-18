@@ -1,6 +1,5 @@
 import os
 import logging
-import asyncio
 from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -11,6 +10,7 @@ from internal.infrastructure.persistence import (
     DisputeRepository,
     SagaStateRepository,
 )
+from internal.infrastructure.persistence.db_cleanup_worker import DbCleanupWorker
 from internal.infrastructure.broker import (
     DatabaseEventPublisher,
     OutboxPublisherWorker,
@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     DB_SSLMODE: str = "disable"
 
     KAFKA_BROKERS: str = "localhost:9092"
-    KAFKA_TOPIC_DISPUTE: str = "dispute-events"
+    KAFKA_TOPIC_DISPUTE: str = "dispute.events"
 
     OUTBOX_POLLING_INTERVAL_MS: int = 500
     OUTBOX_BATCH_SIZE: int = 50
@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     USE_MOCKS: bool = True
     FINANCE_SERVICE_ADDR: str = "localhost:50052"
     INTERACTION_SERVICE_ADDR: str = "localhost:50053"
+
+    DB_CLEANUP_INTERVAL_MINUTES: int = 30
+    PROCESSED_EVENTS_RETENTION_DAYS: int = 7
+    OUTBOX_RETENTION_DAYS: int = 1
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -88,7 +92,6 @@ async def init_db():
         )
 
 
-
 # --- Dependency Assembly (DI) ---
 def bootstrap_services(db_session: AsyncSession):
     # Repositories
@@ -103,7 +106,11 @@ def bootstrap_services(db_session: AsyncSession):
         finance_port = MockFinanceAdapter()
         interaction_port = MockInteractionAdapter()
     else:
-        from internal.infrastructure.adapters import gRPCFinanceAdapter, gRPCInteractionAdapter
+        from internal.infrastructure.adapters import (
+            gRPCFinanceAdapter,
+            gRPCInteractionAdapter,
+        )
+
         finance_port = gRPCFinanceAdapter(settings.FINANCE_SERVICE_ADDR)
         interaction_port = gRPCInteractionAdapter(settings.INTERACTION_SERVICE_ADDR)
 
@@ -154,11 +161,17 @@ async def get_query_service(services=Depends(get_services)) -> DisputeQueryServi
 
 
 # --- Workers & Consumers Setup ---
+db_cleanup_worker = DbCleanupWorker(
+    session_factory=SessionLocal,
+    cleanup_interval_minutes=settings.DB_CLEANUP_INTERVAL_MINUTES,
+    processed_events_retention_days=settings.PROCESSED_EVENTS_RETENTION_DAYS,
+    outbox_retention_days=settings.OUTBOX_RETENTION_DAYS,
+)
+
 saga_retry_worker = SagaRetryWorker(
     session_factory=SessionLocal,
     polling_interval_seconds=settings.SAGA_RETRY_INTERVAL_SECONDS,
 )
-
 
 outbox_worker = OutboxPublisherWorker(
     session_factory=SessionLocal,
@@ -183,4 +196,5 @@ app = FastAPI(
 )
 
 from internal.interfaces.http.router import router as http_router  # noqa: E402
+
 app.include_router(http_router)

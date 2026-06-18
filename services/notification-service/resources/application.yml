@@ -4,6 +4,8 @@ spring:
   threads:
     virtual:
       enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:30s}
 
   # --- Database ---
   datasource:
@@ -71,6 +73,7 @@ spring:
 # --- Server ---
 server:
   port: ${SERVER_PORT:8080}
+  shutdown: graceful
 
 # --- Actuator ---
 management:
@@ -89,7 +92,7 @@ logging:
     com.rentagf.notification: DEBUG
     org.springframework.kafka: WARN
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] [corrId=%X{correlationId:-}] - %msg%n"
 
 # --- App Custom ---
 notification:

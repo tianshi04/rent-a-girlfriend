@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS outbox (
     aggregate_id   UUID NOT NULL,
     event_type     VARCHAR(100) NOT NULL,
     payload        JSONB NOT NULL,
+    correlation_id VARCHAR(100),
     created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     published      BOOLEAN DEFAULT FALSE,
     published_at   TIMESTAMPTZ
@@ -55,3 +56,7 @@ CREATE TABLE IF NOT EXISTS processed_events (
     event_type   VARCHAR(100) NOT NULL,
     processed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_processed_events_processed_at ON processed_events(processed_at);
+CREATE INDEX IF NOT EXISTS idx_outbox_published_at ON outbox(published_at) WHERE published = TRUE;
+

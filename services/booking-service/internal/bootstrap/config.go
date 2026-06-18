@@ -58,6 +58,8 @@ type OutboxConfig struct {
 type WorkerConfig struct {
 	AutoCompleteInterval time.Duration
 	AutoCompleteBuffer   time.Duration
+	CleanupInterval      time.Duration
+	CleanupRetentionDays int
 }
 
 // DSN returns the PostgreSQL connection string.
@@ -78,6 +80,8 @@ func LoadConfig() *Config {
 	outboxBatchSize, _ := strconv.ParseInt(getEnv("OUTBOX_BATCH_SIZE", "50"), 10, 64)
 	autoCompleteIntervalMs, _ := strconv.ParseInt(getEnv("AUTO_COMPLETE_INTERVAL_MS", "10000"), 10, 64) // default 10s
 	autoCompleteBufferHours, _ := strconv.ParseInt(getEnv("AUTO_COMPLETE_BUFFER_HOURS", "12"), 10, 64)  // default 12h
+	cleanupIntervalMin, _ := strconv.ParseInt(getEnv("CLEANUP_INTERVAL_MINUTES", "60"), 10, 64)         // default 60m
+	cleanupRetentionDays, _ := strconv.ParseInt(getEnv("CLEANUP_RETENTION_DAYS", "30"), 10, 64)         // default 30d
 
 	return &Config{
 		Server: ServerConfig{
@@ -96,10 +100,10 @@ func LoadConfig() *Config {
 		},
 		Kafka: KafkaConfig{
 			Brokers:          getEnv("KAFKA_BROKERS", "localhost:29091,localhost:29092,localhost:29093"),
-			TopicBooking:     getEnv("KAFKA_TOPIC_BOOKING", "booking-events"),
-			TopicFinance:     getEnv("KAFKA_TOPIC_FINANCE", "finance-events"),
-			TopicInteraction: getEnv("KAFKA_TOPIC_INTERACTION", "interaction-events"),
-			TopicDispute:     getEnv("KAFKA_TOPIC_DISPUTE", "dispute-events"),
+			TopicBooking:     getEnv("KAFKA_TOPIC_BOOKING", "booking.events"),
+			TopicFinance:     getEnv("KAFKA_TOPIC_FINANCE", "finance.events"),
+			TopicInteraction: getEnv("KAFKA_TOPIC_INTERACTION", "interaction.events"),
+			TopicDispute:     getEnv("KAFKA_TOPIC_DISPUTE", "dispute.events"),
 			SASLUsername:     getEnv("KAFKA_SASL_USERNAME", ""),
 			SASLPassword:     getEnv("KAFKA_SASL_PASSWORD", ""),
 			SASLMechanism:    getEnv("KAFKA_SASL_MECHANISM", "PLAIN"),
@@ -112,6 +116,8 @@ func LoadConfig() *Config {
 		Worker: WorkerConfig{
 			AutoCompleteInterval: time.Duration(autoCompleteIntervalMs) * time.Millisecond,
 			AutoCompleteBuffer:   time.Duration(autoCompleteBufferHours) * time.Hour,
+			CleanupInterval:      time.Duration(cleanupIntervalMin) * time.Minute,
+			CleanupRetentionDays: int(cleanupRetentionDays),
 		},
 		Clients: ClientsConfig{
 			ProfileServiceAddr: getEnv("PROFILE_SERVICE_ADDR", "localhost:50052"),

@@ -17,7 +17,7 @@ import (
 func customHeaderMatcher(key string) (string, bool) {
 	lowerKey := strings.ToLower(key)
 	switch lowerKey {
-	case "user-id", "user-role", "user-status", "user-email":
+	case "user-id", "user-role", "user-status", "user-email", "correlationid":
 		return lowerKey, true
 	default:
 		return runtime.DefaultHeaderMatcher(key)
@@ -45,13 +45,6 @@ func NewGateway(
 
 	// Create standard root HTTP multiplexer
 	mux := http.NewServeMux()
-
-	// Health Check
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status": "ok", "service": "booking-service"}`))
-	})
 
 	// Apply any customized gateway options (e.g., custom routes, test routes)
 	for _, opt := range options {

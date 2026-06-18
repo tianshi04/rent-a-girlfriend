@@ -106,3 +106,53 @@ async def test_presigned_url_invalid_voice_duration(client):
         "durationSeconds must not exceed 30 seconds"
         in response.json()["detail"][0]["msg"]
     )
+
+
+async def test_search_companions_camel_case(client, integration_deps, db_session):
+    profile_cmd = integration_deps["profile_cmd"]
+    scenario_cmd = integration_deps["scenario_cmd"]
+
+    # 1. Approve the companion profile
+    await profile_cmd.approve_profile("user_companion_123", "admin_user_99")
+
+    # 2. Add an active scenario with price 150
+    await scenario_cmd.create_scenario(
+        companion_id="user_companion_123",
+        title="Romantic Walk",
+        description="A romantic walk in the city.",
+        price=150,
+        duration_minutes=60,
+    )
+    await db_session.commit()
+
+    # 3. Test with correct camelCase query parameters
+    # The starting price of user_companion_123 is 150.
+    # Searching with minPrice=100 & maxPrice=200 should return the companion.
+    response = await client.get(
+        "/companions", params={"minPrice": 100, "maxPrice": 200, "pageSize": 5}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["data"]) == 1
+    assert data["data"][0]["companionId"] == "user_companion_123"
+    assert data["pageSize"] == 5
+
+    # 4. Test with price out of range
+    # minPrice=200 should exclude the companion
+    response = await client.get(
+        "/companions", params={"minPrice": 200, "maxPrice": 300}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["data"]) == 0
+
+    # 5. Test with old snake_case parameters (which are now ignored by the API)
+    # The API will see min_price but won't parse it because it expects minPrice.
+    # So it won't apply the minPrice filter and user_companion_123 will still be returned.
+    response = await client.get(
+        "/companions", params={"minPrice": 100, "max_price": 100}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["data"]) == 1
+    assert data["data"][0]["companionId"] == "user_companion_123"

@@ -71,8 +71,8 @@ services/interaction-service/
 | `RUST_LOG` | Logger filter configuration | `info` |
 | `DATABASE_URL` | PostgreSQL connection URL string | `postgres://postgres:postgres@localhost:5432/interaction_service?sslmode=disable` |
 | `KAFKA_BROKERS` | Kafka connection string | `localhost:9092` |
-| `KAFKA_TOPIC_INTERACTION` | Kafka topic to publish events | `interaction-events` |
-| `KAFKA_TOPIC_BOOKING` | Kafka topic to consume booking events | `booking-events` |
+| `KAFKA_TOPIC_INTERACTION` | Kafka topic to publish events | `interaction.events` |
+| `KAFKA_TOPIC_BOOKING` | Kafka topic to consume booking events | `booking.events` |
 | `KAFKA_GROUP_ID` | Kafka consumer group ID | `interaction-service-group` |
 | `OUTBOX_POLLING_INTERVAL_MS` | Outbox worker poll frequency | `500` |
 | `OUTBOX_BATCH_SIZE` | Outbox processing batch size | `50` |
@@ -121,11 +121,11 @@ This microservice offloads JWT verification to the **Istio Waypoint Proxy** (Sid
 - **Response (201 Created):**
   ```json
   {
-    "message_id": "message-uuid",
-    "room_id": "room-uuid",
-    "sender_id": "client-uuid-1",
+    "messageId": "message-uuid",
+    "roomId": "room-uuid",
+    "senderId": "client-uuid-1",
     "content": "Hello, excited for our appointment!",
-    "created_at": "2026-05-22T23:15:36Z"
+    "createdAt": "2026-05-22T23:15:36Z"
   }
   ```
 
@@ -140,11 +140,11 @@ This microservice offloads JWT verification to the **Istio Waypoint Proxy** (Sid
   ```json
   [
     {
-      "message_id": "message-uuid",
-      "room_id": "room-uuid",
-      "sender_id": "client-uuid-1",
+      "messageId": "message-uuid",
+      "roomId": "room-uuid",
+      "senderId": "client-uuid-1",
       "content": "Hello, excited for our appointment!",
-      "created_at": "2026-05-22T23:15:36Z"
+      "createdAt": "2026-05-22T23:15:36Z"
     }
   ]
   ```
@@ -159,14 +159,14 @@ This microservice offloads JWT verification to the **Istio Waypoint Proxy** (Sid
   ```json
   [
     {
-      "review_id": "review-uuid",
-      "booking_id": "booking-uuid",
-      "client_id": "client-uuid",
-      "companion_id": "companion-uuid",
+      "reviewId": "review-uuid",
+      "bookingId": "booking-uuid",
+      "clientId": "client-uuid",
+      "companionId": "companion-uuid",
       "rating": 5,
       "comment": "Incredibly professional and friendly companion!",
-      "created_at": "2026-05-22T23:15:36Z",
-      "updated_at": "2026-05-22T23:15:36Z"
+      "createdAt": "2026-05-22T23:15:36Z",
+      "updatedAt": "2026-05-22T23:15:36Z"
     }
   ]
   ```

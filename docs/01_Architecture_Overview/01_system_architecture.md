@@ -103,7 +103,7 @@ Mặc dù các service tự do chọn công nghệ, nhưng phương thức giao 
 ### 5.2. Giao tiếp Bất đồng bộ (Internal Async Pub/Sub)
 *   **Khi nào sử dụng?** Sử dụng cho mọi hành vi làm thay đổi trạng thái hệ thống (Commands sinh ra Events) nhằm kích hoạt chuỗi nghiệp vụ ở các service khác (Eventual Consistency).
 *   **Hạ tầng:** Message Broker tập trung (Ví dụ: RabbitMQ, Apache Kafka).
-*   **Chuẩn tin nhắn:** Mọi Event đẩy lên Broker phải tuân thủ chuẩn **CloudEvents JSON Format** (có chứa `eventId`, `sagaId`, `correlationId`). Chi tiết cấu trúc xem tại thư mục `03_Integration_and_Comms`.
+*   **Chuẩn tin nhắn:** Mọi Event đẩy lên Broker phải tuân thủ chuẩn **CloudEvents JSON Format** (có chứa `id` sự kiện, `correlationid` ở root để trace, và payload nghiệp vụ bên trong `data`). Chi tiết cấu trúc xem tại thư mục `03_Integration_and_Comms`.
 
 ### 5.3. Tích hợp Ngoại vi (External Systems)
 *   **Storage (Lưu trữ ảnh, âm thanh):** Áp dụng pattern **Presigned URL**. Hệ thống Backend không xử lý stream file trực tiếp để tránh nghẽn mạng. Profile Service sinh ra link upload tạm thời, Client dùng link đó upload trực tiếp lên Storage Cloud (S3/Cloudinary).

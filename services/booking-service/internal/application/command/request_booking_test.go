@@ -40,12 +40,12 @@ func TestRequestBooking_Success(t *testing.T) {
 		t.Fatal("expected booking to be created, got nil")
 	}
 
-	if booking.Status() != vo.StatusPending {
-		t.Errorf("expected status PENDING, got %s", booking.Status())
+	if booking.Status() != vo.StatusPendingReserving {
+		t.Errorf("expected status PENDING_RESERVING, got %s", booking.Status())
 	}
 
-	if len(finance.FrozenCalls) != 1 || finance.FrozenCalls[0] != cmd.ClientID {
-		t.Errorf("expected FreezeCoin to be called once for %s, got %v", cmd.ClientID, finance.FrozenCalls)
+	if len(finance.FrozenCalls) != 0 {
+		t.Errorf("expected FreezeCoin not to be called synchronously, got %v", finance.FrozenCalls)
 	}
 
 	// Verify it was persisted
@@ -127,17 +127,13 @@ func TestRequestBooking_ClientOverlap(t *testing.T) {
 	}
 }
 
-func TestRequestBooking_FinanceFreezeFailure_Rollback(t *testing.T) {
+func TestRequestBooking_NoSyncFinanceCall(t *testing.T) {
 	repo := NewMockBookingRepository()
 	profile := &MockProfileService{}
 	price := vo.MustMoney(500)
 	snap, _ := vo.NewScenarioSnapshot(price, 120)
 	profile.Snapshot = &snap
-
-	// Simulate coin freeze failure
-	finance := &MockFinanceService{
-		FreezeErr: errors.New("insufficient balance"),
-	}
+	finance := &MockFinanceService{}
 
 	handler := command.NewRequestBookingHandler(repo, profile, finance)
 
@@ -149,12 +145,16 @@ func TestRequestBooking_FinanceFreezeFailure_Rollback(t *testing.T) {
 		StartTime:   now.Add(4 * time.Hour),
 	}
 
-	_, err := handler.Handle(context.Background(), cmd)
-	if err == nil {
-		t.Fatal("expected error from handle, got nil")
+	booking, err := handler.Handle(context.Background(), cmd)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if booking.Status() != vo.StatusPendingReserving {
+		t.Errorf("expected booking status PENDING_RESERVING, got %s", booking.Status())
 	}
 
 	if len(finance.FrozenCalls) != 0 {
-		t.Errorf("expected no frozen calls registered due to error, got %v", finance.FrozenCalls)
+		t.Errorf("expected no frozen calls registered, got %v", finance.FrozenCalls)
 	}
 }

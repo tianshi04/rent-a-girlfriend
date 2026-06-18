@@ -63,9 +63,13 @@ CREATE TABLE IF NOT EXISTS outbox_events (
     id UUID PRIMARY KEY,
     event_type VARCHAR(255) NOT NULL,
     payload JSONB NOT NULL,
+    correlation_id VARCHAR(100),
     published BOOLEAN NOT NULL DEFAULT FALSE,
+    published_at TIMESTAMP WITH TIME ZONE,
+    locked_until TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_outbox_unpublished ON outbox_events (published) WHERE published = false;
 
 -- Table: pkce_verifiers
 CREATE TABLE IF NOT EXISTS pkce_verifiers (

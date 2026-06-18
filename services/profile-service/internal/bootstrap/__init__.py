@@ -12,6 +12,7 @@ from internal.infrastructure.persistence import (
 )
 from internal.infrastructure.storage import S3Storage
 from internal.infrastructure.broker import DatabaseEventPublisher, OutboxPublisherWorker
+from internal.infrastructure.persistence.db_cleanup_worker import DbCleanupWorker
 from internal.application.command import (
     ProfileCommandService,
     ScenarioCommandService,
@@ -42,10 +43,13 @@ class Settings(BaseSettings):
     S3_BUCKET_NAME: str = "rentgf-media"
 
     KAFKA_BROKERS: str = "localhost:9092"
-    KAFKA_TOPIC_PROFILE: str = "profile-events"
+    KAFKA_TOPIC_PROFILE: str = "profile.events"
 
     OUTBOX_POLLING_INTERVAL_MS: int = 500
     OUTBOX_BATCH_SIZE: int = 50
+
+    DB_CLEANUP_INTERVAL_MINUTES: int = 30
+    OUTBOX_RETENTION_DAYS: int = 1
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -115,7 +119,9 @@ def bootstrap_services(db_session: AsyncSession):
     )
 
     # Application Queries
-    query_service = ProfileQueryService(profile_repo, scenario_repo, media_repo)
+    query_service = ProfileQueryService(
+        profile_repo, scenario_repo, media_repo, storage_adapter
+    )
 
     return profile_cmd, scenario_cmd, media_cmd, query_service
 
@@ -138,7 +144,13 @@ async def get_media_cmd(services=Depends(get_services)) -> MediaCommandService:
     return services[2]
 
 
-# --- Outbox Worker Setup ---
+# --- Outbox & Cleanup Workers Setup ---
+db_cleanup_worker = DbCleanupWorker(
+    session_factory=SessionLocal,
+    cleanup_interval_minutes=settings.DB_CLEANUP_INTERVAL_MINUTES,
+    outbox_retention_days=settings.OUTBOX_RETENTION_DAYS,
+)
+
 outbox_worker = OutboxPublisherWorker(
     session_factory=SessionLocal,
     kafka_brokers=settings.KAFKA_BROKERS,

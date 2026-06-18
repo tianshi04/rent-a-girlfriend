@@ -1,92 +1,87 @@
 package event
 
-import "time"
+import (
+	"time"
+
+	"google.golang.org/protobuf/proto"
+
+	bookingv1 "github.com/rent-a-girlfriend/booking-service/gen/proto"
+)
 
 // DomainEvent is the base interface for all domain events.
 type DomainEvent interface {
 	EventType() string
 	OccurredAt() time.Time
+	ToProto() proto.Message
 }
 
 // BookingRequested is raised when a Client creates a booking request.
 type BookingRequested struct {
-	BookingID      string    `json:"bookingId"`
-	ClientID       string    `json:"clientId"`
-	CompanionID    string    `json:"companionId"`
-	Price          int64     `json:"price"`
-	StartTime      time.Time `json:"startTime"`
-	OccurredAtTime time.Time `json:"occurredAt"`
+	*bookingv1.BookingRequested
 }
 
-func (e BookingRequested) EventType() string     { return "com.rentagf.booking.BookingRequested.v1" }
-func (e BookingRequested) OccurredAt() time.Time { return e.OccurredAtTime }
+func (e BookingRequested) EventType() string      { return "booking.booking-requested.v1" }
+func (e BookingRequested) OccurredAt() time.Time  { return e.BookingRequested.GetOccurredAt().AsTime() }
+func (e BookingRequested) ToProto() proto.Message { return e.BookingRequested }
 
 // BookingAccepted is raised when a Companion accepts a booking.
 type BookingAccepted struct {
-	BookingID      string    `json:"bookingId"`
-	CompanionID    string    `json:"companionId"`
-	OccurredAtTime time.Time `json:"occurredAt"`
+	*bookingv1.BookingAccepted
 }
 
-func (e BookingAccepted) EventType() string     { return "com.rentagf.booking.BookingAccepted.v1" }
-func (e BookingAccepted) OccurredAt() time.Time { return e.OccurredAtTime }
+func (e BookingAccepted) EventType() string      { return "booking.booking-accepted.v1" }
+func (e BookingAccepted) OccurredAt() time.Time  { return e.BookingAccepted.GetOccurredAt().AsTime() }
+func (e BookingAccepted) ToProto() proto.Message { return e.BookingAccepted }
 
 // BookingRejected is raised when a Companion rejects a booking.
 type BookingRejected struct {
-	BookingID      string    `json:"bookingId"`
-	CompanionID    string    `json:"companionId"`
-	ClientID       string    `json:"clientId"`
-	Reason         string    `json:"reason"`
-	OccurredAtTime time.Time `json:"occurredAt"`
+	*bookingv1.BookingRejected
 }
 
-func (e BookingRejected) EventType() string     { return "com.rentagf.booking.BookingRejected.v1" }
-func (e BookingRejected) OccurredAt() time.Time { return e.OccurredAtTime }
+func (e BookingRejected) EventType() string      { return "booking.booking-rejected.v1" }
+func (e BookingRejected) OccurredAt() time.Time  { return e.BookingRejected.GetOccurredAt().AsTime() }
+func (e BookingRejected) ToProto() proto.Message { return e.BookingRejected }
 
 // BookingCancelledEarly is raised when booking is cancelled >24h before start.
 type BookingCancelledEarly struct {
-	BookingID      string    `json:"bookingId"`
-	ActorID        string    `json:"actorId"`
-	ActorRole      string    `json:"actorRole"`
-	OccurredAtTime time.Time `json:"occurredAt"`
+	*bookingv1.BookingCancelledEarly
 }
 
 func (e BookingCancelledEarly) EventType() string {
-	return "com.rentagf.booking.BookingCancelledEarly.v1"
+	return "booking.booking-cancelled-early.v1"
 }
-func (e BookingCancelledEarly) OccurredAt() time.Time { return e.OccurredAtTime }
+func (e BookingCancelledEarly) OccurredAt() time.Time {
+	return e.BookingCancelledEarly.GetOccurredAt().AsTime()
+}
+func (e BookingCancelledEarly) ToProto() proto.Message { return e.BookingCancelledEarly }
 
 // BookingCancelledLate is raised when booking is cancelled <24h before start.
 type BookingCancelledLate struct {
-	BookingID      string    `json:"bookingId"`
-	ActorID        string    `json:"actorId"`
-	ActorRole      string    `json:"actorRole"`
-	OccurredAtTime time.Time `json:"occurredAt"`
+	*bookingv1.BookingCancelledLate
 }
 
 func (e BookingCancelledLate) EventType() string {
-	return "com.rentagf.booking.BookingCancelledLate.v1"
+	return "booking.booking-cancelled-late.v1"
 }
-func (e BookingCancelledLate) OccurredAt() time.Time { return e.OccurredAtTime }
+func (e BookingCancelledLate) OccurredAt() time.Time {
+	return e.BookingCancelledLate.GetOccurredAt().AsTime()
+}
+func (e BookingCancelledLate) ToProto() proto.Message { return e.BookingCancelledLate }
 
 // BookingTimedOut is raised when a PENDING booking exceeds 12h.
 type BookingTimedOut struct {
-	BookingID      string    `json:"bookingId"`
-	ClientID       string    `json:"clientId"`
-	OccurredAtTime time.Time `json:"occurredAt"`
+	*bookingv1.BookingTimedOut
 }
 
-func (e BookingTimedOut) EventType() string     { return "com.rentagf.booking.BookingTimedOut.v1" }
-func (e BookingTimedOut) OccurredAt() time.Time { return e.OccurredAtTime }
+func (e BookingTimedOut) EventType() string      { return "booking.booking-timed-out.v1" }
+func (e BookingTimedOut) OccurredAt() time.Time  { return e.BookingTimedOut.GetOccurredAt().AsTime() }
+func (e BookingTimedOut) ToProto() proto.Message { return e.BookingTimedOut }
 
 // BookingCompleted is raised when an ACCEPTED booking completes without dispute.
 type BookingCompleted struct {
-	BookingID      string    `json:"bookingId"`
-	CompanionID    string    `json:"companionId"`
-	ClientID       string    `json:"clientId"`
-	Price          int64     `json:"price"`
-	OccurredAtTime time.Time `json:"occurredAt"`
+	*bookingv1.BookingCompleted
 }
 
-func (e BookingCompleted) EventType() string     { return "com.rentagf.booking.BookingCompleted.v1" }
-func (e BookingCompleted) OccurredAt() time.Time { return e.OccurredAtTime }
+func (e BookingCompleted) EventType() string      { return "booking.booking-completed.v1" }
+func (e BookingCompleted) OccurredAt() time.Time  { return e.BookingCompleted.GetOccurredAt().AsTime() }
+func (e BookingCompleted) ToProto() proto.Message { return e.BookingCompleted }

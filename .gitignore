@@ -46,3 +46,6 @@ __pycache__/
 
 # Antigravity CLI
 .antigravitycli
+
+# Kustomize Helm charts cache
+**/charts/

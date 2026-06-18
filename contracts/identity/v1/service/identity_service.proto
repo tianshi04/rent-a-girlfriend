@@ -6,8 +6,8 @@ option go_package = "github.com/rent-a-girlfriend/identity-service/gen/proto;ide
 
 import "google/api/annotations.proto";
 
-// Common
-import "common/common.proto";
+// Common responses
+import "identity/v1/messages/responses/message_response.proto";
 
 // Auth requests
 import "identity/v1/messages/requests/init_google_auth_request.proto";
@@ -57,7 +57,7 @@ service IdentityService {
 
   // Commands
   // RequestUpgrade — Client gửi yêu cầu nâng cấp thành Companion.
-  rpc RequestUpgrade(RequestUpgradeRequest) returns (common.v1.MessageResponse) {
+  rpc RequestUpgrade(RequestUpgradeRequest) returns (identity.v1.MessageResponse) {
     option (google.api.http) = {
       post: "/api/v1/upgrade-requests"
       body: "*"
@@ -65,7 +65,7 @@ service IdentityService {
   }
 
   // ApproveUpgrade — Admin duyệt yêu cầu nâng cấp.
-  rpc ApproveUpgrade(ApproveUpgradeRequest) returns (common.v1.MessageResponse) {
+  rpc ApproveUpgrade(ApproveUpgradeRequest) returns (identity.v1.MessageResponse) {
     option (google.api.http) = {
       put: "/api/v1/admin/upgrade-requests/{id}/approve"
       body: "*"
@@ -73,7 +73,7 @@ service IdentityService {
   }
 
   // RejectUpgrade — Admin từ chối yêu cầu nâng cấp.
-  rpc RejectUpgrade(RejectUpgradeRequest) returns (common.v1.MessageResponse) {
+  rpc RejectUpgrade(RejectUpgradeRequest) returns (identity.v1.MessageResponse) {
     option (google.api.http) = {
       put: "/api/v1/admin/upgrade-requests/{id}/reject"
       body: "*"
@@ -81,7 +81,7 @@ service IdentityService {
   }
 
   // LockAccount — Admin khóa tài khoản người dùng.
-  rpc LockAccount(LockAccountRequest) returns (common.v1.MessageResponse) {
+  rpc LockAccount(LockAccountRequest) returns (identity.v1.MessageResponse) {
     option (google.api.http) = {
       put: "/api/v1/admin/accounts/{id}/lock"
       body: "*"
@@ -89,7 +89,7 @@ service IdentityService {
   }
 
   // UnlockAccount — Admin mở khóa tài khoản người dùng.
-  rpc UnlockAccount(UnlockAccountRequest) returns (common.v1.MessageResponse) {
+  rpc UnlockAccount(UnlockAccountRequest) returns (identity.v1.MessageResponse) {
     option (google.api.http) = {
       put: "/api/v1/admin/accounts/{id}/unlock"
       body: "*"
@@ -120,7 +120,7 @@ service IdentityService {
   }
 
   // Logout — thu hồi refresh token.
-  rpc Logout(LogoutRequest) returns (common.v1.MessageResponse) {
+  rpc Logout(LogoutRequest) returns (identity.v1.MessageResponse) {
     option (google.api.http) = {
       post: "/api/v1/auth/logout"
       body: "*"

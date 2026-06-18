@@ -1,12 +1,5 @@
 IMAGE_TAG ?= latest
 
-# OS Detection for proto generation
-ifeq ($(OS),Windows_NT)
-    GEN_PROTO_CMD = powershell -ExecutionPolicy Bypass -File scripts/gen_proto.ps1
-else
-    GEN_PROTO_CMD = chmod +x scripts/gen_proto.sh && ./scripts/gen_proto.sh
-endif
-
 .PHONY: run build test-unit test-integration test-e2e test-all docker-up docker-down tidy deploy generate-proto
 
 # Run locally
@@ -20,6 +13,10 @@ build:
 # Unit tests — không cần external deps, bỏ qua integration tests bằng -short
 test-unit:
 	go test ./internal/... -v -count=1 -short
+
+# Contract tests
+test-contract:
+	go test ./tests/contract/... -v -count=1
 
 # Integration tests — dùng testcontainers (postgres + redis ephemeral)
 # Cần Docker daemon đang chạy
@@ -63,12 +60,8 @@ docker-down:
 
 # Generate cả gRPC stubs lẫn HTTP gateway
 generate-proto:
-	$(GEN_PROTO_CMD)
+	chmod +x scripts/gen_proto.sh && ./scripts/gen_proto.sh
 
 # Tidy dependencies
 tidy:
 	go mod tidy
-
-# Deploy to k8s
-deploy:
-	bash deploy.sh $(IMAGE_TAG)

@@ -1,0 +1,58 @@
+global:
+  imageRegistry: public.ecr.aws
+  image:
+    registry: public.ecr.aws
+  security:
+    allowInsecureImages: true
+
+image:
+  registry: public.ecr.aws
+
+provisioning:
+  image:
+    registry: public.ecr.aws
+
+kraft:
+  enabled: true
+
+# High availability setup for production
+broker:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  persistence:
+    enabled: true
+    size: 50Gi
+
+controller:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  persistence:
+    enabled: true
+    size: 10Gi
+
+extraEnvVars:
+  - name: KAFKA_CFG_NUM_PARTITIONS
+    value: "3"
+  - name: KAFKA_CFG_DEFAULT_REPLICATION_FACTOR
+    value: "3"
+  - name: KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR
+    value: "3"
+  - name: KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+    value: "3"
+  - name: KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR
+    value: "2"
+
+provisioning:
+  enabled: false

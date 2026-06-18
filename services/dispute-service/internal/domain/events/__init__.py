@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -36,6 +35,8 @@ class DisputeResolvedRefund(DomainEvent):
     dispute_id: str
     booking_id: str
     admin_id: str
+    reporter_id: str
+    accused_id: str
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -45,6 +46,8 @@ class DisputeResolvedPayout(DomainEvent):
     dispute_id: str
     booking_id: str
     admin_id: str
+    reporter_id: str
+    accused_id: str
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -54,6 +57,8 @@ class DisputeRejected(DomainEvent):
     dispute_id: str
     booking_id: str
     admin_id: str
+    reporter_id: str
+    accused_id: str
 
 
 # --- SAGA Lifecycle Events ---

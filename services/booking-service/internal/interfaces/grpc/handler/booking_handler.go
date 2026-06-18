@@ -221,30 +221,32 @@ func (h *BookingGRPCHandler) ListBookings(ctx context.Context, req *bookingv1.Li
 	}
 
 	var clientIDPtr, companionIDPtr *string
-	if callerRole == "CLIENT" {
+	switch callerRole {
+	case "CLIENT":
 		// Non-admin CLIENT is strictly restricted to their own authenticated ID
 		actualID := authID
 		if actualID == "" {
 			actualID = callerID // fallback for local/unit testing
 		}
 		clientIDPtr = &actualID
-	} else if callerRole == "COMPANION" {
+	case "COMPANION":
 		// Non-admin COMPANION is strictly restricted to their own authenticated ID
 		actualID := authID
 		if actualID == "" {
 			actualID = callerID // fallback for local/unit testing
 		}
 		companionIDPtr = &actualID
-	} else if callerRole == "ADMIN" {
+	case "ADMIN":
 		// Admin can filter by any actor using request parameters
 		if req.ActorId != "" {
-			if req.ActorRole == "CLIENT" {
+			switch req.ActorRole {
+			case "CLIENT":
 				clientIDPtr = &req.ActorId
-			} else if req.ActorRole == "COMPANION" {
+			case "COMPANION":
 				companionIDPtr = &req.ActorId
 			}
 		}
-	} else {
+	default:
 		// Missing or unrecognized role must be rejected to prevent BOLA data leakage
 		return nil, status.Error(codes.PermissionDenied, "unauthorized or missing user role header")
 	}
@@ -294,6 +296,8 @@ func (h *BookingGRPCHandler) ListBookings(ctx context.Context, req *bookingv1.Li
 
 func mapBookingStatus(status vo.BookingStatus) bookingv1.BookingStatus {
 	switch status {
+	case vo.StatusPendingReserving:
+		return bookingv1.BookingStatus_BOOKING_STATUS_PENDING_RESERVING
 	case vo.StatusPending:
 		return bookingv1.BookingStatus_BOOKING_STATUS_PENDING
 	case vo.StatusAccepted:

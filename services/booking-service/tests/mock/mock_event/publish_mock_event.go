@@ -26,7 +26,7 @@ type cloudEvent struct {
 }
 
 type bookingPayload struct {
-	BookingID string `json:"bookingId"`
+	BookingID string `json:"booking_id"`
 }
 
 // Payload structs for commands from Booking Service
@@ -91,7 +91,7 @@ func runInteractiveDriver(brokers string, reader *bufio.Reader) {
 
 	// Create unique group ID to ensure we only get latest events in this run
 	groupID := "interactive-driver-group-" + uuid.New().String()
-	topic := "booking-events"
+	topic := "booking.events"
 
 	fmt.Printf("\n[DRIVER] Subscribing to topic '%s' using GroupID '%s'...\n", topic, groupID)
 	r := kafka.NewReader(kafka.ReaderConfig{
@@ -102,7 +102,7 @@ func runInteractiveDriver(brokers string, reader *bufio.Reader) {
 		MaxBytes:    10e6,
 		StartOffset: kafka.LastOffset, // Only listen to new events
 	})
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	fmt.Println("[DRIVER] 🟢 Active and listening! Accept a booking in your app to kick off Saga...")
 	fmt.Println("--------------------------------------------------------------------------------")
@@ -121,7 +121,7 @@ func runInteractiveDriver(brokers string, reader *bufio.Reader) {
 		}
 
 		switch ce.Type {
-		case "com.rentagf.finance.TransferToEscrow.v1":
+		case "finance.transfer-to-escrow.v1":
 			var payload TransferToEscrowCmdPayload
 			if err := json.Unmarshal(ce.Data, &payload); err != nil {
 				log.Printf("[ERROR] Failed to parse TransferToEscrow data: %v", err)
@@ -139,13 +139,13 @@ func runInteractiveDriver(brokers string, reader *bufio.Reader) {
 
 			choice := getChoice(reader, 1, 2)
 			if choice == 1 {
-				publishResponseEvent(brokers, "finance-events", "com.rentagf.finance.CoinEscrowed.v1", payload.BookingID)
+				publishResponseEvent(brokers, "finance.events", "finance.escrow-created.v1", payload.BookingID)
 			} else {
-				publishResponseEvent(brokers, "finance-events", "com.rentagf.finance.EscrowFailed.v1", payload.BookingID)
+				publishResponseEvent(brokers, "finance.events", "finance.escrow-failed.v1", payload.BookingID)
 			}
 			fmt.Println("\n--- Back to listening... ---")
 
-		case "com.rentagf.interaction.CreateChatRoom.v1":
+		case "interaction.create-chat-room.v1":
 			var payload CreateChatRoomCmdPayload
 			if err := json.Unmarshal(ce.Data, &payload); err != nil {
 				log.Printf("[ERROR] Failed to parse CreateChatRoom data: %v", err)
@@ -162,13 +162,13 @@ func runInteractiveDriver(brokers string, reader *bufio.Reader) {
 
 			choice := getChoice(reader, 1, 2)
 			if choice == 1 {
-				publishResponseEvent(brokers, "interaction-events", "com.rentagf.interaction.ChatRoomCreated.v1", payload.BookingID)
+				publishResponseEvent(brokers, "interaction.events", "interaction.chat-room-created.v1", payload.BookingID)
 			} else {
-				publishResponseEvent(brokers, "interaction-events", "com.rentagf.interaction.ChatRoomCreationFailed.v1", payload.BookingID)
+				publishResponseEvent(brokers, "interaction.events", "interaction.chat-room-creation-failed.v1", payload.BookingID)
 			}
 			fmt.Println("\n--- Back to listening... ---")
 
-		case "com.rentagf.finance.RefundEscrow.v1":
+		case "finance.refund-escrow.v1":
 			var payload RefundEscrowCmdPayload
 			if err := json.Unmarshal(ce.Data, &payload); err != nil {
 				log.Printf("[ERROR] Failed to parse RefundEscrow data: %v", err)
@@ -186,9 +186,9 @@ func runInteractiveDriver(brokers string, reader *bufio.Reader) {
 
 			choice := getChoice(reader, 1, 2)
 			if choice == 1 {
-				publishResponseEvent(brokers, "finance-events", "com.rentagf.finance.RefundSuccess.v1", payload.BookingID)
+				publishResponseEvent(brokers, "finance.events", "finance.escrow-refunded.v1", payload.BookingID)
 			} else {
-				publishResponseEvent(brokers, "finance-events", "com.rentagf.finance.RefundFailed.v1", payload.BookingID)
+				publishResponseEvent(brokers, "finance.events", "finance.refund-failed.v1", payload.BookingID)
 			}
 			fmt.Println("\n--- Back to listening... ---")
 		}
@@ -205,13 +205,13 @@ func runManualPublisher(brokers string, reader *bufio.Reader) {
 		EventType string
 		Label     string
 	}{
-		{Topic: "finance-events", EventType: "com.rentagf.finance.CoinEscrowed.v1", Label: "CoinEscrowed (Saga Step 1: Client Escrow Success)"},
-		{Topic: "finance-events", EventType: "com.rentagf.finance.EscrowFailed.v1", Label: "EscrowFailed (Saga Step 1: Client Escrow Failed)"},
-		{Topic: "interaction-events", EventType: "com.rentagf.interaction.ChatRoomCreated.v1", Label: "ChatRoomCreated (Saga Step 2: Chat Room Created Success)"},
-		{Topic: "interaction-events", EventType: "com.rentagf.interaction.ChatRoomCreationFailed.v1", Label: "ChatRoomCreationFailed (Saga Step 2: Chat Room Failed)"},
-		{Topic: "finance-events", EventType: "com.rentagf.finance.RefundSuccess.v1", Label: "RefundSuccess (Saga Compensation: Escrow Refund Success)"},
-		{Topic: "finance-events", EventType: "com.rentagf.finance.RefundFailed.v1", Label: "RefundFailed (Saga Compensation: Escrow Refund Failed - ALERT)"},
-		{Topic: "dispute-events", EventType: "com.rentagf.dispute.DisputeCreated.v1", Label: "DisputeCreated (User Flow: Client opens a Dispute)"},
+		{Topic: "finance.events", EventType: "finance.escrow-created.v1", Label: "EscrowCreated (Saga Step 1: Client Escrow Success)"},
+		{Topic: "finance.events", EventType: "finance.escrow-failed.v1", Label: "EscrowFailed (Saga Step 1: Client Escrow Failed)"},
+		{Topic: "interaction.events", EventType: "interaction.chat-room-created.v1", Label: "ChatRoomCreated (Saga Step 2: Chat Room Created Success)"},
+		{Topic: "interaction.events", EventType: "interaction.chat-room-creation-failed.v1", Label: "ChatRoomCreationFailed (Saga Step 2: Chat Room Failed)"},
+		{Topic: "finance.events", EventType: "finance.escrow-refunded.v1", Label: "EscrowRefunded (Saga Compensation: Escrow Refund Success)"},
+		{Topic: "finance.events", EventType: "finance.refund-failed.v1", Label: "RefundFailed (Saga Compensation: Escrow Refund Failed - ALERT)"},
+		{Topic: "dispute.events", EventType: "dispute.dispute-created.v1", Label: "DisputeCreated (User Flow: Client opens a Dispute)"},
 	}
 
 	for i, opt := range options {
@@ -285,7 +285,7 @@ func publishResponseEvent(brokers string, topic string, eventType string, bookin
 		Topic:    topic,
 		Balancer: &kafka.LeastBytes{},
 	}
-	defer w.Close()
+	defer func() { _ = w.Close() }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -313,7 +313,7 @@ func getKafkaBrokers() string {
 	// 2. Try to read from .env in the current working directory
 	file, err := os.Open(".env")
 	if err == nil {
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
@@ -339,7 +339,7 @@ func getKafkaBrokers() string {
 			fmt.Printf("[INFO] Broker '%s' is not reachable (%v). Falling back to localhost Kafka brokers...\n", firstBroker, err)
 			return "localhost:29091,localhost:29092,localhost:29093"
 		}
-		conn.Close()
+		_ = conn.Close()
 	}
 
 	return brokers

@@ -4,9 +4,9 @@ package booking.v1;
 
 option go_package = "github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1";
 
-import "common/v1/enums.proto";
+import "booking/v1/enums/booking_enums.proto";
 
 message CancelBookingRequest {
   string booking_id = 1;
-  common.v1.CancellationReason reason = 2;
+  CancellationReason reason = 2;
 }

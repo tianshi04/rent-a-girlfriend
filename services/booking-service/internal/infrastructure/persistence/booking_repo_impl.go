@@ -2,10 +2,10 @@ package persistence
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/encoding/protojson"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -26,14 +26,14 @@ func NewBookingRepository(db *gorm.DB) *BookingRepositoryImpl {
 }
 
 func (r *BookingRepositoryImpl) getDB(ctx context.Context) *gorm.DB {
-	if tx, ok := ctx.Value("tx").(*gorm.DB); ok {
+	if tx, ok := ctx.Value(vo.TxKey).(*gorm.DB); ok {
 		return tx.WithContext(ctx)
 	}
 	return r.db.WithContext(ctx)
 }
 
 func (r *BookingRepositoryImpl) Save(ctx context.Context, booking *aggregate.Booking) error {
-	tx, ok := ctx.Value("tx").(*gorm.DB)
+	tx, ok := ctx.Value(vo.TxKey).(*gorm.DB)
 	if ok {
 		return r.save(tx.WithContext(ctx), booking)
 	}
@@ -51,7 +51,7 @@ func (r *BookingRepositoryImpl) save(db *gorm.DB, booking *aggregate.Booking) er
 
 	// Write outbox events
 	for _, evt := range booking.Events() {
-		payload, err := json.Marshal(evt)
+		payload, err := protojson.Marshal(evt.ToProto())
 		if err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ func (r *BookingRepositoryImpl) save(db *gorm.DB, booking *aggregate.Booking) er
 }
 
 func (r *BookingRepositoryImpl) Update(ctx context.Context, booking *aggregate.Booking) error {
-	tx, ok := ctx.Value("tx").(*gorm.DB)
+	tx, ok := ctx.Value(vo.TxKey).(*gorm.DB)
 	if ok {
 		return r.update(tx.WithContext(ctx), booking)
 	}
@@ -109,7 +109,7 @@ func (r *BookingRepositoryImpl) update(db *gorm.DB, booking *aggregate.Booking) 
 
 	// Write outbox events
 	for _, evt := range booking.Events() {
-		payload, err := json.Marshal(evt)
+		payload, err := protojson.Marshal(evt.ToProto())
 		if err != nil {
 			return err
 		}
@@ -132,45 +132,45 @@ func (r *BookingRepositoryImpl) update(db *gorm.DB, booking *aggregate.Booking) 
 func extractBookingID(evt event.DomainEvent) string {
 	switch e := evt.(type) {
 	case event.BookingRequested:
-		return e.BookingID
+		return e.BookingId
 	case event.BookingAccepted:
-		return e.BookingID
+		return e.BookingId
 	case event.BookingRejected:
-		return e.BookingID
+		return e.BookingId
 	case event.BookingCancelledEarly:
-		return e.BookingID
+		return e.BookingId
 	case event.BookingCancelledLate:
-		return e.BookingID
+		return e.BookingId
 	case event.BookingTimedOut:
-		return e.BookingID
+		return e.BookingId
 	case event.BookingCompleted:
-		return e.BookingID
+		return e.BookingId
 	case event.TransferToEscrowCommand:
-		return e.BookingID
+		return e.BookingId
 	case event.CreateChatRoomCommand:
-		return e.BookingID
+		return e.BookingId
 	case event.RefundEscrowCommand:
-		return e.BookingID
+		return e.BookingId
 	case *event.BookingRequested:
-		return e.BookingID
+		return e.BookingId
 	case *event.BookingAccepted:
-		return e.BookingID
+		return e.BookingId
 	case *event.BookingRejected:
-		return e.BookingID
+		return e.BookingId
 	case *event.BookingCancelledEarly:
-		return e.BookingID
+		return e.BookingId
 	case *event.BookingCancelledLate:
-		return e.BookingID
+		return e.BookingId
 	case *event.BookingTimedOut:
-		return e.BookingID
+		return e.BookingId
 	case *event.BookingCompleted:
-		return e.BookingID
+		return e.BookingId
 	case *event.TransferToEscrowCommand:
-		return e.BookingID
+		return e.BookingId
 	case *event.CreateChatRoomCommand:
-		return e.BookingID
+		return e.BookingId
 	case *event.RefundEscrowCommand:
-		return e.BookingID
+		return e.BookingId
 	default:
 		return ""
 	}

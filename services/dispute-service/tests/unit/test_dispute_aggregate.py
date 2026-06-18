@@ -1,7 +1,16 @@
 import pytest
-from internal.domain.aggregate import Dispute, DisputeEvidence
-from internal.domain.errors import DisputeAlreadyResolvedError, InvalidDisputeStatusTransitionError
-from internal.domain.events import ReportCreated, DisputeAssigned, DisputeResolvedRefund, DisputeResolvedPayout, DisputeRejected
+from internal.domain.aggregate import Dispute
+from internal.domain.errors import (
+    DisputeAlreadyResolvedError,
+    InvalidDisputeStatusTransitionError,
+)
+from internal.domain.events import (
+    ReportCreated,
+    DisputeAssigned,
+    DisputeResolvedRefund,
+    DisputeResolvedPayout,
+    DisputeRejected,
+)
 
 
 def test_dispute_creation_flow():
@@ -64,6 +73,8 @@ def test_dispute_resolve_refund():
     assert len(events) == 1
     assert isinstance(events[0], DisputeResolvedRefund)
     assert events[0].dispute_id == "disp-123"
+    assert events[0].reporter_id == "user-client"
+    assert events[0].accused_id == "user-companion"
 
 
 def test_dispute_resolve_payout():
@@ -84,6 +95,8 @@ def test_dispute_resolve_payout():
     events = dispute.clear_events()
     assert len(events) == 1
     assert isinstance(events[0], DisputeResolvedPayout)
+    assert events[0].reporter_id == "user-client"
+    assert events[0].accused_id == "user-companion"
 
 
 def test_dispute_reject():
@@ -104,6 +117,8 @@ def test_dispute_reject():
     events = dispute.clear_events()
     assert len(events) == 1
     assert isinstance(events[0], DisputeRejected)
+    assert events[0].reporter_id == "user-client"
+    assert events[0].accused_id == "user-companion"
 
 
 def test_dispute_terminal_state_invariance():
@@ -133,7 +148,7 @@ def test_dispute_invalid_status_transition():
         accused_id="user-companion",
         reason="NO_SHOW",
     )
-    
+
     # Cannot resolve an OPEN dispute without assigning an admin first (status must be RESOLVING)
     with pytest.raises(InvalidDisputeStatusTransitionError):
         dispute.resolve_refund("admin-789")

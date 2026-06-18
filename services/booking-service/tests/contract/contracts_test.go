@@ -36,7 +36,7 @@ func TestProtobufSerialization_Contracts(t *testing.T) {
 	}
 
 	if unmarshaledReq.CompanionId != req.CompanionId || unmarshaledReq.ScenarioId != req.ScenarioId {
-		t.Errorf("mismatched unmarshaled fields: got %+v, expected %+v", unmarshaledReq, req)
+		t.Errorf("mismatched unmarshaled fields: got %+v, expected %+v", &unmarshaledReq, req)
 	}
 
 	// JSON Marshal Compatibility
@@ -58,14 +58,19 @@ func TestProtobufSerialization_Contracts(t *testing.T) {
 
 func TestProtobufEnumMappping_Contracts(t *testing.T) {
 	// Verify enum definitions are compatible
+	reservingVal := bookingv1.BookingStatus_BOOKING_STATUS_PENDING_RESERVING
 	pendingVal := bookingv1.BookingStatus_BOOKING_STATUS_PENDING
 	acceptedVal := bookingv1.BookingStatus_BOOKING_STATUS_ACCEPTED
 
-	if int64(pendingVal) != 1 {
-		t.Errorf("expected pending enum value to be 1, got %d", pendingVal)
+	if int64(reservingVal) != 1 {
+		t.Errorf("expected pending reserving enum value to be 1, got %d", reservingVal)
 	}
 
-	if int64(acceptedVal) != 2 {
-		t.Errorf("expected accepted enum value to be 2, got %d", acceptedVal)
+	if int64(pendingVal) != 2 {
+		t.Errorf("expected pending enum value to be 2, got %d", pendingVal)
+	}
+
+	if int64(acceptedVal) != 3 {
+		t.Errorf("expected accepted enum value to be 3, got %d", acceptedVal)
 	}
 }

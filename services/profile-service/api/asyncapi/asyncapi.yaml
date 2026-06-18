@@ -5,61 +5,61 @@ info:
   description: Events published by the Profile & Catalogue Service via Kafka.
 
 channels:
-  com.rentagf.profile.ProfileCreated.v1:
+  profile.profile-created.v1:
     publish:
       summary: Companion profile created
       message:
         $ref: '#/components/messages/ProfileCreated'
 
-  com.rentagf.profile.ProfileUpdated.v1:
+  profile.profile-updated.v1:
     publish:
       summary: Companion profile updated
       message:
         $ref: '#/components/messages/ProfileUpdated'
 
-  com.rentagf.profile.ProfileApproved.v1:
+  profile.profile-approved.v1:
     publish:
       summary: Companion profile approved by admin
       message:
         $ref: '#/components/messages/ProfileApproved'
 
-  com.rentagf.profile.ProfileRejected.v1:
+  profile.profile-rejected.v1:
     publish:
       summary: Companion profile rejected by admin
       message:
         $ref: '#/components/messages/ProfileRejected'
 
-  com.rentagf.profile.ScenarioCreated.v1:
+  profile.scenario-created.v1:
     publish:
       summary: Companion scenario created
       message:
         $ref: '#/components/messages/ScenarioCreated'
 
-  com.rentagf.profile.ScenarioUpdated.v1:
+  profile.scenario-updated.v1:
     publish:
       summary: Companion scenario updated
       message:
         $ref: '#/components/messages/ScenarioUpdated'
 
-  com.rentagf.profile.ScenarioDeleted.v1:
+  profile.scenario-deleted.v1:
     publish:
       summary: Companion scenario deleted
       message:
         $ref: '#/components/messages/ScenarioDeleted'
 
-  com.rentagf.profile.VoiceIntroUploaded.v1:
+  profile.voice-intro-registered.v1:
     publish:
       summary: Companion voice intro registered successfully
       message:
         $ref: '#/components/messages/VoiceIntroUploaded'
 
-  com.rentagf.profile.VoiceIntroRejected.v1:
+  profile.voice-intro-rejected.v1:
     publish:
       summary: Companion voice intro rejected due to validation failure
       message:
         $ref: '#/components/messages/VoiceIntroRejected'
 
-  com.rentagf.profile.AlbumImageUploaded.v1:
+  profile.album-image-registered.v1:
     publish:
       summary: Companion album image uploaded
       message:

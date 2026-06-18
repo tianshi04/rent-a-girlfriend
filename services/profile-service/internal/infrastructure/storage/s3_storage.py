@@ -55,3 +55,15 @@ class S3Storage(IStoragePort):
             "ContentLength": response.get("ContentLength", 0),
             "ContentType": response.get("ContentType", ""),
         }
+
+    def generate_presigned_get_url(self, key: str, expires_in: int = 300) -> str:
+        """
+        Generates S3 standard GET presigned URL.
+        """
+        params = {"Bucket": self.bucket_name, "Key": key}
+        download_url = self.s3_client.generate_presigned_url(
+            ClientMethod="get_object",
+            Params=params,
+            ExpiresIn=expires_in,
+        )
+        return download_url

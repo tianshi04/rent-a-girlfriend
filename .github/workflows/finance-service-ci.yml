@@ -22,45 +22,50 @@ concurrency:
 
 jobs:
   lint-and-test:
-    name: "Lint & Unit Tests"
+    name: "Lint, Format Check & Test"
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v5
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
         with:
-          enable-cache: true
-          cache-dependency-glob: "services/finance-service/uv.lock"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        run: uv python install 3.12
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "services/finance-service/.python-version"
 
       - name: Install dependencies
         working-directory: services/finance-service
-        run: uv sync --frozen
+        run: uv sync
 
-      - name: Generate Protobufs
+      - name: Generate Proto
         working-directory: services/finance-service
-        run: CONTRACTS_PATH=../../contracts uv run python scripts/generate_proto.py
+        run: make generate-proto
 
-      - name: Format Check (Ruff)
+      - name: Run Format Check
         working-directory: services/finance-service
-        run: uv run ruff format --check .
+        run: |
+          uv run ruff format .
+          git diff
+          uv run ruff format --check .
 
-      - name: Lint Check (Ruff)
+      - name: Run Lint Check
         working-directory: services/finance-service
         run: uv run ruff check .
 
-      - name: Run Tests (Pytest)
+      - name: Run Unit Tests
         working-directory: services/finance-service
-        env:
-          PYTHONPATH: "./gen"
-        run: uv run pytest tests/ -v
+        run: make test
 
   build-image:
     name: "Docker Build & Smoke Test"

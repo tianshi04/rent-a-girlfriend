@@ -6,22 +6,10 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/segmentio/kafka-go"
 )
-
-// CloudEvent represents the standard envelope for all domain events.
-type CloudEvent struct {
-	SpecVersion     string      `json:"specversion"`
-	ID              string      `json:"id"`
-	Source          string      `json:"source"`
-	Type            string      `json:"type"`
-	DataContentType string      `json:"datacontenttype"`
-	Time            time.Time   `json:"time"`
-	Data            interface{} `json:"data"`
-	Extensions      interface{} `json:"extensions,omitempty"`
-}
 
 type KafkaAdapter struct {
 	writer *kafka.Writer
@@ -40,7 +28,7 @@ func NewKafkaAdapter(brokers string) *KafkaAdapter {
 	return &KafkaAdapter{writer: writer}
 }
 
-func (a *KafkaAdapter) PublishEvent(ctx context.Context, topic string, event CloudEvent) error {
+func (a *KafkaAdapter) PublishEvent(ctx context.Context, topic string, key string, event cloudevents.Event) error {
 	payload, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal cloud event: %w", err)
@@ -48,7 +36,7 @@ func (a *KafkaAdapter) PublishEvent(ctx context.Context, topic string, event Clo
 
 	err = a.writer.WriteMessages(ctx, kafka.Message{
 		Topic: topic,
-		Key:   []byte(event.ID),
+		Key:   []byte(key),
 		Value: payload,
 	})
 
@@ -56,7 +44,7 @@ func (a *KafkaAdapter) PublishEvent(ctx context.Context, topic string, event Clo
 		return fmt.Errorf("failed to write message to kafka: %w", err)
 	}
 
-	log.Printf("[KAFKA] Published event %s to topic %s", event.ID, topic)
+	log.Printf("[KAFKA] Published event %s to topic %s with key %s", event.ID(), topic, key)
 	return nil
 }
 

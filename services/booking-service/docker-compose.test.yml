@@ -37,3 +37,69 @@ services:
       interval: 2s
       timeout: 2s
       retries: 15
+
+  mock-grpc-test:
+    image: golang:1.25-alpine
+    container_name: booking-mock-grpc-test
+    volumes:
+      - .:/app
+    working_dir: /app
+    ports:
+      - "50053:50052" # Profile port
+      - "50054:50053" # Finance port
+    command: go run tests/mock/mock_grpc/mock_grpc.go
+
+  booking-service-test:
+    image: ${BOOKING_IMAGE:-booking-service-test:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+      args:
+        BUILD_TAGS: ""
+    ports:
+      - "8081:8080"
+      - "50052:50051"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      kafka-test:
+        condition: service_healthy
+      mock-grpc-test:
+        condition: service_started
+    environment:
+      SERVER_PORT: "8080"
+      GRPC_PORT: "50051"
+      GIN_MODE: "test"
+      DB_HOST: "postgres-test"
+      DB_PORT: "5432"
+      DB_USER: "postgres"
+      DB_PASSWORD: "postgres"
+      DB_NAME: "booking_test_db"
+      DB_SSLMODE: "disable"
+      DATABASE_URL: "postgres://postgres:postgres@postgres-test:5432/booking_test_db?sslmode=disable"
+      KAFKA_BROKERS: "kafka-test:9092"
+      KAFKA_TOPIC_BOOKING: "booking.events.test"
+      KAFKA_TOPIC_FINANCE: "finance.events.test"
+      KAFKA_TOPIC_INTERACTION: "interaction.events.test"
+      KAFKA_TOPIC_DISPUTE: "dispute.events.test"
+      PROFILE_SERVICE_ADDR: "mock-grpc-test:50052"
+      FINANCE_SERVICE_ADDR: "mock-grpc-test:50053"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health/ready || exit 1"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  e2e-runner:
+    image: golang:1.25-alpine
+    volumes:
+      - .:/app
+    working_dir: /app
+    depends_on:
+      booking-service-test:
+        condition: service_healthy
+    environment:
+      E2E_BASE_URL: "http://booking-service-test:8080"
+      DATABASE_URL: "postgres://postgres:postgres@postgres-test:5432/booking_test_db?sslmode=disable"
+    command: go test ./tests/e2e/... -v -count=1 -timeout 180s

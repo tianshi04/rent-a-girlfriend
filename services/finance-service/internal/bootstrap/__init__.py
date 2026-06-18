@@ -12,6 +12,7 @@ from internal.infrastructure.persistence import (
 )
 from internal.infrastructure.payment.vnpay import VNPayAdapter
 from internal.infrastructure.broker import DatabaseEventPublisher, OutboxPublisherWorker
+from internal.infrastructure.persistence.db_cleanup_worker import DbCleanupWorker
 from internal.application.command.finance import FinanceCommandService
 
 logging.basicConfig(level=logging.INFO)
@@ -36,11 +37,16 @@ class Settings(BaseSettings):
     VNPAY_RETURN_URL: str = "http://localhost:8080/api/v1/finance/vnpay-return"
 
     KAFKA_BROKERS: str = "localhost:9092"
-    KAFKA_TOPIC_FINANCE: str = "finance-events"
-    KAFKA_TOPIC_IDENTITY: str = "identity-events"  # Lắng nghe UserRegistered từ đây
+    KAFKA_TOPIC_FINANCE: str = "finance.events"
+    KAFKA_TOPIC_IDENTITY: str = "identity.events"  # Lắng nghe UserRegistered từ đây
+    KAFKA_TOPIC_BOOKING: str = "booking.events"  # Lắng nghe BookingRequested từ đây
+    KAFKA_GROUP_ID: str = "finance-service-group"
 
     OUTBOX_POLLING_INTERVAL_MS: int = 500
     OUTBOX_BATCH_SIZE: int = 50
+
+    DB_CLEANUP_INTERVAL_MINUTES: int = 30
+    OUTBOX_RETENTION_DAYS: int = 1
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -107,6 +113,7 @@ def bootstrap_services(db_session: AsyncSession) -> FinanceCommandService:
         transaction_repo=transaction_repo,
         event_publisher=event_publisher,
         vnpay_adapter=vnpay_adapter,
+        session=db_session,
     )
 
     return finance_cmd
@@ -129,7 +136,13 @@ async def get_finance_cmd(
     return bootstrap_services(db)
 
 
-# --- Outbox Worker Setup ---
+# --- Outbox & Cleanup Workers Setup ---
+db_cleanup_worker = DbCleanupWorker(
+    session_factory=SessionLocal,
+    cleanup_interval_minutes=settings.DB_CLEANUP_INTERVAL_MINUTES,
+    outbox_retention_days=settings.OUTBOX_RETENTION_DAYS,
+)
+
 outbox_worker = OutboxPublisherWorker(
     session_factory=SessionLocal,
     kafka_brokers=settings.KAFKA_BROKERS,

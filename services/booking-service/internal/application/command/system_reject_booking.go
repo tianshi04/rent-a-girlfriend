@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/rent-a-girlfriend/booking-service/internal/application/port"
@@ -43,7 +44,7 @@ func (h *SystemRejectBookingHandler) Handle(ctx context.Context, cmd SystemRejec
 
 	// Unfreeze coin since booking is rejected due to timeout
 	if err := h.financeService.UnfreezeCoin(ctx, booking.ClientID(), booking.Scenario().Price()); err != nil {
-		// Log error but don't fail the reject
+		log.Printf("[SYSTEM-REJECT-BOOKING] Failed to unfreeze coin for client %s: %v", booking.ClientID().String(), err)
 	}
 
 	if err := h.repo.Update(ctx, booking); err != nil {

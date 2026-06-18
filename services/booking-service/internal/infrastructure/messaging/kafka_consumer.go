@@ -8,22 +8,25 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 
+	disputev1events "github.com/rent-a-girlfriend/booking-service/gen/proto/disputev1/events"
+	financev1events "github.com/rent-a-girlfriend/booking-service/gen/proto/financev1/events"
+	interactionv1events "github.com/rent-a-girlfriend/booking-service/gen/proto/interactionv1/events"
 	"github.com/rent-a-girlfriend/booking-service/internal/application/command"
+	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
 	"github.com/rent-a-girlfriend/booking-service/internal/infrastructure/persistence"
 )
 
 // inboundEvent is the envelope expected from finance-events and interaction-events topics.
 type inboundEvent struct {
-	SpecVersion string          `json:"specversion"`
-	ID          string          `json:"id"`
-	Type        string          `json:"type"`
-	Data        json.RawMessage `json:"data"`
-}
-
-type bookingIDPayload struct {
-	BookingID string `json:"bookingId"`
+	SpecVersion   string          `json:"specversion"`
+	ID            string          `json:"id"`
+	Type          string          `json:"type"`
+	CorrelationID string          `json:"correlationid"`
+	Data          json.RawMessage `json:"data"`
 }
 
 // KafkaConsumer listens to finance-events and interaction-events topics and
@@ -144,63 +147,127 @@ func (c *KafkaConsumer) dispatch(ctx context.Context, msg kafka.Message) error {
 		return nil // skip malformed messages
 	}
 
-	var payload bookingIDPayload
-	if err := json.Unmarshal(ce.Data, &payload); err != nil {
-		log.Printf("[KAFKA-CONSUMER] Failed to parse bookingId from event type=%s: %v", ce.Type, err)
-		return nil
+	corrID := ce.CorrelationID
+	if corrID == "" {
+		corrID = ce.ID
 	}
-
-	bookingID := payload.BookingID
-	log.Printf("[KAFKA-CONSUMER] Routing event type=%s bookingId=%s", ce.Type, bookingID)
+	ctx = context.WithValue(ctx, vo.CorrelationIDKey, corrID)
 
 	switch ce.Type {
 	// Finance events
-	case "com.rentagf.finance.CoinEscrowed.v1":
-		return c.coordinators.HandleEscrowSuccess(ctx, bookingID, ce.ID)
-	case "com.rentagf.finance.EscrowFailed.v1":
-		return c.coordinators.HandleEscrowFailed(ctx, bookingID, ce.ID)
-	case "com.rentagf.finance.RefundSuccess.v1":
-		return c.coordinators.HandleRefundSuccess(ctx, bookingID, ce.ID)
-	case "com.rentagf.finance.RefundFailed.v1":
-		return c.coordinators.HandleRefundFailed(ctx, bookingID, ce.ID)
+	case "finance.coins-frozen.v1":
+		var p financev1events.CoinsFrozen
+		if bookingID, ok := parseAndValidate(ce.Data, &p, ce.Type); ok {
+			return c.coordinators.HandleCoinsFrozen(ctx, bookingID, ce.ID)
+		}
+	case "finance.coins-freeze-failed.v1":
+		var p financev1events.CoinsFreezeFailed
+		if bookingID, ok := parseAndValidate(ce.Data, &p, ce.Type); ok {
+			return c.coordinators.HandleCoinsFreezeFailed(ctx, bookingID, ce.ID)
+		}
+	case "finance.escrow-created.v1":
+		var p financev1events.EscrowCreated
+		if bookingID, ok := parseAndValidate(ce.Data, &p, ce.Type); ok {
+			return c.coordinators.HandleEscrowSuccess(ctx, bookingID, ce.ID)
+		}
+	case "finance.escrow-failed.v1":
+		var p financev1events.EscrowFailed
+		if bookingID, ok := parseAndValidate(ce.Data, &p, ce.Type); ok {
+			return c.coordinators.HandleEscrowFailed(ctx, bookingID, ce.ID)
+		}
+	case "finance.escrow-refunded.v1":
+		var p financev1events.EscrowRefunded
+		if bookingID, ok := parseAndValidate(ce.Data, &p, ce.Type); ok {
+			return c.coordinators.HandleRefundSuccess(ctx, bookingID, ce.ID)
+		}
+	case "finance.refund-failed.v1":
+		var p financev1events.RefundFailed
+		if bookingID, ok := parseAndValidate(ce.Data, &p, ce.Type); ok {
+			return c.coordinators.HandleRefundFailed(ctx, bookingID, ce.ID)
+		}
+
 	// Interaction events
-	case "com.rentagf.interaction.ChatRoomCreated.v1":
-		return c.coordinators.HandleChatRoomCreated(ctx, bookingID, ce.ID)
-	case "com.rentagf.interaction.ChatRoomCreationFailed.v1":
-		return c.coordinators.HandleChatRoomFailed(ctx, bookingID, ce.ID)
+	case "interaction.chat-room-created.v1":
+		var p interactionv1events.ChatRoomCreated
+		if bookingID, ok := parseAndValidate(ce.Data, &p, ce.Type); ok {
+			return c.coordinators.HandleChatRoomCreated(ctx, bookingID, ce.ID)
+		}
+	case "interaction.chat-room-creation-failed.v1":
+		var p interactionv1events.ChatRoomCreationFailed
+		if bookingID, ok := parseAndValidate(ce.Data, &p, ce.Type); ok {
+			return c.coordinators.HandleChatRoomFailed(ctx, bookingID, ce.ID)
+		}
+
 	// Dispute events
-	case "com.rentagf.dispute.DisputeCreated.v1":
-		err := c.db.Transaction(func(tx *gorm.DB) error {
-			txCtx := context.WithValue(ctx, "tx", tx)
-			alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, tx, ce.ID, ce.Type)
-			if err != nil {
+	case "dispute.dispute-created.v1":
+		var p disputev1events.DisputeCreated
+		if bookingID, ok := parseAndValidate(ce.Data, &p, ce.Type); ok {
+			return c.db.Transaction(func(tx *gorm.DB) error {
+				txCtx := context.WithValue(ctx, vo.TxKey, tx)
+				alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, tx, ce.ID, ce.Type)
+				if err != nil {
+					return err
+				}
+				if alreadyProcessed {
+					log.Printf("[KAFKA-CONSUMER] Skipping duplicate event id=%s type=%s", ce.ID, ce.Type)
+					return nil
+				}
+				_, err = c.disputeHandler.Handle(txCtx, command.DisputeBookingCmd{BookingID: bookingID})
 				return err
-			}
-			if alreadyProcessed {
-				log.Printf("[KAFKA-CONSUMER] Skipping duplicate event id=%s type=%s", ce.ID, ce.Type)
-				return nil
-			}
-			_, err = c.disputeHandler.Handle(txCtx, command.DisputeBookingCmd{BookingID: bookingID})
-			return err
-		})
-		return err
-	case "com.rentagf.dispute.DisputeResolved.v1":
-		err := c.db.Transaction(func(tx *gorm.DB) error {
-			txCtx := context.WithValue(ctx, "tx", tx)
-			alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, tx, ce.ID, ce.Type)
-			if err != nil {
+			})
+		}
+	case "dispute.dispute-resolved.v1":
+		var p disputev1events.DisputeResolved
+		if bookingID, ok := parseAndValidate(ce.Data, &p, ce.Type); ok {
+			return c.db.Transaction(func(tx *gorm.DB) error {
+				txCtx := context.WithValue(ctx, vo.TxKey, tx)
+				alreadyProcessed, err := persistence.CheckAndRecordEvent(txCtx, tx, ce.ID, ce.Type)
+				if err != nil {
+					return err
+				}
+				if alreadyProcessed {
+					log.Printf("[KAFKA-CONSUMER] Skipping duplicate event id=%s type=%s", ce.ID, ce.Type)
+					return nil
+				}
+				_, err = c.resolveHandler.Handle(txCtx, command.ResolveBookingCmd{BookingID: bookingID})
 				return err
-			}
-			if alreadyProcessed {
-				log.Printf("[KAFKA-CONSUMER] Skipping duplicate event id=%s type=%s", ce.ID, ce.Type)
-				return nil
-			}
-			_, err = c.resolveHandler.Handle(txCtx, command.ResolveBookingCmd{BookingID: bookingID})
-			return err
-		})
-		return err
+			})
+		}
+
 	default:
 		log.Printf("[KAFKA-CONSUMER] Unrecognised event type=%s, ignoring", ce.Type)
 	}
 	return nil
+}
+
+func parseAndValidate(data []byte, msg proto.Message, eventType string) (string, bool) {
+	unmarshaler := protojson.UnmarshalOptions{DiscardUnknown: true}
+	if err := unmarshaler.Unmarshal(data, msg); err != nil {
+		log.Printf("[KAFKA-CONSUMER] Failed to parse event type=%s: %v", eventType, err)
+		return "", false
+	}
+
+	type bookingIdGetter interface {
+		GetBookingId() string
+	}
+
+	getter, ok := msg.(bookingIdGetter)
+	if !ok {
+		log.Printf("[KAFKA-CONSUMER] Event type=%s does not have GetBookingId()", eventType)
+		return "", false
+	}
+
+	bookingID := getter.GetBookingId()
+	if bookingID == "" {
+		log.Printf("[KAFKA-CONSUMER] Missing booking_id in event type=%s, skipping", eventType)
+		return "", false
+	}
+
+	if _, err := vo.BookingIDFromString(bookingID); err != nil {
+		log.Printf("[KAFKA-CONSUMER] Invalid booking UUID '%s' in event type=%s, skipping: %v", bookingID, eventType, err)
+		return "", false
+	}
+
+	log.Printf("[KAFKA-CONSUMER] Routing event type=%s booking_id=%s", eventType, bookingID)
+	return bookingID, true
 }

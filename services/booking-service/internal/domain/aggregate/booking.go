@@ -3,9 +3,11 @@ package aggregate
 import (
 	"time"
 
+	bookingv1 "github.com/rent-a-girlfriend/booking-service/gen/proto"
 	domainerr "github.com/rent-a-girlfriend/booking-service/internal/domain/errors"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Booking is the Aggregate Root for the Booking Context.
@@ -52,19 +54,21 @@ func NewBooking(
 		companionID: companionID,
 		scenario:    scenario,
 		timeRange:   timeRange,
-		status:      vo.StatusPending,
+		status:      vo.StatusPendingReserving,
 		version:     1,
 		createdAt:   now,
 		updatedAt:   now,
 	}
 
 	b.addEvent(event.BookingRequested{
-		BookingID:      b.id.String(),
-		ClientID:       b.clientID.String(),
-		CompanionID:    b.companionID.String(),
-		Price:          b.scenario.Price().Amount(),
-		StartTime:      b.timeRange.StartTime(),
-		OccurredAtTime: now,
+		BookingRequested: &bookingv1.BookingRequested{
+			BookingId:   b.id.String(),
+			ClientId:    b.clientID.String(),
+			CompanionId: b.companionID.String(),
+			Price:       b.scenario.Price().Amount(),
+			StartTime:   timestamppb.New(b.timeRange.StartTime()),
+			OccurredAt:  timestamppb.New(now),
+		},
 	})
 
 	return b, nil
@@ -111,9 +115,11 @@ func (b *Booking) Accept(companionID vo.CompanionID, now time.Time) error {
 	b.updatedAt = now
 
 	b.addEvent(event.BookingAccepted{
-		BookingID:      b.id.String(),
-		CompanionID:    b.companionID.String(),
-		OccurredAtTime: now,
+		BookingAccepted: &bookingv1.BookingAccepted{
+			BookingId:   b.id.String(),
+			CompanionId: b.companionID.String(),
+			OccurredAt:  timestamppb.New(now),
+		},
 	})
 	return nil
 }
@@ -131,11 +137,13 @@ func (b *Booking) Reject(companionID vo.CompanionID, reason string, now time.Tim
 	b.updatedAt = now
 
 	b.addEvent(event.BookingRejected{
-		BookingID:      b.id.String(),
-		CompanionID:    b.companionID.String(),
-		ClientID:       b.clientID.String(),
-		Reason:         reason,
-		OccurredAtTime: now,
+		BookingRejected: &bookingv1.BookingRejected{
+			BookingId:   b.id.String(),
+			CompanionId: b.companionID.String(),
+			ClientId:    b.clientID.String(),
+			Reason:      reason,
+			OccurredAt:  timestamppb.New(now),
+		},
 	})
 	return nil
 }
@@ -161,17 +169,21 @@ func (b *Booking) Cancel(actorRole vo.ActorRole, now time.Time) error {
 
 	if b.isLateCancel {
 		b.addEvent(event.BookingCancelledLate{
-			BookingID:      b.id.String(),
-			ActorID:        b.resolveActorID(actorRole),
-			ActorRole:      string(actorRole),
-			OccurredAtTime: now,
+			BookingCancelledLate: &bookingv1.BookingCancelledLate{
+				BookingId:  b.id.String(),
+				ActorId:    b.resolveActorID(actorRole),
+				ActorRole:  string(actorRole),
+				OccurredAt: timestamppb.New(now),
+			},
 		})
 	} else {
 		b.addEvent(event.BookingCancelledEarly{
-			BookingID:      b.id.String(),
-			ActorID:        b.resolveActorID(actorRole),
-			ActorRole:      string(actorRole),
-			OccurredAtTime: now,
+			BookingCancelledEarly: &bookingv1.BookingCancelledEarly{
+				BookingId:  b.id.String(),
+				ActorId:    b.resolveActorID(actorRole),
+				ActorRole:  string(actorRole),
+				OccurredAt: timestamppb.New(now),
+			},
 		})
 	}
 	return nil
@@ -190,11 +202,13 @@ func (b *Booking) Complete(clientID vo.ClientID, now time.Time) error {
 	b.updatedAt = now
 
 	b.addEvent(event.BookingCompleted{
-		BookingID:      b.id.String(),
-		CompanionID:    b.companionID.String(),
-		ClientID:       b.clientID.String(),
-		Price:          b.scenario.Price().Amount(),
-		OccurredAtTime: now,
+		BookingCompleted: &bookingv1.BookingCompleted{
+			BookingId:   b.id.String(),
+			CompanionId: b.companionID.String(),
+			ClientId:    b.clientID.String(),
+			Price:       b.scenario.Price().Amount(),
+			OccurredAt:  timestamppb.New(now),
+		},
 	})
 	return nil
 }
@@ -209,11 +223,13 @@ func (b *Booking) SystemComplete(now time.Time) error {
 	b.updatedAt = now
 
 	b.addEvent(event.BookingCompleted{
-		BookingID:      b.id.String(),
-		CompanionID:    b.companionID.String(),
-		ClientID:       b.clientID.String(),
-		Price:          b.scenario.Price().Amount(),
-		OccurredAtTime: now,
+		BookingCompleted: &bookingv1.BookingCompleted{
+			BookingId:   b.id.String(),
+			CompanionId: b.companionID.String(),
+			ClientId:    b.clientID.String(),
+			Price:       b.scenario.Price().Amount(),
+			OccurredAt:  timestamppb.New(now),
+		},
 	})
 	return nil
 }
@@ -228,9 +244,11 @@ func (b *Booking) SystemTimeout(now time.Time) error {
 	b.updatedAt = now
 
 	b.addEvent(event.BookingTimedOut{
-		BookingID:      b.id.String(),
-		ClientID:       b.clientID.String(),
-		OccurredAtTime: now,
+		BookingTimedOut: &bookingv1.BookingTimedOut{
+			BookingId:  b.id.String(),
+			ClientId:   b.clientID.String(),
+			OccurredAt: timestamppb.New(now),
+		},
 	})
 	return nil
 }
@@ -265,6 +283,28 @@ func (b *Booking) FailTechnical(now time.Time) {
 	b.cancelledByRole = vo.ActorRole("SYSTEM")
 	b.isLateCancel = false
 	b.updatedAt = now
+}
+
+// ConfirmReserved transitions the booking from PENDING_RESERVING to PENDING.
+func (b *Booking) ConfirmReserved(now time.Time) error {
+	if b.status != vo.StatusPendingReserving {
+		return domainerr.ErrInvalidStatus
+	}
+	b.status = vo.StatusPending
+	b.updatedAt = now
+	return nil
+}
+
+// CancelReserving transitions the booking from PENDING_RESERVING to CANCELLED (due to freeze coin failure).
+func (b *Booking) CancelReserving(reason string, now time.Time) error {
+	if b.status != vo.StatusPendingReserving {
+		return domainerr.ErrInvalidStatus
+	}
+	b.status = vo.StatusCancelled
+	b.cancelledByRole = vo.ActorRole("SYSTEM")
+	b.isLateCancel = false
+	b.updatedAt = now
+	return nil
 }
 
 // --- Getters ---

@@ -25,7 +25,7 @@ func publishTestKafkaEvent(t *testing.T, brokers []string, topic string, eventID
 	if err != nil {
 		t.Fatalf("failed to dial kafka leader: %v", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	ce := map[string]interface{}{
 		"specversion": "1.0",
@@ -34,7 +34,7 @@ func publishTestKafkaEvent(t *testing.T, brokers []string, topic string, eventID
 		"type":        eventType,
 		"time":        time.Now().Format(time.RFC3339),
 		"data": map[string]interface{}{
-			"bookingId": bookingID,
+			"booking_id": bookingID,
 		},
 	}
 
@@ -87,9 +87,9 @@ func TestSagaLifecycle_E2E_Kafka(t *testing.T) {
 		Brokers: kafkaBrokers,
 	}
 
-	financeTopic := "finance-events-test"
-	interactionTopic := "interaction-events-test"
-	disputeTopic := "dispute-events-test"
+	financeTopic := "finance.events.test"
+	interactionTopic := "interaction.events.test"
+	disputeTopic := "dispute.events.test"
 
 	consumer := messaging.NewKafkaConsumer(
 		connCfg,
@@ -132,7 +132,7 @@ func TestSagaLifecycle_E2E_Kafka(t *testing.T) {
 
 	// 5. Emit CoinEscrowed from Finance Service mock
 	event1ID := uuid.New().String()
-	publishTestKafkaEvent(t, []string{kafkaBrokers}, financeTopic, event1ID, "com.rentagf.finance.CoinEscrowed.v1", bid.String())
+	publishTestKafkaEvent(t, []string{kafkaBrokers}, financeTopic, event1ID, "finance.escrow-created.v1", bid.String())
 
 	// 6. Assert Saga state updates to WAITING_FOR_CHAT in DB
 	err = pollDatabaseAssertion(50, 200*time.Millisecond, func() error {
@@ -151,7 +151,7 @@ func TestSagaLifecycle_E2E_Kafka(t *testing.T) {
 
 	// 7. Emit ChatRoomCreated from Interaction Service mock
 	event2ID := uuid.New().String()
-	publishTestKafkaEvent(t, []string{kafkaBrokers}, interactionTopic, event2ID, "com.rentagf.interaction.ChatRoomCreated.v1", bid.String())
+	publishTestKafkaEvent(t, []string{kafkaBrokers}, interactionTopic, event2ID, "interaction.chat-room-created.v1", bid.String())
 
 	// 8. Assert Saga updates to COMPLETED and Booking updates to ACCEPTED
 	err = pollDatabaseAssertion(50, 200*time.Millisecond, func() error {

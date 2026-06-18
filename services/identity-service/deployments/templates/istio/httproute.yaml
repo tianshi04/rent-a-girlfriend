@@ -14,25 +14,13 @@ spec:
     - {{ . | quote }}
 {{- end }}
   rules:
+    {{- range .Values.httpRoute.paths }}
     - matches:
         - path:
             type: PathPrefix
-            value: /api/v1
+            value: {{ . }}
       backendRefs:
-        - name: {{ include "identity-service.fullname" . }}
-          port: 8080
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /.well-known/jwks.json
-      backendRefs:
-        - name: {{ include "identity-service.fullname" . }}
-          port: 8080
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /health
-      backendRefs:
-        - name: {{ include "identity-service.fullname" . }}
-          port: 8080
+        - name: {{ include "identity-service.fullname" $ }}
+          port: {{ $.Values.service.ports.http }}
+    {{- end }}
 {{- end }}

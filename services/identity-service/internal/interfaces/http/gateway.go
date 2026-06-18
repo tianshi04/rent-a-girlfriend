@@ -19,7 +19,7 @@ import (
 func customHeaderMatcher(key string) (string, bool) {
 	lowerKey := strings.ToLower(key)
 	switch lowerKey {
-	case "user-id", "user-role", "user-status", "user-email":
+	case "user-id", "user-role", "user-status", "user-email", "correlationid":
 		return lowerKey, true
 	default:
 		return runtime.DefaultHeaderMatcher(key)

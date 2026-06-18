@@ -77,16 +77,21 @@ async fn test_chat_room_repository_integration() {
     assert!(found_by_booking.is_some());
     assert_eq!(found_by_booking.unwrap().room_id, room_id);
 
-    // 4. Verify that the outbox contains the created event
-    let outbox_event: (String, String, bool) =
-        sqlx::query_as("SELECT event_type, payload, processed FROM outbox WHERE event_type = $1")
-            .bind("com.rentagf.interaction.ChatRoomCreated.v1")
-            .fetch_one(&pool)
-            .await
-            .expect("Failed to fetch outbox event");
+    // 4. Verify that the outbox contains the created event with correct booking_id
+    let outbox_event: (String, String, String, bool) = sqlx::query_as(
+        "SELECT event_type, payload, booking_id, processed FROM outbox WHERE event_type = $1",
+    )
+    .bind("interaction.chat-room-created.v1")
+    .fetch_one(&pool)
+    .await
+    .expect("Failed to fetch outbox event");
 
-    assert_eq!(outbox_event.0, "com.rentagf.interaction.ChatRoomCreated.v1");
-    assert!(!outbox_event.2); // processed should be false initially
+    assert_eq!(outbox_event.0, "interaction.chat-room-created.v1");
+    assert_eq!(
+        outbox_event.2, booking_id,
+        "outbox booking_id must match the Aggregate Root ID"
+    );
+    assert!(!outbox_event.3); // processed should be false initially
 
     // 5. Save and get messages
     let msg1 = chat_room
@@ -130,14 +135,19 @@ async fn test_chat_room_repository_integration() {
         interaction_service::domain::chat_room::ChatRoomStatus::Locked
     );
 
-    // Verify lock event in outbox
-    let lock_event: (String, bool) =
-        sqlx::query_as("SELECT event_type, processed FROM outbox WHERE event_type = $1")
-            .bind("com.rentagf.interaction.ChatRoomLocked.v1")
-            .fetch_one(&pool)
-            .await
-            .expect("Failed to fetch outbox lock event");
-    assert_eq!(lock_event.0, "com.rentagf.interaction.ChatRoomLocked.v1");
+    // Verify lock event in outbox with correct booking_id
+    let lock_event: (String, String, bool) = sqlx::query_as(
+        "SELECT event_type, booking_id, processed FROM outbox WHERE event_type = $1",
+    )
+    .bind("interaction.chat-room-locked.v1")
+    .fetch_one(&pool)
+    .await
+    .expect("Failed to fetch outbox lock event");
+    assert_eq!(lock_event.0, "interaction.chat-room-locked.v1");
+    assert_eq!(
+        lock_event.1, booking_id,
+        "outbox booking_id must match the Aggregate Root ID"
+    );
 }
 
 #[tokio::test]
@@ -194,14 +204,19 @@ async fn test_review_repository_integration() {
     assert_eq!(companion_reviews.len(), 1);
     assert_eq!(companion_reviews[0].review_id, review_id);
 
-    // 5. Verify outbox contains ReviewSubmitted event
-    let outbox_event: (String, bool) =
-        sqlx::query_as("SELECT event_type, processed FROM outbox WHERE event_type = $1")
-            .bind("com.rentagf.interaction.ReviewSubmitted.v1")
-            .fetch_one(&pool)
-            .await
-            .expect("Failed to fetch review submitted outbox event");
-    assert_eq!(outbox_event.0, "com.rentagf.interaction.ReviewSubmitted.v1");
+    // 5. Verify outbox contains ReviewSubmitted event with correct booking_id
+    let outbox_event: (String, String, bool) = sqlx::query_as(
+        "SELECT event_type, booking_id, processed FROM outbox WHERE event_type = $1",
+    )
+    .bind("interaction.review-submitted.v1")
+    .fetch_one(&pool)
+    .await
+    .expect("Failed to fetch review submitted outbox event");
+    assert_eq!(outbox_event.0, "interaction.review-submitted.v1");
+    assert_eq!(
+        outbox_event.1, booking_id,
+        "outbox booking_id must match the Aggregate Root ID"
+    );
 
     // 6. Hide the Review and verify hidden status + outbox hidden event
     let mut mutable_review = found;
@@ -227,9 +242,9 @@ async fn test_review_repository_integration() {
     // Verify outbox contains ReviewHidden event
     let hide_event: (String, bool) =
         sqlx::query_as("SELECT event_type, processed FROM outbox WHERE event_type = $1")
-            .bind("com.rentagf.interaction.ReviewHidden.v1")
+            .bind("interaction.review-hidden.v1")
             .fetch_one(&pool)
             .await
             .expect("Failed to fetch review hidden outbox event");
-    assert_eq!(hide_event.0, "com.rentagf.interaction.ReviewHidden.v1");
+    assert_eq!(hide_event.0, "interaction.review-hidden.v1");
 }

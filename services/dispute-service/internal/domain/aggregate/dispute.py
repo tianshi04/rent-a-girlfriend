@@ -1,5 +1,5 @@
 from typing import List, Optional
-from internal.domain.vo import DisputeReason, Resolution
+from internal.domain.vo import DisputeReason
 from internal.domain.errors import (
     DisputeAlreadyResolvedError,
     InvalidDisputeStatusTransitionError,
@@ -138,9 +138,7 @@ class Dispute:
         self.status = "RESOLVING"
         self.admin_id = admin_id
 
-        self.add_event(
-            DisputeAssigned(dispute_id=self.dispute_id, admin_id=admin_id)
-        )
+        self.add_event(DisputeAssigned(dispute_id=self.dispute_id, admin_id=admin_id))
 
     def resolve_refund(self, admin_id: str, notes: str = ""):
         """
@@ -159,6 +157,8 @@ class Dispute:
                 dispute_id=self.dispute_id,
                 booking_id=self.booking_id,
                 admin_id=admin_id,
+                reporter_id=self.reporter_id,
+                accused_id=self.accused_id,
             )
         )
 
@@ -179,6 +179,8 @@ class Dispute:
                 dispute_id=self.dispute_id,
                 booking_id=self.booking_id,
                 admin_id=admin_id,
+                reporter_id=self.reporter_id,
+                accused_id=self.accused_id,
             )
         )
 
@@ -199,6 +201,8 @@ class Dispute:
                 dispute_id=self.dispute_id,
                 booking_id=self.booking_id,
                 admin_id=admin_id,
+                reporter_id=self.reporter_id,
+                accused_id=self.accused_id,
             )
         )
 

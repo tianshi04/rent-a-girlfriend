@@ -55,8 +55,11 @@ Audit Log bất biến cho mọi biến động tài chính.
 | `EscrowCreated` | Companion chấp nhận booking | `booking_id`, `amount` |
 | `PayoutProcessed` | Booking hoàn thành, giải phóng escrow | `booking_id`, `companion_id`, `amount`, `commission_amount`, `net_amount` |
 | `EscrowRefunded` | Booking bị hủy, hoàn tiền Client | `booking_id`, `client_id`, `refund_amount` |
+| `CoinsFreezeFailed ` | Đóng băng tiền cọc thất bại | `booking_id`, `client_id`, `reason` |
+| `EscrowFailed` | Ký quỹ tiền cọc thất bại | `booking_id`, `client_id`, `reason` |
+| `RefundFailed` | Hoàn tiền Escrow thất bại | `booking_id`, `client_id`, `reason` |
 
-> Tất cả sự kiện được xuất bản qua **Transactional Outbox** → Kafka topic `finance-events` theo định dạng **CloudEvents JSON v1.0**.
+> Tất cả sự kiện được xuất bản qua **Transactional Outbox** → Kafka topic `finance.events` theo định dạng **CloudEvents JSON**.
 
 ## 6. COMMANDS & USE CASES
 
@@ -87,8 +90,8 @@ Audit Log bất biến cho mọi biến động tài chính.
 ### Kafka Topics
 | Topic | Vai trò |
 |---|---|
-| `finance-events` | **Publish** — Finance Service xuất bản tất cả domain events |
-| `identity-events` | **Subscribe** — Finance Service lắng nghe `UserRegistered` để onboard ví |
+| `finance.events` | **Publish** — Finance Service xuất bản tất cả domain events |
+| `identity.events` | **Subscribe** — Finance Service lắng nghe `UserRegistered` để onboard ví |
 
 ### gRPC Interface (Internal — được gọi bởi Booking Service)
 | Method | Mô tả |
