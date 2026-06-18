@@ -362,11 +362,11 @@ async def test_outbox_publisher_worker_cloudevent():
 
 
 async def test_booking_event_listener_success(
-    finance_service, test_db_session, mock_publisher, monkeypatch
+    finance_service, db_session, mock_publisher, monkeypatch
 ):
     import asyncio
 
-    finance_service.session = test_db_session
+    finance_service.session = db_session
     # Set up client wallet with 100 coins
     client_id = "client-event-1"
     booking_id = "booking-event-1"
@@ -374,7 +374,7 @@ async def test_booking_event_listener_success(
     client_wallet = await finance_service.get_or_create_wallet(client_id)
     client_wallet.available_balance = client_wallet.available_balance.add(Money(100))
     await finance_service.wallet_repo.save(client_wallet)
-    await test_db_session.commit()
+    await db_session.commit()
 
     # Mock CloudEvent payload for booking.booking-requested.v1
     mock_msg_value = {
@@ -422,7 +422,7 @@ async def test_booking_event_listener_success(
             pass
 
     monkeypatch.setattr(
-        server_main, "SessionLocal", lambda: MockSessionContext(test_db_session)
+        server_main, "SessionLocal", lambda: MockSessionContext(db_session)
     )
     monkeypatch.setattr(server_main, "bootstrap_services", lambda sess: finance_service)
 
@@ -430,7 +430,7 @@ async def test_booking_event_listener_success(
     await server_main.run_booking_event_listener()
 
     # Verify the client wallet balance after processing
-    test_db_session.expire_all()
+    db_session.expire_all()
     w = await finance_service.wallet_repo.find_by_user_id(client_id)
     assert w.available_balance.amount == 20
     assert w.frozen_balance.amount == 80
@@ -450,11 +450,11 @@ async def test_booking_event_listener_success(
 
 
 async def test_booking_event_listener_insufficient_funds(
-    finance_service, test_db_session, mock_publisher, monkeypatch
+    finance_service, db_session, mock_publisher, monkeypatch
 ):
     import asyncio
 
-    finance_service.session = test_db_session
+    finance_service.session = db_session
     client_id = "client-event-2"
     booking_id = "booking-event-2"
 
@@ -463,7 +463,7 @@ async def test_booking_event_listener_insufficient_funds(
         Money(50)
     )  # Only 50 coins
     await finance_service.wallet_repo.save(client_wallet)
-    await test_db_session.commit()
+    await db_session.commit()
 
     mock_msg_value = {
         "specversion": "1.0",
@@ -513,7 +513,7 @@ async def test_booking_event_listener_insufficient_funds(
             pass
 
     monkeypatch.setattr(
-        server_main, "SessionLocal", lambda: MockSessionContext(test_db_session)
+        server_main, "SessionLocal", lambda: MockSessionContext(db_session)
     )
     monkeypatch.setattr(server_main, "bootstrap_services", lambda sess: finance_service)
 
@@ -521,7 +521,7 @@ async def test_booking_event_listener_insufficient_funds(
     await server_main.run_booking_event_listener()
 
     # Verify the client wallet balance is unchanged
-    test_db_session.expire_all()
+    db_session.expire_all()
     w = await finance_service.wallet_repo.find_by_user_id(client_id)
     assert w.available_balance.amount == 50
     assert w.frozen_balance.amount == 0

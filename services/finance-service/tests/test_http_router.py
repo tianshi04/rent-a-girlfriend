@@ -168,11 +168,11 @@ async def test_topup_negative_amount_rejected(client):
 
 
 async def test_vnpay_ipn_success_flow(
-    client, session_factory, mock_publisher, vnpay_adapter
+    client, TestSessionLocal, mock_publisher, vnpay_adapter
 ):
     """GET /vnpay-ipn with valid signature and correct amount credits wallet."""
     # 1. Initiate topup to create PENDING transaction (call service directly)
-    async with session_factory() as db:
+    async with TestSessionLocal() as db:
         svc = FinanceCommandService(
             wallet_repo=WalletRepository(db),
             escrow_repo=EscrowRepository(db),
@@ -222,10 +222,10 @@ async def test_vnpay_ipn_invalid_signature_returns_97(client):
 
 
 async def test_vnpay_ipn_duplicate_returns_02(
-    client, session_factory, mock_publisher, vnpay_adapter
+    client, TestSessionLocal, mock_publisher, vnpay_adapter
 ):
     """GET /vnpay-ipn called twice returns RspCode 02 on second call (idempotency)."""
-    async with session_factory() as db:
+    async with TestSessionLocal() as db:
         svc = FinanceCommandService(
             wallet_repo=WalletRepository(db),
             escrow_repo=EscrowRepository(db),
@@ -326,13 +326,13 @@ async def test_get_wallet_lazy_creates_wallet(client):
 
 
 async def test_get_wallet_returns_existing_wallet(
-    client, session_factory, mock_publisher, vnpay_adapter
+    client, TestSessionLocal, mock_publisher, vnpay_adapter
 ):
     """GET /wallet returns correct balance for existing wallet."""
     user_id = "user-http-wallet-2"
 
-    # Pre-seed wallet with coins via the same test session_factory
-    async with session_factory() as db:
+    # Pre-seed wallet with coins via the same test TestSessionLocal
+    async with TestSessionLocal() as db:
         svc = FinanceCommandService(
             wallet_repo=WalletRepository(db),
             escrow_repo=EscrowRepository(db),
