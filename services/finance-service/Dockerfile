@@ -13,11 +13,12 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 # ---- Stage 2: Builder & Proto Generation ----
 FROM base AS builder
-# Copy shared contracts (Expected to be in context)
+# Copy shared contracts and third_party (Expected to be in context)
 COPY contracts/ ./contracts/
+COPY third_party/ ./third_party/
 COPY . .
 RUN uv sync --frozen --no-dev && \
-    CONTRACTS_PATH=/app/contracts uv run python scripts/generate_proto.py
+    CONTRACTS_PATH=/app/contracts THIRD_PARTY_PATH=/app/third_party/googleapis uv run python scripts/generate_proto.py
 
 # ---- Stage 3: Tester ----
 FROM builder AS tester

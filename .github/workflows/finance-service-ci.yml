@@ -100,7 +100,9 @@ jobs:
             type=raw,value=sha-${{ steps.vars.outputs.sha_short }}
 
       - name: Prepare build context
-        run: cp -r contracts services/finance-service/contracts
+        run: |
+          cp -r contracts services/finance-service/contracts
+          cp -r third_party services/finance-service/third_party
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
