@@ -1,0 +1,28 @@
+# Production environment overrides.
+# Usage:
+#   helm upgrade --install dispute-service ./deployments \
+#     -f values.prod.yaml -f values.secret.yaml
+
+replicaCount: 3
+
+config:
+  APP_ENV: "production"
+  KAFKA_BROKERS: "kafka-headless.kafka.svc.cluster.local:9092"
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+namespace:
+  istio:
+    ambientEnabled: true

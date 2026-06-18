@@ -1,0 +1,28 @@
+# Development environment overrides.
+# Usage:
+#   helm upgrade --install dispute-service ./deployments \
+#     -f values.dev.yaml -f values.secret.yaml
+
+replicaCount: 1
+
+config:
+  APP_ENV: "development"
+  # Local Kafka broker (e.g. docker-compose or minikube port-forward)
+  KAFKA_BROKERS: "localhost:9092"
+
+hpa:
+  # Disable HPA in dev; replica count is managed statically above
+  enabled: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+namespace:
+  istio:
+    # Do not label the namespace for Istio Ambient in local/dev clusters
+    ambientEnabled: false
