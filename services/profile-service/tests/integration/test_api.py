@@ -71,7 +71,7 @@ async def test_presigned_url_invalid_image_size(client):
         "/profile/me/media/presigned-urls", json=payload, headers=headers
     )
     assert response.status_code == 422
-    assert "IMAGE size must not exceed 2MB" in response.json()["details"][0]["issue"]
+    assert "IMAGE size must not exceed 2MB" in response.json()["detail"][0]["msg"]
 
 
 async def test_presigned_url_valid_voice(client):
@@ -104,7 +104,7 @@ async def test_presigned_url_invalid_voice_duration(client):
     assert response.status_code == 422
     assert (
         "durationSeconds must not exceed 30 seconds"
-        in response.json()["details"][0]["issue"]
+        in response.json()["detail"][0]["msg"]
     )
 
 
