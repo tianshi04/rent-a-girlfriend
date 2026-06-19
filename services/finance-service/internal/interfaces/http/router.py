@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+from pydantic.alias_generators import to_camel
 
 from internal.bootstrap import get_finance_cmd
 from internal.application.command.finance import FinanceCommandService
@@ -8,6 +9,8 @@ router = APIRouter(prefix="/api/v1/finance", tags=["Finance"])
 
 
 class TopupRequest(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
     user_id: str = Field(..., description="The ID of the user topping up")
     amount: int = Field(
         ..., gt=0, description="Amount of Kano-Coins to buy (1 Coin = 1,000 VND)"
@@ -15,10 +18,14 @@ class TopupRequest(BaseModel):
 
 
 class TopupResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
     payment_url: str = Field(..., description="VNPay Sandbox checkout redirect URL")
 
 
 class WalletResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
     wallet_id: str
     user_id: str
     available_balance: int
@@ -233,7 +240,7 @@ async def vnpay_return(
 @router.get("/wallet", response_model=WalletResponse)
 async def get_wallet(
     user_id: str = Query(
-        ..., description="The ID of the user whose wallet is requested"
+        ..., alias="userId", description="The ID of the user whose wallet is requested"
     ),
     finance_cmd: FinanceCommandService = Depends(get_finance_cmd),
 ):
