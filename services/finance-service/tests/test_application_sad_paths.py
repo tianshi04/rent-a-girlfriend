@@ -9,7 +9,7 @@ from typing import List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
-from internal.domain.vo import Money
+from internal.domain.vo import Money, TransactionType
 from internal.domain.events import DomainEvent
 from internal.interfaces.grpc.servicer import FinanceServiceServicer
 from internal.infrastructure.persistence.models import (
@@ -477,7 +477,7 @@ async def test_grpc_refund_escrow_empty_client_resolves_fallback_and_publishes_r
             transaction_id="t-res-1",
             user_id="u-resolved-client",
             amount=150,
-            type="BOOKING_RESERVATION",
+            type=TransactionType.BOOKING_RESERVATION,
             status="SUCCESS",
             reference_id="b-sad-grpc-3",
         )
@@ -508,3 +508,56 @@ async def test_grpc_refund_escrow_empty_client_resolves_fallback_and_publishes_r
         assert payload["bookingId"] == "b-sad-grpc-3"
         assert payload["clientId"] == "u-resolved-client"  # Resolved!
         assert "Escrow not found" in payload["reason"]
+
+
+async def test_grpc_freeze_coin_unspecified_type_rejected(test_session_factory):
+    from common.v1 import enums_pb2
+    servicer = FinanceServiceServicer(test_session_factory)
+    context = MockGRPCContext()
+    request = MockRequest(
+        user_id="u-sad-grpc-1",
+        amount=50,
+        booking_id="b-sad-grpc-1",
+        type=enums_pb2.TRANSACTION_TYPE_UNSPECIFIED,
+    )
+    await servicer.FreezeCoin(request, context)
+    assert context.code == grpc.StatusCode.INVALID_ARGUMENT
+    assert "cannot be UNSPECIFIED" in context.details
+
+
+async def test_grpc_freeze_coin_invalid_type_rejected(test_session_factory):
+    servicer = FinanceServiceServicer(test_session_factory)
+    context = MockGRPCContext()
+    request = MockRequest(
+        user_id="u-sad-grpc-1",
+        amount=50,
+        booking_id="b-sad-grpc-1",
+        type=999,  # invalid enum value
+    )
+    await servicer.FreezeCoin(request, context)
+    assert context.code == grpc.StatusCode.INVALID_ARGUMENT
+    assert "Invalid transaction type" in context.details
+
+
+async def test_grpc_freeze_coin_valid_type_accepted(test_session_factory, monkeypatch):
+    from common.v1 import enums_pb2
+    servicer = FinanceServiceServicer(test_session_factory)
+    context = MockGRPCContext()
+    request = MockRequest(
+        user_id="u-sad-grpc-1",
+        amount=50,
+        booking_id="b-sad-grpc-1",
+        type=enums_pb2.TRANSACTION_TYPE_BOOKING_RESERVATION,
+    )
+    
+    received_txn_type = None
+    
+    async def mock_freeze_coin(self, user_id, amount, booking_id, txn_type):
+        nonlocal received_txn_type
+        received_txn_type = txn_type
+        return "mocked-txn-id"
+        
+    monkeypatch.setattr(FinanceCommandService, "freeze_coin", mock_freeze_coin)
+    
+    await servicer.FreezeCoin(request, context)
+    assert received_txn_type == TransactionType.BOOKING_RESERVATION

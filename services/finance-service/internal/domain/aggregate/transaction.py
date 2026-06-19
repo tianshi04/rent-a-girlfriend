@@ -1,4 +1,4 @@
-from internal.domain.vo import Money
+from internal.domain.vo import Money, TransactionType
 
 
 class Transaction:
@@ -7,7 +7,7 @@ class Transaction:
         transaction_id: str,
         user_id: str,
         amount: Money,
-        type: str,  # TOPUP, BOOKING_RESERVATION, ESCROW_RELEASE, PENALTY_DEDUCTION, REFUND
+        type: TransactionType,
         status: str,  # PENDING, SUCCESS, FAILED
         reference_id: str,
     ):
@@ -24,7 +24,7 @@ class Transaction:
         transaction_id: str,
         user_id: str,
         amount: Money,
-        type: str,
+        type: TransactionType,
         status: str,
         reference_id: str,
     ) -> "Transaction":

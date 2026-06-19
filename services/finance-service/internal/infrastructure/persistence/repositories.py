@@ -4,7 +4,7 @@ from sqlalchemy import select
 from internal.domain.aggregate.wallet import Wallet
 from internal.domain.aggregate.escrow import Escrow
 from internal.domain.aggregate.transaction import Transaction
-from internal.domain.vo import Money
+from internal.domain.vo import Money, TransactionType
 from internal.domain.repository import (
     IWalletRepository,
     IEscrowRepository,
@@ -136,9 +136,10 @@ class TransactionRepository(ITransactionRepository):
         return self._to_domain(model)
 
     async def find_by_reference_id(
-        self, reference_id: str, type: str, lock: bool = False
+        self, reference_id: str, type: TransactionType, lock: bool = False
     ) -> Optional[Transaction]:
-        stmt = select(TransactionModel).filter_by(reference_id=reference_id, type=type)
+        type_enum = type if isinstance(type, TransactionType) else TransactionType(type)
+        stmt = select(TransactionModel).filter_by(reference_id=reference_id, type=type_enum)
         if lock:
             stmt = stmt.with_for_update()
         result = await self.session.execute(stmt)
@@ -148,11 +149,17 @@ class TransactionRepository(ITransactionRepository):
         return self._to_domain(model)
 
     def _to_domain(self, model: TransactionModel) -> Transaction:
+        txn_type = model.type
+        if not isinstance(txn_type, TransactionType):
+            try:
+                txn_type = TransactionType(txn_type)
+            except ValueError:
+                txn_type = TransactionType.UNSPECIFIED
         return Transaction(
             transaction_id=model.transaction_id,
             user_id=model.user_id,
             amount=Money(model.amount),
-            type=model.type,
+            type=txn_type,
             status=model.status,
             reference_id=model.reference_id,
         )
