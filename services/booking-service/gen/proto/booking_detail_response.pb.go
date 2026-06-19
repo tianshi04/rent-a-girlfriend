@@ -31,7 +31,7 @@ type BookingDetailResponse struct {
 	DurationMinutes int64                  `protobuf:"varint,5,opt,name=duration_minutes,json=durationMinutes,proto3" json:"duration_minutes,omitempty"`
 	StartTime       *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	EndTime         *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
-	Status          BookingStatus          `protobuf:"varint,8,opt,name=status,proto3,enum=common.v1.BookingStatus" json:"status,omitempty"`
+	Status          BookingStatus          `protobuf:"varint,8,opt,name=status,proto3,enum=booking.v1.BookingStatus" json:"status,omitempty"`
 	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -135,7 +135,7 @@ var File_booking_v1_messages_booking_detail_response_proto protoreflect.FileDesc
 const file_booking_v1_messages_booking_detail_response_proto_rawDesc = "" +
 	"\n" +
 	"1booking/v1/messages/booking_detail_response.proto\x12\n" +
-	"booking.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x15common/v1/enums.proto\"\x96\x03\n" +
+	"booking.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a$booking/v1/enums/booking_enums.proto\"\x97\x03\n" +
 	"\x15BookingDetailResponse\x12\x1d\n" +
 	"\n" +
 	"booking_id\x18\x01 \x01(\tR\tbookingId\x12\x1b\n" +
@@ -145,8 +145,8 @@ const file_booking_v1_messages_booking_detail_response_proto_rawDesc = "" +
 	"\x10duration_minutes\x18\x05 \x01(\x03R\x0fdurationMinutes\x129\n" +
 	"\n" +
 	"start_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tstartTime\x125\n" +
-	"\bend_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\x120\n" +
-	"\x06status\x18\b \x01(\x0e2\x18.common.v1.BookingStatusR\x06status\x129\n" +
+	"\bend_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\x121\n" +
+	"\x06status\x18\b \x01(\x0e2\x19.booking.v1.BookingStatusR\x06status\x129\n" +
 	"\n" +
 	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtBBZ@github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1b\x06proto3"
 
@@ -166,12 +166,12 @@ var file_booking_v1_messages_booking_detail_response_proto_msgTypes = make([]pro
 var file_booking_v1_messages_booking_detail_response_proto_goTypes = []any{
 	(*BookingDetailResponse)(nil), // 0: booking.v1.BookingDetailResponse
 	(*timestamppb.Timestamp)(nil), // 1: google.protobuf.Timestamp
-	(BookingStatus)(0),            // 2: common.v1.BookingStatus
+	(BookingStatus)(0),            // 2: booking.v1.BookingStatus
 }
 var file_booking_v1_messages_booking_detail_response_proto_depIdxs = []int32{
 	1, // 0: booking.v1.BookingDetailResponse.start_time:type_name -> google.protobuf.Timestamp
 	1, // 1: booking.v1.BookingDetailResponse.end_time:type_name -> google.protobuf.Timestamp
-	2, // 2: booking.v1.BookingDetailResponse.status:type_name -> common.v1.BookingStatus
+	2, // 2: booking.v1.BookingDetailResponse.status:type_name -> booking.v1.BookingStatus
 	1, // 3: booking.v1.BookingDetailResponse.created_at:type_name -> google.protobuf.Timestamp
 	4, // [4:4] is the sub-list for method output_type
 	4, // [4:4] is the sub-list for method input_type
@@ -185,7 +185,7 @@ func file_booking_v1_messages_booking_detail_response_proto_init() {
 	if File_booking_v1_messages_booking_detail_response_proto != nil {
 		return
 	}
-	file_common_v1_enums_proto_init()
+	file_booking_v1_enums_booking_enums_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

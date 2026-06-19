@@ -24,7 +24,7 @@ const (
 type AcceptBookingResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BookingId     string                 `protobuf:"bytes,1,opt,name=booking_id,json=bookingId,proto3" json:"booking_id,omitempty"`
-	Status        BookingStatus          `protobuf:"varint,2,opt,name=status,proto3,enum=common.v1.BookingStatus" json:"status,omitempty"`
+	Status        BookingStatus          `protobuf:"varint,2,opt,name=status,proto3,enum=booking.v1.BookingStatus" json:"status,omitempty"`
 	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -86,11 +86,11 @@ var File_booking_v1_messages_accept_booking_response_proto protoreflect.FileDesc
 const file_booking_v1_messages_accept_booking_response_proto_rawDesc = "" +
 	"\n" +
 	"1booking/v1/messages/accept_booking_response.proto\x12\n" +
-	"booking.v1\x1a\x15common/v1/enums.proto\"\x82\x01\n" +
+	"booking.v1\x1a$booking/v1/enums/booking_enums.proto\"\x83\x01\n" +
 	"\x15AcceptBookingResponse\x12\x1d\n" +
 	"\n" +
-	"booking_id\x18\x01 \x01(\tR\tbookingId\x120\n" +
-	"\x06status\x18\x02 \x01(\x0e2\x18.common.v1.BookingStatusR\x06status\x12\x18\n" +
+	"booking_id\x18\x01 \x01(\tR\tbookingId\x121\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x19.booking.v1.BookingStatusR\x06status\x12\x18\n" +
 	"\amessage\x18\x03 \x01(\tR\amessageBBZ@github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1b\x06proto3"
 
 var (
@@ -108,10 +108,10 @@ func file_booking_v1_messages_accept_booking_response_proto_rawDescGZIP() []byte
 var file_booking_v1_messages_accept_booking_response_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_booking_v1_messages_accept_booking_response_proto_goTypes = []any{
 	(*AcceptBookingResponse)(nil), // 0: booking.v1.AcceptBookingResponse
-	(BookingStatus)(0),            // 1: common.v1.BookingStatus
+	(BookingStatus)(0),            // 1: booking.v1.BookingStatus
 }
 var file_booking_v1_messages_accept_booking_response_proto_depIdxs = []int32{
-	1, // 0: booking.v1.AcceptBookingResponse.status:type_name -> common.v1.BookingStatus
+	1, // 0: booking.v1.AcceptBookingResponse.status:type_name -> booking.v1.BookingStatus
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
@@ -124,7 +124,7 @@ func file_booking_v1_messages_accept_booking_response_proto_init() {
 	if File_booking_v1_messages_accept_booking_response_proto != nil {
 		return
 	}
-	file_common_v1_enums_proto_init()
+	file_booking_v1_enums_booking_enums_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

@@ -21,128 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type BookingStatus int32
-
-const (
-	BookingStatus_BOOKING_STATUS_UNSPECIFIED       BookingStatus = 0
-	BookingStatus_BOOKING_STATUS_PENDING_RESERVING BookingStatus = 1
-	BookingStatus_BOOKING_STATUS_PENDING           BookingStatus = 2
-	BookingStatus_BOOKING_STATUS_ACCEPTED          BookingStatus = 3
-	BookingStatus_BOOKING_STATUS_COMPLETED         BookingStatus = 4
-	BookingStatus_BOOKING_STATUS_CANCELLED         BookingStatus = 5
-	BookingStatus_BOOKING_STATUS_DISPUTED          BookingStatus = 6
-	BookingStatus_BOOKING_STATUS_RESOLVED          BookingStatus = 7
-)
-
-// Enum value maps for BookingStatus.
-var (
-	BookingStatus_name = map[int32]string{
-		0: "BOOKING_STATUS_UNSPECIFIED",
-		1: "BOOKING_STATUS_PENDING_RESERVING",
-		2: "BOOKING_STATUS_PENDING",
-		3: "BOOKING_STATUS_ACCEPTED",
-		4: "BOOKING_STATUS_COMPLETED",
-		5: "BOOKING_STATUS_CANCELLED",
-		6: "BOOKING_STATUS_DISPUTED",
-		7: "BOOKING_STATUS_RESOLVED",
-	}
-	BookingStatus_value = map[string]int32{
-		"BOOKING_STATUS_UNSPECIFIED":       0,
-		"BOOKING_STATUS_PENDING_RESERVING": 1,
-		"BOOKING_STATUS_PENDING":           2,
-		"BOOKING_STATUS_ACCEPTED":          3,
-		"BOOKING_STATUS_COMPLETED":         4,
-		"BOOKING_STATUS_CANCELLED":         5,
-		"BOOKING_STATUS_DISPUTED":          6,
-		"BOOKING_STATUS_RESOLVED":          7,
-	}
-)
-
-func (x BookingStatus) Enum() *BookingStatus {
-	p := new(BookingStatus)
-	*p = x
-	return p
-}
-
-func (x BookingStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (BookingStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_common_v1_enums_proto_enumTypes[0].Descriptor()
-}
-
-func (BookingStatus) Type() protoreflect.EnumType {
-	return &file_common_v1_enums_proto_enumTypes[0]
-}
-
-func (x BookingStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use BookingStatus.Descriptor instead.
-func (BookingStatus) EnumDescriptor() ([]byte, []int) {
-	return file_common_v1_enums_proto_rawDescGZIP(), []int{0}
-}
-
-type CancellationReason int32
-
-const (
-	CancellationReason_CANCELLATION_REASON_UNSPECIFIED     CancellationReason = 0
-	CancellationReason_CANCELLATION_REASON_CLIENT_EARLY    CancellationReason = 1
-	CancellationReason_CANCELLATION_REASON_CLIENT_LATE     CancellationReason = 2
-	CancellationReason_CANCELLATION_REASON_COMPANION_EARLY CancellationReason = 3
-	CancellationReason_CANCELLATION_REASON_COMPANION_LATE  CancellationReason = 4
-	CancellationReason_CANCELLATION_REASON_SYSTEM_TIMEOUT  CancellationReason = 5
-)
-
-// Enum value maps for CancellationReason.
-var (
-	CancellationReason_name = map[int32]string{
-		0: "CANCELLATION_REASON_UNSPECIFIED",
-		1: "CANCELLATION_REASON_CLIENT_EARLY",
-		2: "CANCELLATION_REASON_CLIENT_LATE",
-		3: "CANCELLATION_REASON_COMPANION_EARLY",
-		4: "CANCELLATION_REASON_COMPANION_LATE",
-		5: "CANCELLATION_REASON_SYSTEM_TIMEOUT",
-	}
-	CancellationReason_value = map[string]int32{
-		"CANCELLATION_REASON_UNSPECIFIED":     0,
-		"CANCELLATION_REASON_CLIENT_EARLY":    1,
-		"CANCELLATION_REASON_CLIENT_LATE":     2,
-		"CANCELLATION_REASON_COMPANION_EARLY": 3,
-		"CANCELLATION_REASON_COMPANION_LATE":  4,
-		"CANCELLATION_REASON_SYSTEM_TIMEOUT":  5,
-	}
-)
-
-func (x CancellationReason) Enum() *CancellationReason {
-	p := new(CancellationReason)
-	*p = x
-	return p
-}
-
-func (x CancellationReason) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (CancellationReason) Descriptor() protoreflect.EnumDescriptor {
-	return file_common_v1_enums_proto_enumTypes[1].Descriptor()
-}
-
-func (CancellationReason) Type() protoreflect.EnumType {
-	return &file_common_v1_enums_proto_enumTypes[1]
-}
-
-func (x CancellationReason) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use CancellationReason.Descriptor instead.
-func (CancellationReason) EnumDescriptor() ([]byte, []int) {
-	return file_common_v1_enums_proto_rawDescGZIP(), []int{1}
-}
-
 type TransactionType int32
 
 const (
@@ -185,11 +63,11 @@ func (x TransactionType) String() string {
 }
 
 func (TransactionType) Descriptor() protoreflect.EnumDescriptor {
-	return file_common_v1_enums_proto_enumTypes[2].Descriptor()
+	return file_common_v1_enums_proto_enumTypes[0].Descriptor()
 }
 
 func (TransactionType) Type() protoreflect.EnumType {
-	return &file_common_v1_enums_proto_enumTypes[2]
+	return &file_common_v1_enums_proto_enumTypes[0]
 }
 
 func (x TransactionType) Number() protoreflect.EnumNumber {
@@ -198,30 +76,14 @@ func (x TransactionType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TransactionType.Descriptor instead.
 func (TransactionType) EnumDescriptor() ([]byte, []int) {
-	return file_common_v1_enums_proto_rawDescGZIP(), []int{2}
+	return file_common_v1_enums_proto_rawDescGZIP(), []int{0}
 }
 
 var File_common_v1_enums_proto protoreflect.FileDescriptor
 
 const file_common_v1_enums_proto_rawDesc = "" +
 	"\n" +
-	"\x15common/v1/enums.proto\x12\tcommon.v1*\x84\x02\n" +
-	"\rBookingStatus\x12\x1e\n" +
-	"\x1aBOOKING_STATUS_UNSPECIFIED\x10\x00\x12$\n" +
-	" BOOKING_STATUS_PENDING_RESERVING\x10\x01\x12\x1a\n" +
-	"\x16BOOKING_STATUS_PENDING\x10\x02\x12\x1b\n" +
-	"\x17BOOKING_STATUS_ACCEPTED\x10\x03\x12\x1c\n" +
-	"\x18BOOKING_STATUS_COMPLETED\x10\x04\x12\x1c\n" +
-	"\x18BOOKING_STATUS_CANCELLED\x10\x05\x12\x1b\n" +
-	"\x17BOOKING_STATUS_DISPUTED\x10\x06\x12\x1b\n" +
-	"\x17BOOKING_STATUS_RESOLVED\x10\a*\xfd\x01\n" +
-	"\x12CancellationReason\x12#\n" +
-	"\x1fCANCELLATION_REASON_UNSPECIFIED\x10\x00\x12$\n" +
-	" CANCELLATION_REASON_CLIENT_EARLY\x10\x01\x12#\n" +
-	"\x1fCANCELLATION_REASON_CLIENT_LATE\x10\x02\x12'\n" +
-	"#CANCELLATION_REASON_COMPANION_EARLY\x10\x03\x12&\n" +
-	"\"CANCELLATION_REASON_COMPANION_LATE\x10\x04\x12&\n" +
-	"\"CANCELLATION_REASON_SYSTEM_TIMEOUT\x10\x05*\xe3\x01\n" +
+	"\x15common/v1/enums.proto\x12\tcommon.v1*\xe3\x01\n" +
 	"\x0fTransactionType\x12 \n" +
 	"\x1cTRANSACTION_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16TRANSACTION_TYPE_TOPUP\x10\x01\x12(\n" +
@@ -242,11 +104,9 @@ func file_common_v1_enums_proto_rawDescGZIP() []byte {
 	return file_common_v1_enums_proto_rawDescData
 }
 
-var file_common_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_common_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_common_v1_enums_proto_goTypes = []any{
-	(BookingStatus)(0),      // 0: common.v1.BookingStatus
-	(CancellationReason)(0), // 1: common.v1.CancellationReason
-	(TransactionType)(0),    // 2: common.v1.TransactionType
+	(TransactionType)(0), // 0: common.v1.TransactionType
 }
 var file_common_v1_enums_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -266,7 +126,7 @@ func file_common_v1_enums_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_v1_enums_proto_rawDesc), len(file_common_v1_enums_proto_rawDesc)),
-			NumEnums:      3,
+			NumEnums:      1,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

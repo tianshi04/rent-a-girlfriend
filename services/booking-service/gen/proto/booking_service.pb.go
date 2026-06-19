@@ -27,7 +27,7 @@ var File_booking_v1_service_booking_service_proto protoreflect.FileDescriptor
 const file_booking_v1_service_booking_service_proto_rawDesc = "" +
 	"\n" +
 	"(booking/v1/service/booking_service.proto\x12\n" +
-	"booking.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x15common/v1/enums.proto\x1a1booking/v1/messages/request_booking_request.proto\x1a2booking/v1/messages/request_booking_response.proto\x1a0booking/v1/messages/accept_booking_request.proto\x1a1booking/v1/messages/accept_booking_response.proto\x1a0booking/v1/messages/cancel_booking_request.proto\x1a1booking/v1/messages/cancel_booking_response.proto\x1a2booking/v1/messages/complete_booking_request.proto\x1a3booking/v1/messages/complete_booking_response.proto\x1a0booking/v1/messages/reject_booking_request.proto\x1a1booking/v1/messages/reject_booking_response.proto\x1a/booking/v1/messages/list_bookings_request.proto\x1a0booking/v1/messages/list_bookings_response.proto\x1a-booking/v1/messages/get_booking_request.proto\x1a1booking/v1/messages/booking_detail_response.proto2\x92\a\n" +
+	"booking.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/api/annotations.proto\x1a$booking/v1/enums/booking_enums.proto\x1a1booking/v1/messages/request_booking_request.proto\x1a2booking/v1/messages/request_booking_response.proto\x1a0booking/v1/messages/accept_booking_request.proto\x1a1booking/v1/messages/accept_booking_response.proto\x1a0booking/v1/messages/cancel_booking_request.proto\x1a1booking/v1/messages/cancel_booking_response.proto\x1a2booking/v1/messages/complete_booking_request.proto\x1a3booking/v1/messages/complete_booking_response.proto\x1a0booking/v1/messages/reject_booking_request.proto\x1a1booking/v1/messages/reject_booking_response.proto\x1a/booking/v1/messages/list_bookings_request.proto\x1a0booking/v1/messages/list_bookings_response.proto\x1a-booking/v1/messages/get_booking_request.proto\x1a1booking/v1/messages/booking_detail_response.proto2\x92\a\n" +
 	"\x0eBookingService\x12t\n" +
 	"\x0eRequestBooking\x12!.booking.v1.RequestBookingRequest\x1a\".booking.v1.RequestBookingResponse\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/api/v1/bookings\x12\x85\x01\n" +
 	"\rAcceptBooking\x12 .booking.v1.AcceptBookingRequest\x1a!.booking.v1.AcceptBookingResponse\"/\x82\xd3\xe4\x93\x02):\x01*\x1a$/api/v1/bookings/{booking_id}/accept\x12\x85\x01\n" +
@@ -81,7 +81,7 @@ func file_booking_v1_service_booking_service_proto_init() {
 	if File_booking_v1_service_booking_service_proto != nil {
 		return
 	}
-	file_common_v1_enums_proto_init()
+	file_booking_v1_enums_booking_enums_proto_init()
 	file_booking_v1_messages_request_booking_request_proto_init()
 	file_booking_v1_messages_request_booking_response_proto_init()
 	file_booking_v1_messages_accept_booking_request_proto_init()

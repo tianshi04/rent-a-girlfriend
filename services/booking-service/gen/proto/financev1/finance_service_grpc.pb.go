@@ -24,6 +24,7 @@ const (
 	FinanceService_ProcessPayout_FullMethodName    = "/finance.v1.FinanceService/ProcessPayout"
 	FinanceService_RefundEscrow_FullMethodName     = "/finance.v1.FinanceService/RefundEscrow"
 	FinanceService_GetWallet_FullMethodName        = "/finance.v1.FinanceService/GetWallet"
+	FinanceService_CheckBalance_FullMethodName     = "/finance.v1.FinanceService/CheckBalance"
 )
 
 // FinanceServiceClient is the client API for FinanceService service.
@@ -35,6 +36,7 @@ type FinanceServiceClient interface {
 	ProcessPayout(ctx context.Context, in *ProcessPayoutRequest, opts ...grpc.CallOption) (*FinanceCommandResponse, error)
 	RefundEscrow(ctx context.Context, in *RefundEscrowRequest, opts ...grpc.CallOption) (*FinanceCommandResponse, error)
 	GetWallet(ctx context.Context, in *GetWalletRequest, opts ...grpc.CallOption) (*GetWalletResponse, error)
+	CheckBalance(ctx context.Context, in *CheckBalanceRequest, opts ...grpc.CallOption) (*CheckBalanceResponse, error)
 }
 
 type financeServiceClient struct {
@@ -95,6 +97,16 @@ func (c *financeServiceClient) GetWallet(ctx context.Context, in *GetWalletReque
 	return out, nil
 }
 
+func (c *financeServiceClient) CheckBalance(ctx context.Context, in *CheckBalanceRequest, opts ...grpc.CallOption) (*CheckBalanceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckBalanceResponse)
+	err := c.cc.Invoke(ctx, FinanceService_CheckBalance_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FinanceServiceServer is the server API for FinanceService service.
 // All implementations must embed UnimplementedFinanceServiceServer
 // for forward compatibility.
@@ -104,6 +116,7 @@ type FinanceServiceServer interface {
 	ProcessPayout(context.Context, *ProcessPayoutRequest) (*FinanceCommandResponse, error)
 	RefundEscrow(context.Context, *RefundEscrowRequest) (*FinanceCommandResponse, error)
 	GetWallet(context.Context, *GetWalletRequest) (*GetWalletResponse, error)
+	CheckBalance(context.Context, *CheckBalanceRequest) (*CheckBalanceResponse, error)
 	mustEmbedUnimplementedFinanceServiceServer()
 }
 
@@ -128,6 +141,9 @@ func (UnimplementedFinanceServiceServer) RefundEscrow(context.Context, *RefundEs
 }
 func (UnimplementedFinanceServiceServer) GetWallet(context.Context, *GetWalletRequest) (*GetWalletResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetWallet not implemented")
+}
+func (UnimplementedFinanceServiceServer) CheckBalance(context.Context, *CheckBalanceRequest) (*CheckBalanceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CheckBalance not implemented")
 }
 func (UnimplementedFinanceServiceServer) mustEmbedUnimplementedFinanceServiceServer() {}
 func (UnimplementedFinanceServiceServer) testEmbeddedByValue()                        {}
@@ -240,6 +256,24 @@ func _FinanceService_GetWallet_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FinanceService_CheckBalance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckBalanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FinanceServiceServer).CheckBalance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FinanceService_CheckBalance_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FinanceServiceServer).CheckBalance(ctx, req.(*CheckBalanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FinanceService_ServiceDesc is the grpc.ServiceDesc for FinanceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +300,10 @@ var FinanceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetWallet",
 			Handler:    _FinanceService_GetWallet_Handler,
+		},
+		{
+			MethodName: "CheckBalance",
+			Handler:    _FinanceService_CheckBalance_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
