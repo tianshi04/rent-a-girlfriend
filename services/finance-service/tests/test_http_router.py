@@ -136,19 +136,19 @@ async def test_topup_returns_payment_url(client):
     """POST /topup with valid payload returns 201 and a payment URL."""
     response = await client.post(
         "/api/v1/finance/topup",
-        json={"user_id": "user-http-1", "amount": 50},
+        json={"userId": "user-http-1", "amount": 50},
     )
     assert response.status_code == 201
     body = response.json()
-    assert "payment_url" in body
-    assert "vnp_TxnRef" in body["payment_url"]
+    assert "paymentUrl" in body
+    assert "vnp_TxnRef" in body["paymentUrl"]
 
 
 async def test_topup_zero_amount_rejected(client):
     """POST /topup with amount=0 is rejected by Pydantic (gt=0 constraint)."""
     response = await client.post(
         "/api/v1/finance/topup",
-        json={"user_id": "user-http-2", "amount": 0},
+        json={"userId": "user-http-2", "amount": 0},
     )
     assert response.status_code == 422  # Unprocessable Entity
 
@@ -157,7 +157,7 @@ async def test_topup_negative_amount_rejected(client):
     """POST /topup with negative amount is rejected by Pydantic."""
     response = await client.post(
         "/api/v1/finance/topup",
-        json={"user_id": "user-http-3", "amount": -5},
+        json={"userId": "user-http-3", "amount": -5},
     )
     assert response.status_code == 422
 
@@ -315,14 +315,14 @@ async def test_vnpay_return_invalid_sig_renders_failed_html(client):
 async def test_get_wallet_lazy_creates_wallet(client):
     """GET /wallet for a new user auto-creates a wallet and returns balance = 0."""
     response = await client.get(
-        "/api/v1/finance/wallet", params={"user_id": "user-http-wallet-1"}
+        "/api/v1/finance/wallet", params={"userId": "user-http-wallet-1"}
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["user_id"] == "user-http-wallet-1"
-    assert body["available_balance"] == 0
-    assert body["frozen_balance"] == 0
-    assert "wallet_id" in body
+    assert body["userId"] == "user-http-wallet-1"
+    assert body["availableBalance"] == 0
+    assert body["frozenBalance"] == 0
+    assert "walletId" in body
 
 
 async def test_get_wallet_returns_existing_wallet(
@@ -345,11 +345,11 @@ async def test_get_wallet_returns_existing_wallet(
         await svc.wallet_repo.save(wallet)
         await db.commit()
 
-    response = await client.get("/api/v1/finance/wallet", params={"user_id": user_id})
+    response = await client.get("/api/v1/finance/wallet", params={"userId": user_id})
     assert response.status_code == 200
     body = response.json()
-    assert body["available_balance"] == 75
-    assert body["user_id"] == user_id
+    assert body["availableBalance"] == 75
+    assert body["userId"] == user_id
 
 
 async def test_get_wallet_missing_user_id_rejected(client):
