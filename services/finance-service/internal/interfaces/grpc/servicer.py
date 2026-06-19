@@ -8,7 +8,7 @@ from finance.v1.messages import (
     get_wallet_response_pb2,
     check_balance_response_pb2,
 )
-from common.v1 import enums_pb2
+from finance.v1.enums import finance_enums_pb2 as enums_pb2
 from internal.domain.vo import TransactionType
 
 from internal.bootstrap import bootstrap_services

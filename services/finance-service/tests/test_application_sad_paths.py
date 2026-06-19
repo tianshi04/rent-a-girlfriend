@@ -512,7 +512,7 @@ async def test_grpc_refund_escrow_empty_client_resolves_fallback_and_publishes_r
 
 
 async def test_grpc_freeze_coin_unspecified_type_rejected(test_session_factory):
-    from common.v1 import enums_pb2
+    from finance.v1.enums import finance_enums_pb2 as enums_pb2
     servicer = FinanceServiceServicer(test_session_factory)
     context = MockGRPCContext()
     request = MockRequest(
@@ -541,7 +541,7 @@ async def test_grpc_freeze_coin_invalid_type_rejected(test_session_factory):
 
 
 async def test_grpc_freeze_coin_valid_type_accepted(test_session_factory, monkeypatch):
-    from common.v1 import enums_pb2
+    from finance.v1.enums import finance_enums_pb2 as enums_pb2
     servicer = FinanceServiceServicer(test_session_factory)
     context = MockGRPCContext()
     request = MockRequest(
