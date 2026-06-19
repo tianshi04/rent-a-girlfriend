@@ -181,6 +181,73 @@ async def run_booking_event_listener():
                         logger.warning(
                             f"Missing required fields (bookingId, clientId, price) in event: {msg.value}"
                         )
+
+                elif event_type == "finance.transfer-to-escrow.v1":
+                    event_data = msg.value.get("data", {})
+                    booking_id = event_data.get("bookingId") or event_data.get("booking_id")
+                    user_id = (
+                        event_data.get("userId")
+                        or event_data.get("user_id")
+                        or event_data.get("clientId")
+                        or event_data.get("client_id")
+                    )
+                    amount = event_data.get("amount")
+
+                    if booking_id and user_id and amount is not None:
+                        logger.info(
+                            f"Processing transfer to escrow: booking_id={booking_id}, user_id={user_id}, amount={amount}"
+                        )
+                        async with SessionLocal() as session:
+                            cmd_service = bootstrap_services(session)
+                            try:
+                                await cmd_service.transfer_to_escrow(
+                                    user_id=user_id,
+                                    amount=int(amount),
+                                    booking_id=booking_id,
+                                )
+                                await session.commit()
+                                logger.info(
+                                    f"Transfer to escrow processed successfully for booking_id={booking_id}"
+                                )
+                            except Exception as escrow_err:
+                                logger.warning(
+                                    f"Handled error while transferring to escrow for booking_id={booking_id}: {escrow_err}"
+                                )
+                    else:
+                        logger.warning(
+                            f"Missing required fields (bookingId, userId, amount) in transfer-to-escrow event: {msg.value}"
+                        )
+
+                elif event_type == "finance.refund-escrow.v1":
+                    event_data = msg.value.get("data", {})
+                    booking_id = event_data.get("bookingId") or event_data.get("booking_id")
+                    client_id = event_data.get("clientId") or event_data.get("client_id")
+                    refund_amount = event_data.get("refundAmount") or event_data.get("refund_amount")
+
+                    if booking_id and client_id and refund_amount is not None:
+                        logger.info(
+                            f"Processing refund escrow: booking_id={booking_id}, client_id={client_id}, refund_amount={refund_amount}"
+                        )
+                        async with SessionLocal() as session:
+                            cmd_service = bootstrap_services(session)
+                            try:
+                                await cmd_service.refund_escrow(
+                                    booking_id=booking_id,
+                                    client_id=client_id,
+                                    refund_amount=int(refund_amount),
+                                )
+                                await session.commit()
+                                logger.info(
+                                    f"Refund escrow processed successfully for booking_id={booking_id}"
+                                )
+                            except Exception as refund_err:
+                                logger.warning(
+                                    f"Handled error while refunding escrow for booking_id={booking_id}: {refund_err}"
+                                )
+                    else:
+                        logger.warning(
+                            f"Missing required fields (bookingId, clientId, refundAmount) in refund-escrow event: {msg.value}"
+                        )
             except Exception as e:
                 logger.error(f"Error processing booking event: {e}", exc_info=True)
     except asyncio.CancelledError:
