@@ -160,8 +160,15 @@ app = FastAPI(
 
 # router will be imported later in controllers.py to avoid circular dependencies
 from internal.interfaces.http.router import router  # noqa: E402
+from internal.interfaces.http.errors import domain_error_handler, http_exception_handler, validation_exception_handler  # noqa: E402
+from internal.domain.errors import DomainError  # noqa: E402
+from fastapi.exceptions import RequestValidationError  # noqa: E402
+from starlette.exceptions import HTTPException as StarletteHTTPException  # noqa: E402
 
 app.include_router(router)
+app.add_exception_handler(DomainError, domain_error_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 
 @app.get("/health", tags=["System"])
