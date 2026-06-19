@@ -77,6 +77,17 @@
 ### JSON Casing
 - All JSON fields (CloudEvents `data` payloads, REST APIs) must use **camelCase** per Google Protobuf JSON Mapping specification. Custom extension attributes at the envelope root level must remain all-lowercase.
 
+### REST API Response & Error Standards
+- **Success Responses (Naked JSON)**: External REST APIs must return successful payloads directly at the root level (No Envelope wrapper).
+- **Error Responses (Google RPC Status)**: External REST APIs must return error payloads directly at the root level using the standard Google RPC Status structure:
+  ```json
+  {
+    "code": <gRPC_error_code_int>,
+    "message": "<error_message_string>",
+    "details": [<array_of_objects>]
+  }
+  ```
+
 ### Service Mesh & Auth
 - **Istio Ambient Mode** (Sidecar-less): L4 mTLS via ztunnel, L7 JWT/Routing via Waypoint.
 - **Auth Offloading**: NEVER implement JWT verification in microservice code. Verification is offloaded to Istio Waypoint.

@@ -14,6 +14,50 @@ Sử dụng **RESTful API** hoặc **gRPC**. Phương pháp này áp dụng cho:
 
 *Lưu ý:* Hạn chế lạm dụng Sync Command cho các bước sau của quy trình (như Payout/Refund) - những bước này nên sử dụng SAGA/Async để tăng khả năng chịu lỗi.
 
+### 1.1. QUY CHUẨN PHẢN HỒI REST API (RESPONSE & ERROR STANDARDS)
+
+Để đồng nhất trải nghiệm cho phía Client (Frontend), tất cả các Microservices sử dụng giao thức REST HTTP (bao gồm cả các service Go dịch qua gRPC-Gateway và Python/FastAPI) tuân thủ các quy tắc cấu trúc payload sau:
+
+#### A. Định dạng Phản hồi Thành công (Success Response - Naked JSON)
+*   **Không đóng gói vỏ bọc (No Success Envelope):** Dữ liệu tài nguyên (Resource/DTO) được trả về trực tiếp ở Root Level của JSON payload.
+*   **Quy chuẩn Casing:** Tất cả các trường dữ liệu JSON bắt buộc phải sử dụng định dạng **`camelCase`** (ví dụ: `bookingId`, `availableBalance`, `presignedUrls`).
+*   **Ví dụ:**
+    ```json
+    {
+      "bookingId": "bk_cinema_888",
+      "status": "ACCEPTED"
+    }
+    ```
+
+#### B. Định dạng Phản hồi Thất bại (Error Response - gRPC-Gateway Default Model)
+Khi xảy ra lỗi (ví dụ: lỗi validate hoặc nghiệp vụ), hệ thống trả về mã trạng thái HTTP thích hợp (4xx/5xx) kèm theo thân phản hồi chứa cấu trúc lỗi mặc định của gRPC-Gateway trực tiếp ở Root Level:
+*   **Ví dụ:**
+    ```json
+    {
+      "code": 3,
+      "message": "Thời gian bắt đầu cuộc hẹn phải lớn hơn thời gian hiện tại ít nhất 2 giờ.",
+      "details": [
+        {
+          "field": "startTime",
+          "description": "Thời gian không hợp lệ [INV-B01]"
+        }
+      ]
+    }
+    ```
+*   **Giải thích các trường:**
+    *   `code`: Mã trạng thái lỗi nội bộ của gRPC (kiểu số nguyên từ `0` - `16`, ví dụ: `3` đại diện cho `INVALID_ARGUMENT`).
+    *   `message`: Chuỗi thông báo lỗi ngắn gọn mô tả nguyên nhân lỗi.
+    *   `details`: Mảng chứa thông tin chi tiết lỗi (thường đặc tả lỗi dữ liệu của từng trường hoặc quy tắc ràng buộc bị vi phạm).
+
+#### C. Bảng Ánh xạ Mã lỗi gRPC sang HTTP Status Code
+Khi đi qua cổng gRPC-Gateway, các mã lỗi gRPC dạng số sẽ được tự động dịch sang HTTP Status Header tương ứng:
+*   `3 (INVALID_ARGUMENT)` &rarr; `400 Bad Request`
+*   `5 (NOT_FOUND)` &rarr; `404 Not Found`
+*   `6 (ALREADY_EXISTS)` &rarr; `409 Conflict`
+*   `7 (PERMISSION_DENIED)` &rarr; `403 Forbidden`
+*   `16 (UNAUTHENTICATED)` &rarr; `401 Unauthorized`
+*   `13 (INTERNAL)` &rarr; `500 Internal Server Error`
+
 ## 2. GIAO TIẾP BẤT ĐỒNG BỘ (ASYNCHRONOUS EVENT BUS)
 
 Sử dụng **Message Broker (RabbitMQ / Kafka)** làm nền tảng truyền tải **Domain Events**. Đây là phương thức giao tiếp chủ đạo của hệ thống.
