@@ -206,4 +206,6 @@ from starlette.exceptions import HTTPException as StarletteHTTPException  # noqa
 
 app.add_exception_handler(DomainError, http_errors.domain_error_handler)
 app.add_exception_handler(StarletteHTTPException, http_errors.http_exception_handler)
-app.add_exception_handler(RequestValidationError, http_errors.validation_exception_handler)
+app.add_exception_handler(
+    RequestValidationError, http_errors.validation_exception_handler
+)
