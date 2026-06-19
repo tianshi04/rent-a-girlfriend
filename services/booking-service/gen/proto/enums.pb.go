@@ -20,93 +20,13 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type TransactionType int32
-
-const (
-	TransactionType_TRANSACTION_TYPE_UNSPECIFIED         TransactionType = 0
-	TransactionType_TRANSACTION_TYPE_TOPUP               TransactionType = 1
-	TransactionType_TRANSACTION_TYPE_BOOKING_RESERVATION TransactionType = 2
-	TransactionType_TRANSACTION_TYPE_ESCROW_RELEASE      TransactionType = 3
-	TransactionType_TRANSACTION_TYPE_PENALTY_DEDUCTION   TransactionType = 4
-	TransactionType_TRANSACTION_TYPE_REFUND              TransactionType = 5
-)
-
-// Enum value maps for TransactionType.
-var (
-	TransactionType_name = map[int32]string{
-		0: "TRANSACTION_TYPE_UNSPECIFIED",
-		1: "TRANSACTION_TYPE_TOPUP",
-		2: "TRANSACTION_TYPE_BOOKING_RESERVATION",
-		3: "TRANSACTION_TYPE_ESCROW_RELEASE",
-		4: "TRANSACTION_TYPE_PENALTY_DEDUCTION",
-		5: "TRANSACTION_TYPE_REFUND",
-	}
-	TransactionType_value = map[string]int32{
-		"TRANSACTION_TYPE_UNSPECIFIED":         0,
-		"TRANSACTION_TYPE_TOPUP":               1,
-		"TRANSACTION_TYPE_BOOKING_RESERVATION": 2,
-		"TRANSACTION_TYPE_ESCROW_RELEASE":      3,
-		"TRANSACTION_TYPE_PENALTY_DEDUCTION":   4,
-		"TRANSACTION_TYPE_REFUND":              5,
-	}
-)
-
-func (x TransactionType) Enum() *TransactionType {
-	p := new(TransactionType)
-	*p = x
-	return p
-}
-
-func (x TransactionType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (TransactionType) Descriptor() protoreflect.EnumDescriptor {
-	return file_common_v1_enums_proto_enumTypes[0].Descriptor()
-}
-
-func (TransactionType) Type() protoreflect.EnumType {
-	return &file_common_v1_enums_proto_enumTypes[0]
-}
-
-func (x TransactionType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use TransactionType.Descriptor instead.
-func (TransactionType) EnumDescriptor() ([]byte, []int) {
-	return file_common_v1_enums_proto_rawDescGZIP(), []int{0}
-}
-
 var File_common_v1_enums_proto protoreflect.FileDescriptor
 
 const file_common_v1_enums_proto_rawDesc = "" +
 	"\n" +
-	"\x15common/v1/enums.proto\x12\tcommon.v1*\xe3\x01\n" +
-	"\x0fTransactionType\x12 \n" +
-	"\x1cTRANSACTION_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
-	"\x16TRANSACTION_TYPE_TOPUP\x10\x01\x12(\n" +
-	"$TRANSACTION_TYPE_BOOKING_RESERVATION\x10\x02\x12#\n" +
-	"\x1fTRANSACTION_TYPE_ESCROW_RELEASE\x10\x03\x12&\n" +
-	"\"TRANSACTION_TYPE_PENALTY_DEDUCTION\x10\x04\x12\x1b\n" +
-	"\x17TRANSACTION_TYPE_REFUND\x10\x05B>Z<github.com/rent-a-girlfriend/contracts/proto/common;commonv1b\x06proto3"
+	"\x15common/v1/enums.proto\x12\tcommon.v1B>Z<github.com/rent-a-girlfriend/contracts/proto/common;commonv1b\x06proto3"
 
-var (
-	file_common_v1_enums_proto_rawDescOnce sync.Once
-	file_common_v1_enums_proto_rawDescData []byte
-)
-
-func file_common_v1_enums_proto_rawDescGZIP() []byte {
-	file_common_v1_enums_proto_rawDescOnce.Do(func() {
-		file_common_v1_enums_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_common_v1_enums_proto_rawDesc), len(file_common_v1_enums_proto_rawDesc)))
-	})
-	return file_common_v1_enums_proto_rawDescData
-}
-
-var file_common_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_common_v1_enums_proto_goTypes = []any{
-	(TransactionType)(0), // 0: common.v1.TransactionType
-}
+var file_common_v1_enums_proto_goTypes = []any{}
 var file_common_v1_enums_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type
@@ -125,7 +45,7 @@ func file_common_v1_enums_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_v1_enums_proto_rawDesc), len(file_common_v1_enums_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      0,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,
