@@ -102,7 +102,10 @@ async def test_presigned_url_invalid_voice_duration(client):
         "/profile/me/media/presigned-urls", json=payload, headers=headers
     )
     assert response.status_code == 422
-    assert "durationSeconds must not exceed 30 seconds" in response.json()["details"][0]["issue"]
+    assert (
+        "durationSeconds must not exceed 30 seconds"
+        in response.json()["details"][0]["issue"]
+    )
 
 
 async def test_search_companions_camel_case(client, integration_deps, db_session):
