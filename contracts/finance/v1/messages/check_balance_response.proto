@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package finance.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/finance;financev1";
+
+message CheckBalanceResponse {
+  bool has_sufficient_balance = 1;
+}

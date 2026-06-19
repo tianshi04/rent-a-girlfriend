@@ -11,6 +11,8 @@ import "finance/v1/messages/refund_escrow_request.proto";
 import "finance/v1/messages/get_wallet_request.proto";
 import "finance/v1/messages/finance_command_response.proto";
 import "finance/v1/messages/get_wallet_response.proto";
+import "finance/v1/messages/check_balance_request.proto";
+import "finance/v1/messages/check_balance_response.proto";
 
 service FinanceService {
   rpc FreezeCoin(FreezeCoinRequest) returns (FinanceCommandResponse);
@@ -18,4 +20,5 @@ service FinanceService {
   rpc ProcessPayout(ProcessPayoutRequest) returns (FinanceCommandResponse);
   rpc RefundEscrow(RefundEscrowRequest) returns (FinanceCommandResponse);
   rpc GetWallet(GetWalletRequest) returns (GetWalletResponse);
+  rpc CheckBalance(CheckBalanceRequest) returns (CheckBalanceResponse);
 }

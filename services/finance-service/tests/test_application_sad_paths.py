@@ -15,6 +15,7 @@ from internal.interfaces.grpc.servicer import FinanceServiceServicer
 from internal.infrastructure.persistence.models import (
     OutboxModel,
     TransactionModel,
+    WalletModel,
     Base,
 )
 from internal.domain.errors import (
@@ -508,3 +509,43 @@ async def test_grpc_refund_escrow_empty_client_resolves_fallback_and_publishes_r
         assert payload["bookingId"] == "b-sad-grpc-3"
         assert payload["clientId"] == "u-resolved-client"  # Resolved!
         assert "Escrow not found" in payload["reason"]
+
+
+async def test_check_balance_negative_amount(finance_service):
+    """check_balance raises InvalidAmountError when amount < 0."""
+    with pytest.raises(InvalidAmountError):
+        await finance_service.check_balance("user-cb-2", -50)
+
+
+async def test_grpc_check_balance_happy_and_sad_path(test_session_factory):
+    servicer = FinanceServiceServicer(test_session_factory)
+
+    # 1. Test happy path - sufficient balance (we'll top up a user's wallet first)
+    async with test_session_factory() as session:
+        # Create wallet with 200 coins
+        model = WalletModel(
+            wallet_id="w-grpc-cb-1",
+            user_id="u-grpc-cb-1",
+            available_balance=200,
+            frozen_balance=0,
+        )
+        session.add(model)
+        await session.commit()
+
+    context = MockGRPCContext()
+    request = MockRequest(user_id="u-grpc-cb-1", amount=150)
+    response = await servicer.CheckBalance(request, context)
+    assert response.has_sufficient_balance is True
+    assert context.code is None
+
+    # Test insufficient balance
+    request = MockRequest(user_id="u-grpc-cb-1", amount=250)
+    response = await servicer.CheckBalance(request, context)
+    assert response.has_sufficient_balance is False
+
+    # 2. Test sad path - negative amount
+    context = MockGRPCContext()
+    request = MockRequest(user_id="u-grpc-cb-1", amount=-50)
+    response = await servicer.CheckBalance(request, context)
+    assert context.code == grpc.StatusCode.FAILED_PRECONDITION
+    assert "must be greater than zero" in context.details

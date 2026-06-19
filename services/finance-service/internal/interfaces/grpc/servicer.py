@@ -3,7 +3,11 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from finance.v1.service import finance_service_pb2_grpc
-from finance.v1.messages import finance_command_response_pb2, get_wallet_response_pb2
+from finance.v1.messages import (
+    finance_command_response_pb2,
+    get_wallet_response_pb2,
+    check_balance_response_pb2,
+)
 
 from internal.bootstrap import bootstrap_services
 from internal.domain.errors import (
@@ -192,3 +196,29 @@ class FinanceServiceServicer(finance_service_pb2_grpc.FinanceServiceServicer):
                 context.set_code(grpc.StatusCode.INTERNAL)
                 context.set_details("Internal server error occurred.")
                 return get_wallet_response_pb2.GetWalletResponse()
+
+    async def CheckBalance(self, request, context):
+        logger.info(
+            f"gRPC CheckBalance: user_id={request.user_id}, amount={request.amount}"
+        )
+        async with self.session_factory() as session:
+            try:
+                cmd_service = bootstrap_services(session)
+                has_sufficient = await cmd_service.check_balance(
+                    user_id=request.user_id,
+                    amount=request.amount,
+                )
+                await session.commit()
+                return check_balance_response_pb2.CheckBalanceResponse(
+                    has_sufficient_balance=has_sufficient
+                )
+            except Exception as e:
+                await session.rollback()
+                if isinstance(e, InvalidAmountError):
+                    context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
+                    context.set_details(str(e))
+                else:
+                    logger.error(f"Error checking balance: {e}", exc_info=True)
+                    context.set_code(grpc.StatusCode.INTERNAL)
+                    context.set_details("Internal server error occurred.")
+                return check_balance_response_pb2.CheckBalanceResponse()

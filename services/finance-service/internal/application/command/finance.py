@@ -10,6 +10,7 @@ from internal.domain.errors import (
     WalletNotFoundError,
     EscrowAlreadyExistsError,
     EscrowNotFoundError,
+    InvalidAmountError,
 )
 from internal.domain.repository import (
     IWalletRepository,
@@ -396,3 +397,12 @@ class FinanceCommandService:
             await self.transaction_repo.save(txn)
 
         return {"RspCode": "00", "Message": "Confirm success"}
+
+    async def check_balance(self, user_id: str, amount: int) -> bool:
+        """
+        Checks if the user's available balance is greater than or equal to the requested amount.
+        """
+        if amount < 0:
+            raise InvalidAmountError(amount)
+        wallet = await self.get_or_create_wallet(user_id, lock=False)
+        return wallet.available_balance.amount >= amount
