@@ -196,7 +196,11 @@ app = FastAPI(
 )
 
 from internal.interfaces.http.router import router as http_router  # noqa: E402
-from internal.interfaces.http.errors import domain_error_handler, http_exception_handler, validation_exception_handler  # noqa: E402
+from internal.interfaces.http.errors import (
+    domain_error_handler,
+    http_exception_handler,
+    validation_exception_handler,
+)  # noqa: E402
 from internal.domain.errors import DomainError  # noqa: E402
 from fastapi.exceptions import RequestValidationError  # noqa: E402
 from starlette.exceptions import HTTPException as StarletteHTTPException  # noqa: E402
