@@ -24,7 +24,7 @@ async def test_get_disputes_unauthorized(client):
     # Missing auth headers
     response = await client.get("/disputes")
     assert response.status_code == 401
-    assert "User authentication missing" in response.json()["detail"]
+    assert "User authentication missing" in response.json()["message"]
 
 
 async def test_get_disputes_forbidden(client):
@@ -32,7 +32,7 @@ async def test_get_disputes_forbidden(client):
     headers = {"user-id": "client-1", "user-role": "CLIENT"}
     response = await client.get("/disputes", headers=headers)
     assert response.status_code == 403
-    assert "Admin permission required" in response.json()["detail"]
+    assert "Admin permission required" in response.json()["message"]
 
 
 async def test_list_disputes_success(client, db_session, integration_deps):
