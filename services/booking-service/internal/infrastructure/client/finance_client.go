@@ -7,7 +7,6 @@ import (
 
 	"google.golang.org/grpc"
 
-	bookingv1 "github.com/rent-a-girlfriend/booking-service/gen/proto"
 	financev1 "github.com/rent-a-girlfriend/booking-service/gen/proto/financev1"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
 )
@@ -29,7 +28,7 @@ func (c *FinanceClient) FreezeCoin(ctx context.Context, clientID vo.ClientID, am
 	req := &financev1.FreezeCoinRequest{
 		UserId: clientID.String(),
 		Amount: amount.Amount(),
-		Type:   bookingv1.TransactionType_TRANSACTION_TYPE_BOOKING_RESERVATION,
+		Type:   financev1.TransactionType_TRANSACTION_TYPE_BOOKING_RESERVATION,
 	}
 
 	resp, err := c.grpcClient.FreezeCoin(propagateMetadata(ctx), req)
@@ -50,7 +49,7 @@ func (c *FinanceClient) UnfreezeCoin(ctx context.Context, clientID vo.ClientID, 
 	req := &financev1.FreezeCoinRequest{
 		UserId: clientID.String(),
 		Amount: -amount.Amount(), // negative amount to represent unfreezing
-		Type:   bookingv1.TransactionType_TRANSACTION_TYPE_REFUND,
+		Type:   financev1.TransactionType_TRANSACTION_TYPE_REFUND,
 	}
 
 	resp, err := c.grpcClient.FreezeCoin(propagateMetadata(ctx), req)

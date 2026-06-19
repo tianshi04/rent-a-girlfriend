@@ -102,7 +102,7 @@ var File_booking_v1_messages_list_bookings_request_proto protoreflect.FileDescri
 const file_booking_v1_messages_list_bookings_request_proto_rawDesc = "" +
 	"\n" +
 	"/booking/v1/messages/list_bookings_request.proto\x12\n" +
-	"booking.v1\x1a\x15common/v1/enums.proto\"\x9f\x01\n" +
+	"booking.v1\"\x9f\x01\n" +
 	"\x13ListBookingsRequest\x12\x19\n" +
 	"\bactor_id\x18\x01 \x01(\tR\aactorId\x12\x1d\n" +
 	"\n" +
@@ -141,7 +141,6 @@ func file_booking_v1_messages_list_bookings_request_proto_init() {
 	if File_booking_v1_messages_list_bookings_request_proto != nil {
 		return
 	}
-	file_common_v1_enums_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
