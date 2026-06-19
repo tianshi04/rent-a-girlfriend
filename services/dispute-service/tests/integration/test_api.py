@@ -90,8 +90,8 @@ async def test_get_dispute_detail(client, db_session, integration_deps):
     response = await client.get(f"/disputes/{dispute_id}", headers=headers)
     assert response.status_code == 200
     data = response.json()
-    assert data["dispute_id"] == dispute_id
-    assert data["booking_id"] == booking_id
+    assert data["disputeId"] == dispute_id
+    assert data["bookingId"] == booking_id
     assert data["reason"] == "NO_SHOW"
     assert len(data["evidences"]) == 1
     assert data["evidences"][0]["content"] == "Proof detail"
@@ -126,7 +126,7 @@ async def test_get_saga_state(client, db_session, integration_deps):
     assert response.status_code == 200
     saga_data = response.json()
     assert saga_data is not None
-    assert saga_data["dispute_id"] == dispute_id
-    assert saga_data["booking_id"] == booking_id
-    assert saga_data["saga_type"] == "REFUND"
-    assert saga_data["current_state"] == "DISPUTE_RESOLVED_REFUNDED"
+    assert saga_data["disputeId"] == dispute_id
+    assert saga_data["bookingId"] == booking_id
+    assert saga_data["sagaType"] == "REFUND"
+    assert saga_data["currentState"] == "DISPUTE_RESOLVED_REFUNDED"
