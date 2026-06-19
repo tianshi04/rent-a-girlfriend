@@ -167,3 +167,15 @@ app.include_router(router)
 @app.get("/health", tags=["System"])
 async def health_check():
     return {"status": "ok", "service": "finance-service"}
+
+
+import internal.interfaces.http.errors as http_errors  # noqa: E402
+from internal.domain.errors import DomainError  # noqa: E402
+from fastapi.exceptions import RequestValidationError  # noqa: E402
+from starlette.exceptions import HTTPException as StarletteHTTPException  # noqa: E402
+
+app.add_exception_handler(DomainError, http_errors.domain_error_handler)
+app.add_exception_handler(StarletteHTTPException, http_errors.http_exception_handler)
+app.add_exception_handler(
+    RequestValidationError, http_errors.validation_exception_handler
+)
