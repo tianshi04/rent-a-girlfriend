@@ -1,7 +1,0 @@
-syntax = "proto3";
-
-package common.v1;
-
-option go_package = "github.com/rent-a-girlfriend/contracts/proto/common;commonv1";
-
-// TransactionType has been moved to contracts/finance/v1/enums/finance_enums.proto
