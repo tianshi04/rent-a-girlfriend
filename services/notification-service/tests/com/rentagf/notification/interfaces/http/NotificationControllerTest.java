@@ -89,10 +89,10 @@ class NotificationControllerTest {
     mockMvc
         .perform(get("/v1/notifications").header("user-id", "not-a-uuid"))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error.code").value("INVALID_PARAMETER"))
+        .andExpect(jsonPath("$.code").value(3))
         .andExpect(
-            jsonPath("$.error.message")
-                .value("Invalid 'user-id' header format. Must be a valid UUID"));
+            jsonPath("$.message").value("Invalid 'user-id' header format. Must be a valid UUID"))
+        .andExpect(jsonPath("$.details[0].reason").value("INVALID_PARAMETER"));
   }
 
   @Test
@@ -101,8 +101,9 @@ class NotificationControllerTest {
     mockMvc
         .perform(get("/v1/notifications").header("user-id", userId.toString()).param("limit", "0"))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error.code").value("INVALID_PARAMETER"))
-        .andExpect(jsonPath("$.error.message").value("Limit must be between 1 and 100"));
+        .andExpect(jsonPath("$.code").value(3))
+        .andExpect(jsonPath("$.message").value("Limit must be between 1 and 100"))
+        .andExpect(jsonPath("$.details[0].reason").value("INVALID_PARAMETER"));
   }
 
   @Test
@@ -131,7 +132,8 @@ class NotificationControllerTest {
         .perform(
             patch("/v1/notifications/" + notifId + "/read").header("user-id", userId.toString()))
         .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.error.code").value("NOTIFICATION_NOT_FOUND"));
+        .andExpect(jsonPath("$.code").value(5))
+        .andExpect(jsonPath("$.details[0].reason").value("NOTIFICATION_NOT_FOUND"));
   }
 
   @Test

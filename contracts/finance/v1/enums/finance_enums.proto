@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package common.v1;
+package finance.v1;
 
-option go_package = "github.com/rent-a-girlfriend/contracts/proto/common;commonv1";
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/finance;financev1";
 
 enum TransactionType {
   TRANSACTION_TYPE_UNSPECIFIED = 0;

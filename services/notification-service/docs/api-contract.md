@@ -111,16 +111,20 @@ Tất cả các API nếu gặp lỗi sẽ trả về cấu trúc thống nhất
 
 ```json
 {
-  "error": {
-    "code": "ERROR_CODE_STRING",
-    "message": "Human readable error message for developers",
-    "details": [] 
-  }
+  "code": 5,
+  "message": "Human readable error message for developers",
+  "details": [
+    {
+      "reason": "NOTIFICATION_NOT_FOUND"
+    }
+  ]
 }
 ```
 
-**Các mã lỗi thường gặp:**
+**Các mã lỗi thường gặp (gRPC Code và HTTP Status):**
 - `401 Unauthorized`: Lỗi do Istio chặn (Không có Token hoặc Token hết hạn).
-- `400 Bad Request`: Thiếu tham số, sai format `cursor` (Code: `INVALID_CURSOR`).
-- `404 Not Found`: Truy cập ID của thông báo không tồn tại hoặc không thuộc về User (Code: `NOTIFICATION_NOT_FOUND`).
-- `500 Internal Server Error`: Lỗi DB hoặc xử lý logic (Code: `INTERNAL_ERROR`).
+- `400 Bad Request` (gRPC `3 - INVALID_ARGUMENT`): Thiếu tham số, sai format `cursor` (Reason: `INVALID_CURSOR` hoặc `INVALID_PARAMETER`).
+- `404 Not Found` (gRPC `5 - NOT_FOUND`): Truy cập ID của thông báo không tồn tại hoặc không thuộc về User (Reason: `NOTIFICATION_NOT_FOUND`).
+- `409 Conflict` (gRPC `6 - ALREADY_EXISTS`): Lỗi trùng lặp sự kiện hoặc thông báo đã hoàn thành (Reason: `DUPLICATE_EVENT` hoặc `NOTIFICATION_ALREADY_COMPLETED`).
+- `422 Unprocessable Entity` (gRPC `9 - FAILED_PRECONDITION`): Đạt giới hạn thử lại (Reason: `RETRY_LIMIT_EXCEEDED`).
+- `500 Internal Server Error` (gRPC `13 - INTERNAL`): Lỗi DB hoặc xử lý logic (Reason: `INTERNAL_ERROR`).

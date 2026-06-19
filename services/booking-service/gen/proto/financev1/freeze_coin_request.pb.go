@@ -7,7 +7,6 @@
 package financev1
 
 import (
-	proto "github.com/rent-a-girlfriend/booking-service/gen/proto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -27,7 +26,7 @@ type FreezeCoinRequest struct {
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Amount        int64                  `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
 	BookingId     string                 `protobuf:"bytes,3,opt,name=booking_id,json=bookingId,proto3" json:"booking_id,omitempty"`
-	Type          proto.TransactionType  `protobuf:"varint,4,opt,name=type,proto3,enum=common.v1.TransactionType" json:"type,omitempty"`
+	Type          TransactionType        `protobuf:"varint,4,opt,name=type,proto3,enum=finance.v1.TransactionType" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -83,11 +82,11 @@ func (x *FreezeCoinRequest) GetBookingId() string {
 	return ""
 }
 
-func (x *FreezeCoinRequest) GetType() proto.TransactionType {
+func (x *FreezeCoinRequest) GetType() TransactionType {
 	if x != nil {
 		return x.Type
 	}
-	return proto.TransactionType(0)
+	return TransactionType_TRANSACTION_TYPE_UNSPECIFIED
 }
 
 var File_finance_v1_messages_freeze_coin_request_proto protoreflect.FileDescriptor
@@ -95,13 +94,13 @@ var File_finance_v1_messages_freeze_coin_request_proto protoreflect.FileDescript
 const file_finance_v1_messages_freeze_coin_request_proto_rawDesc = "" +
 	"\n" +
 	"-finance/v1/messages/freeze_coin_request.proto\x12\n" +
-	"finance.v1\x1a\x15common/v1/enums.proto\"\x93\x01\n" +
+	"finance.v1\x1a$finance/v1/enums/finance_enums.proto\"\x94\x01\n" +
 	"\x11FreezeCoinRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\x03R\x06amount\x12\x1d\n" +
 	"\n" +
-	"booking_id\x18\x03 \x01(\tR\tbookingId\x12.\n" +
-	"\x04type\x18\x04 \x01(\x0e2\x1a.common.v1.TransactionTypeR\x04typeB@Z>github.com/rent-a-girlfriend/contracts/proto/finance;financev1b\x06proto3"
+	"booking_id\x18\x03 \x01(\tR\tbookingId\x12/\n" +
+	"\x04type\x18\x04 \x01(\x0e2\x1b.finance.v1.TransactionTypeR\x04typeB@Z>github.com/rent-a-girlfriend/contracts/proto/finance;financev1b\x06proto3"
 
 var (
 	file_finance_v1_messages_freeze_coin_request_proto_rawDescOnce sync.Once
@@ -117,11 +116,11 @@ func file_finance_v1_messages_freeze_coin_request_proto_rawDescGZIP() []byte {
 
 var file_finance_v1_messages_freeze_coin_request_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_finance_v1_messages_freeze_coin_request_proto_goTypes = []any{
-	(*FreezeCoinRequest)(nil),  // 0: finance.v1.FreezeCoinRequest
-	(proto.TransactionType)(0), // 1: common.v1.TransactionType
+	(*FreezeCoinRequest)(nil), // 0: finance.v1.FreezeCoinRequest
+	(TransactionType)(0),      // 1: finance.v1.TransactionType
 }
 var file_finance_v1_messages_freeze_coin_request_proto_depIdxs = []int32{
-	1, // 0: finance.v1.FreezeCoinRequest.type:type_name -> common.v1.TransactionType
+	1, // 0: finance.v1.FreezeCoinRequest.type:type_name -> finance.v1.TransactionType
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
@@ -134,6 +133,7 @@ func file_finance_v1_messages_freeze_coin_request_proto_init() {
 	if File_finance_v1_messages_freeze_coin_request_proto != nil {
 		return
 	}
+	file_finance_v1_enums_finance_enums_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

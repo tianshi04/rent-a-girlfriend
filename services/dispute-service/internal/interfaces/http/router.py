@@ -1,6 +1,7 @@
 from typing import Optional, List
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
 from internal.application.query import DisputeQueryService
 from internal.domain.errors import DomainError
 
@@ -41,12 +42,16 @@ def get_admin_auth_info(
 
 
 class EvidenceDTO(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
     evidence_id: str
     evidence_type: str
     content: str
 
 
 class DisputeDTO(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
     dispute_id: str
     booking_id: str
     reporter_id: str
@@ -84,6 +89,8 @@ class DisputeDTO(BaseModel):
 
 
 class SagaStateDTO(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
     saga_id: str
     dispute_id: str
     booking_id: str
@@ -122,7 +129,7 @@ async def health_check():
 async def list_disputes(
     status_filter: Optional[str] = Query(None, alias="status"),
     page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=50),
+    page_size: int = Query(10, alias="pageSize", ge=1, le=50),
     auth_info: AuthInfo = Depends(get_admin_auth_info),
     query_service: DisputeQueryService = Depends(get_query_service),
 ):
@@ -135,7 +142,7 @@ async def list_disputes(
             "disputes": [DisputeDTO.from_domain(d) for d in disputes],
             "total": total,
             "page": page,
-            "page_size": page_size,
+            "pageSize": page_size,
         }
     except Exception as e:
         raise HTTPException(

@@ -10,7 +10,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -133,7 +132,6 @@ func file_common_v1_enums_proto_init() {
 		},
 		GoTypes:           file_common_v1_enums_proto_goTypes,
 		DependencyIndexes: file_common_v1_enums_proto_depIdxs,
-		EnumInfos:         file_common_v1_enums_proto_enumTypes,
 	}.Build()
 	File_common_v1_enums_proto = out.File
 	file_common_v1_enums_proto_goTypes = nil
