@@ -1,6 +1,14 @@
 import os
 import logging
 from fastapi import FastAPI, Depends
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from internal.domain.errors import DomainError
+from internal.interfaces.http.errors import (
+    domain_error_handler,
+    http_exception_handler,
+    validation_exception_handler,
+)
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -196,14 +204,6 @@ app = FastAPI(
 )
 
 from internal.interfaces.http.router import router as http_router  # noqa: E402
-from internal.interfaces.http.errors import (
-    domain_error_handler,
-    http_exception_handler,
-    validation_exception_handler,
-)  # noqa: E402
-from internal.domain.errors import DomainError  # noqa: E402
-from fastapi.exceptions import RequestValidationError  # noqa: E402
-from starlette.exceptions import HTTPException as StarletteHTTPException  # noqa: E402
 
 app.include_router(http_router)
 app.add_exception_handler(DomainError, domain_error_handler)
