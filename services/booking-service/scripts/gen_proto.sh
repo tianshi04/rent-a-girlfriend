@@ -23,7 +23,6 @@ echo ""
 mkdir -p "$serviceRoot/gen/proto"
 
 bookingProtos=(
-    "common/v1/enums.proto"
     "booking/v1/enums/booking_enums.proto"
     "booking/v1/messages/request_booking_request.proto"
     "booking/v1/messages/request_booking_response.proto"
@@ -115,8 +114,8 @@ for f in "${protoFiles[@]}"; do
     fullPaths+=("$contracts/$f")
 done
 
-go_opts=(--go_opt=module="$module" --go_opt="Mcommon/v1/enums.proto=github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1")
-go_grpc_opts=(--go-grpc_opt=module="$module" --go-grpc_opt="Mcommon/v1/enums.proto=github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1")
+go_opts=(--go_opt=module="$module")
+go_grpc_opts=(--go-grpc_opt=module="$module")
 
 # Clean output directories to avoid stale files
 rm -rf "$serviceRoot/gen/proto/financev1"
@@ -175,7 +174,6 @@ protoc \
     -I "$googleapis" \
     --grpc-gateway_out="$serviceRoot" \
     --grpc-gateway_opt=module="$module" \
-    --grpc-gateway_opt="Mcommon/v1/enums.proto=github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1" \
     --grpc-gateway_opt=logtostderr=true \
     "$contracts/booking/v1/service/booking_service.proto"
 
