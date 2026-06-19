@@ -4,11 +4,11 @@ package finance.v1;
 
 option go_package = "github.com/rent-a-girlfriend/contracts/proto/finance;financev1";
 
-import "common/v1/enums.proto";
+import "finance/v1/enums/finance_enums.proto";
 
 message FreezeCoinRequest {
   string user_id = 1;
   int64 amount = 2; 
   string booking_id = 3; 
-  common.v1.TransactionType type = 4;
+  finance.v1.TransactionType type = 4;
 }

@@ -24,7 +24,7 @@ const (
 type CancelBookingRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BookingId     string                 `protobuf:"bytes,1,opt,name=booking_id,json=bookingId,proto3" json:"booking_id,omitempty"`
-	Reason        CancellationReason     `protobuf:"varint,2,opt,name=reason,proto3,enum=common.v1.CancellationReason" json:"reason,omitempty"`
+	Reason        CancellationReason     `protobuf:"varint,2,opt,name=reason,proto3,enum=booking.v1.CancellationReason" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -78,11 +78,11 @@ var File_booking_v1_messages_cancel_booking_request_proto protoreflect.FileDescr
 const file_booking_v1_messages_cancel_booking_request_proto_rawDesc = "" +
 	"\n" +
 	"0booking/v1/messages/cancel_booking_request.proto\x12\n" +
-	"booking.v1\x1a\x15common/v1/enums.proto\"l\n" +
+	"booking.v1\x1a$booking/v1/enums/booking_enums.proto\"m\n" +
 	"\x14CancelBookingRequest\x12\x1d\n" +
 	"\n" +
-	"booking_id\x18\x01 \x01(\tR\tbookingId\x125\n" +
-	"\x06reason\x18\x02 \x01(\x0e2\x1d.common.v1.CancellationReasonR\x06reasonBBZ@github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1b\x06proto3"
+	"booking_id\x18\x01 \x01(\tR\tbookingId\x126\n" +
+	"\x06reason\x18\x02 \x01(\x0e2\x1e.booking.v1.CancellationReasonR\x06reasonBBZ@github.com/rent-a-girlfriend/booking-service/gen/proto;bookingv1b\x06proto3"
 
 var (
 	file_booking_v1_messages_cancel_booking_request_proto_rawDescOnce sync.Once
@@ -99,10 +99,10 @@ func file_booking_v1_messages_cancel_booking_request_proto_rawDescGZIP() []byte 
 var file_booking_v1_messages_cancel_booking_request_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_booking_v1_messages_cancel_booking_request_proto_goTypes = []any{
 	(*CancelBookingRequest)(nil), // 0: booking.v1.CancelBookingRequest
-	(CancellationReason)(0),      // 1: common.v1.CancellationReason
+	(CancellationReason)(0),      // 1: booking.v1.CancellationReason
 }
 var file_booking_v1_messages_cancel_booking_request_proto_depIdxs = []int32{
-	1, // 0: booking.v1.CancelBookingRequest.reason:type_name -> common.v1.CancellationReason
+	1, // 0: booking.v1.CancelBookingRequest.reason:type_name -> booking.v1.CancellationReason
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
@@ -115,7 +115,7 @@ func file_booking_v1_messages_cancel_booking_request_proto_init() {
 	if File_booking_v1_messages_cancel_booking_request_proto != nil {
 		return
 	}
-	file_common_v1_enums_proto_init()
+	file_booking_v1_enums_booking_enums_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

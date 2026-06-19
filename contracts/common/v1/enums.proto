@@ -4,11 +4,4 @@ package common.v1;
 
 option go_package = "github.com/rent-a-girlfriend/contracts/proto/common;commonv1";
 
-enum TransactionType {
-  TRANSACTION_TYPE_UNSPECIFIED = 0;
-  TRANSACTION_TYPE_TOPUP = 1;
-  TRANSACTION_TYPE_BOOKING_RESERVATION = 2;
-  TRANSACTION_TYPE_ESCROW_RELEASE = 3;
-  TRANSACTION_TYPE_PENALTY_DEDUCTION = 4;
-  TRANSACTION_TYPE_REFUND = 5;
-}
+// TransactionType has been moved to contracts/finance/v1/enums/finance_enums.proto

@@ -50,6 +50,7 @@ bookingProtos=(
 )
 
 financeProtos=(
+    "finance/v1/enums/finance_enums.proto"
     "finance/v1/service/finance_service.proto"
     "finance/v1/messages/finance_command_response.proto"
     "finance/v1/messages/freeze_coin_request.proto"
