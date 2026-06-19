@@ -3,6 +3,7 @@ from typing import Optional
 from internal.domain.aggregate.wallet import Wallet
 from internal.domain.aggregate.escrow import Escrow
 from internal.domain.aggregate.transaction import Transaction
+from internal.domain.vo import TransactionType
 
 
 class IWalletRepository(ABC):
@@ -50,6 +51,6 @@ class ITransactionRepository(ABC):
 
     @abstractmethod
     async def find_by_reference_id(
-        self, reference_id: str, type: str, lock: bool = False
+        self, reference_id: str, type: TransactionType, lock: bool = False
     ) -> Optional[Transaction]:
         pass

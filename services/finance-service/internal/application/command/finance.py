@@ -1,7 +1,7 @@
 import uuid
 from typing import Dict
 from sqlalchemy.ext.asyncio import AsyncSession
-from internal.domain.vo import Money
+from internal.domain.vo import Money, TransactionType
 from internal.domain.aggregate.wallet import Wallet
 from internal.domain.aggregate.escrow import Escrow
 from internal.domain.aggregate.transaction import Transaction
@@ -61,7 +61,13 @@ class FinanceCommandService:
         wallet = Wallet.create(wallet_id, user_id)
         await self.wallet_repo.save(wallet)
 
-    async def freeze_coin(self, user_id: str, amount: int, booking_id: str) -> str:
+    async def freeze_coin(
+        self,
+        user_id: str,
+        amount: int,
+        booking_id: str,
+        txn_type: TransactionType = TransactionType.BOOKING_RESERVATION,
+    ) -> str:
         """
         Freezes coins in Client's wallet for booking request reservation.
         """
@@ -78,7 +84,7 @@ class FinanceCommandService:
                 transaction_id=txn_id,
                 user_id=user_id,
                 amount=money,
-                type="BOOKING_RESERVATION",
+                type=txn_type,
                 status="PENDING",
                 reference_id=booking_id,
             )
@@ -140,7 +146,7 @@ class FinanceCommandService:
 
             # Update or record escrow deposit transaction
             txn = await self.transaction_repo.find_by_reference_id(
-                booking_id, "BOOKING_RESERVATION"
+                booking_id, TransactionType.BOOKING_RESERVATION
             )
             if not txn:
                 txn_id = str(uuid.uuid4())
@@ -148,7 +154,7 @@ class FinanceCommandService:
                     transaction_id=txn_id,
                     user_id=user_id,
                     amount=money,
-                    type="BOOKING_RESERVATION",
+                    type=TransactionType.BOOKING_RESERVATION,
                     status="SUCCESS",
                     reference_id=booking_id,
                 )
@@ -208,7 +214,7 @@ class FinanceCommandService:
             transaction_id=txn_id,
             user_id=companion_id,
             amount=Money(net_amount),
-            type="ESCROW_RELEASE",
+            type=TransactionType.ESCROW_RELEASE,
             status="SUCCESS",
             reference_id=booking_id,
         )
@@ -237,7 +243,7 @@ class FinanceCommandService:
             # Resolve client_id and refund_amount if not provided
             if not client_id or refund_amount <= 0:
                 reservation_txn = await self.transaction_repo.find_by_reference_id(
-                    booking_id, "BOOKING_RESERVATION"
+                    booking_id, TransactionType.BOOKING_RESERVATION
                 )
                 if reservation_txn:
                     if not client_id:
@@ -260,7 +266,7 @@ class FinanceCommandService:
                 transaction_id=txn_id,
                 user_id=client_id,
                 amount=money_refund,
-                type="REFUND",
+                type=TransactionType.REFUND,
                 status="SUCCESS",
                 reference_id=booking_id,
             )
@@ -282,7 +288,7 @@ class FinanceCommandService:
                     if not resolved_client_id:
                         try:
                             txn = await self.transaction_repo.find_by_reference_id(
-                                booking_id, "BOOKING_RESERVATION"
+                                booking_id, TransactionType.BOOKING_RESERVATION
                             )
                             if txn:
                                 resolved_client_id = txn.user_id
@@ -325,7 +331,7 @@ class FinanceCommandService:
             transaction_id=txn_id,
             user_id=user_id,
             amount=money,
-            type="TOPUP",
+            type=TransactionType.TOPUP,
             status="PENDING",
             reference_id=txn_id,
         )

@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, Text, Enum
 from sqlalchemy.orm import declarative_base
+from internal.domain.vo import TransactionType
 
 Base = declarative_base()
 
@@ -38,9 +39,7 @@ class TransactionModel(Base):
     transaction_id = Column(String(36), primary_key=True)
     user_id = Column(String(36), nullable=False, index=True)
     amount = Column(Integer, nullable=False)
-    type = Column(
-        String(30), nullable=False, index=True
-    )  # TOPUP, BOOKING_RESERVATION, etc.
+    type = Column(Enum(TransactionType), nullable=False, index=True)
     status = Column(String(20), nullable=False, index=True)  # PENDING, SUCCESS, FAILED
     reference_id = Column(String(36), nullable=False, index=True)
     created_at = Column(DateTime, default=utcnow_naive)

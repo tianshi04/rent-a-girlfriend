@@ -1,5 +1,16 @@
 from dataclasses import dataclass
+from enum import Enum
 from internal.domain.errors import InvalidAmountError
+
+
+class TransactionType(str, Enum):
+    UNSPECIFIED = "UNSPECIFIED"
+    TOPUP = "TOPUP"
+    BOOKING_RESERVATION = "BOOKING_RESERVATION"
+    ESCROW_RELEASE = "ESCROW_RELEASE"
+    PENALTY_DEDUCTION = "PENALTY_DEDUCTION"
+    REFUND = "REFUND"
+
 
 
 @dataclass(frozen=True)

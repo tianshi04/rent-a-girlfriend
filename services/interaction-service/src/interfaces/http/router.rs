@@ -34,18 +34,21 @@ impl IntoResponse for ApiError {
             DomainError::DatabaseError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
+        let code = match &self.0 {
+            DomainError::ChatRoomLocked(_) => 7,         // PermissionDenied
+            DomainError::UnauthorizedSender { .. } => 7, // PermissionDenied
+            DomainError::InvalidRating(_) => 3,          // InvalidArgument
+            DomainError::ReviewAlreadyExists(_) => 6,    // AlreadyExists
+            DomainError::ChatRoomAlreadyExists(_) => 6,  // AlreadyExists
+            DomainError::ChatRoomNotFound(_) => 5,       // NotFound
+            DomainError::ReviewNotFound(_) => 5,         // NotFound
+            DomainError::DatabaseError(_) => 13,         // Internal
+        };
+
         let body = Json(json!({
-            "error": self.0.to_string(),
-            "code": match &self.0 {
-                DomainError::ChatRoomLocked(_) => "CHAT_ROOM_LOCKED",
-                DomainError::UnauthorizedSender { .. } => "UNAUTHORIZED_SENDER",
-                DomainError::InvalidRating(_) => "INVALID_RATING",
-                DomainError::ReviewAlreadyExists(_) => "REVIEW_ALREADY_EXISTS",
-                DomainError::ChatRoomAlreadyExists(_) => "CHAT_ROOM_ALREADY_EXISTS",
-                DomainError::ChatRoomNotFound(_) => "CHAT_ROOM_NOT_FOUND",
-                DomainError::ReviewNotFound(_) => "REVIEW_NOT_FOUND",
-                DomainError::DatabaseError(_) => "INTERNAL_DATABASE_ERROR",
-            }
+            "code": code,
+            "message": self.0.to_string(),
+            "details": []
         }));
 
         (status, body).into_response()
@@ -60,8 +63,9 @@ fn get_user_id(headers: &HeaderMap) -> Result<String, Response> {
     Err((
         StatusCode::UNAUTHORIZED,
         Json(json!({
-            "error": "Missing or invalid 'user-id' header. Authentication is offloaded to Istio Waypoint Gateway.",
-            "code": "MISSING_USER_ID"
+            "code": 16, // Unauthenticated
+            "message": "Missing or invalid 'user-id' header. Authentication is offloaded to Istio Waypoint Gateway.",
+            "details": []
         })),
     ).into_response())
 }
