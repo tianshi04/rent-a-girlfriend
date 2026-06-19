@@ -32,9 +32,9 @@ class GlobalExceptionHandlerTest {
     mockMvc
         .perform(get("/test/not-found/" + notifId))
         .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.error.code").value("NOTIFICATION_NOT_FOUND"))
-        .andExpect(jsonPath("$.error.message").value("Notification " + notifId + " not found"))
-        .andExpect(jsonPath("$.error.details").isArray());
+        .andExpect(jsonPath("$.code").value(5))
+        .andExpect(jsonPath("$.message").value("Notification " + notifId + " not found"))
+        .andExpect(jsonPath("$.details[0].reason").value("NOTIFICATION_NOT_FOUND"));
   }
 
   @Test
@@ -42,11 +42,11 @@ class GlobalExceptionHandlerTest {
     mockMvc
         .perform(get("/test/duplicate"))
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.error.code").value("DUPLICATE_EVENT"))
+        .andExpect(jsonPath("$.code").value(6))
         .andExpect(
-            jsonPath("$.error.message")
+            jsonPath("$.message")
                 .value("Event evt_123 for user usr_456 has already been processed"))
-        .andExpect(jsonPath("$.error.details").isArray());
+        .andExpect(jsonPath("$.details[0].reason").value("DUPLICATE_EVENT"));
   }
 
   @Test
@@ -54,11 +54,11 @@ class GlobalExceptionHandlerTest {
     mockMvc
         .perform(get("/test/already-completed"))
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.error.code").value("NOTIFICATION_ALREADY_COMPLETED"))
+        .andExpect(jsonPath("$.code").value(6))
         .andExpect(
-            jsonPath("$.error.message")
+            jsonPath("$.message")
                 .value("Notification notif_789 is already completed. No further attempts allowed"))
-        .andExpect(jsonPath("$.error.details").isArray());
+        .andExpect(jsonPath("$.details[0].reason").value("NOTIFICATION_ALREADY_COMPLETED"));
   }
 
   @Test
@@ -66,11 +66,11 @@ class GlobalExceptionHandlerTest {
     mockMvc
         .perform(get("/test/retry-exceeded"))
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$.error.code").value("RETRY_LIMIT_EXCEEDED"))
+        .andExpect(jsonPath("$.code").value(9))
         .andExpect(
-            jsonPath("$.error.message")
+            jsonPath("$.message")
                 .value("Notification notif_789 has exceeded maximum retry attempts (3)"))
-        .andExpect(jsonPath("$.error.details").isArray());
+        .andExpect(jsonPath("$.details[0].reason").value("RETRY_LIMIT_EXCEEDED"));
   }
 
   @Test
@@ -78,9 +78,9 @@ class GlobalExceptionHandlerTest {
     mockMvc
         .perform(get("/test/unexpected"))
         .andExpect(status().isInternalServerError())
-        .andExpect(jsonPath("$.error.code").value("INTERNAL_ERROR"))
-        .andExpect(jsonPath("$.error.message").value("An unexpected error occurred"))
-        .andExpect(jsonPath("$.error.details").isArray());
+        .andExpect(jsonPath("$.code").value(13))
+        .andExpect(jsonPath("$.message").value("An unexpected error occurred"))
+        .andExpect(jsonPath("$.details[0].reason").value("INTERNAL_ERROR"));
   }
 
   @RestController

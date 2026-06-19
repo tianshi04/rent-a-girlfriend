@@ -58,11 +58,9 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
         .body(
             Map.of(
-                "error",
-                Map.of(
-                    "code", "INVALID_PARAMETER",
-                    "message", ex.getMessage(),
-                    "details", List.of())));
+                "code", 3, // INVALID_ARGUMENT
+                "message", ex.getMessage(),
+                "details", List.of(Map.of("reason", "INVALID_PARAMETER"))));
   }
 
   @ExceptionHandler(org.springframework.web.bind.MissingRequestHeaderException.class)
@@ -72,12 +70,10 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
         .body(
             Map.of(
-                "error",
-                Map.of(
-                    "code", "MISSING_HEADER",
-                    "message",
-                        String.format("Missing required request header '%s'", ex.getHeaderName()),
-                    "details", List.of())));
+                "code", 3, // INVALID_ARGUMENT
+                "message",
+                    String.format("Missing required request header '%s'", ex.getHeaderName()),
+                "details", List.of(Map.of("reason", "MISSING_HEADER"))));
   }
 
   @ExceptionHandler(Exception.class)
@@ -86,22 +82,36 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
         .body(
             Map.of(
-                "error",
-                Map.of(
-                    "code", "INTERNAL_ERROR",
-                    "message", "An unexpected error occurred",
-                    "details", List.of())));
+                "code",
+                13, // INTERNAL
+                "message",
+                "An unexpected error occurred",
+                "details",
+                List.of(Map.of("reason", "INTERNAL_ERROR"))));
   }
 
   private ResponseEntity<Map<String, Object>> buildResponse(
       HttpStatus status, NotificationDomainException ex) {
+    int grpcCode = getGrpcCode(ex);
     return ResponseEntity.status(status)
         .body(
             Map.of(
-                "error",
-                Map.of(
-                    "code", ex.getErrorCode(),
-                    "message", ex.getMessage(),
-                    "details", List.of())));
+                "code", grpcCode,
+                "message", ex.getMessage(),
+                "details", List.of(Map.of("reason", ex.getErrorCode()))));
+  }
+
+  private int getGrpcCode(NotificationDomainException ex) {
+    if (ex instanceof NotificationNotFoundException) {
+      return 5; // NOT_FOUND
+    } else if (ex instanceof DuplicateEventException
+        || ex instanceof NotificationAlreadyCompletedException) {
+      return 6; // ALREADY_EXISTS
+    } else if (ex instanceof RetryLimitExceededException) {
+      return 9; // FAILED_PRECONDITION
+    } else if (ex instanceof com.rentagf.notification.domain.errors.InvalidCursorException) {
+      return 3; // INVALID_ARGUMENT
+    }
+    return 13; // INTERNAL
   }
 }
