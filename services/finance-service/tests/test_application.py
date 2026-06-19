@@ -531,3 +531,318 @@ async def test_booking_event_listener_insufficient_funds(
     assert mock_publisher.events[0].__class__.__name__ == "CoinsFreezeFailed"
     assert mock_publisher.events[0].amount == 80
     assert mock_publisher.events[0].booking_id == booking_id
+
+
+async def test_transfer_to_escrow_event_listener_success(
+    finance_service, db_session, mock_publisher, monkeypatch
+):
+    import asyncio
+
+    finance_service.session = db_session
+    client_id = "client-event-3"
+    booking_id = "booking-event-3"
+
+    # Set up client wallet with 20 available, 80 frozen coins
+    client_wallet = await finance_service.get_or_create_wallet(client_id)
+    client_wallet.available_balance = client_wallet.available_balance.add(Money(20))
+    client_wallet.frozen_balance = client_wallet.frozen_balance.add(Money(80))
+    await finance_service.wallet_repo.save(client_wallet)
+    await db_session.commit()
+    mock_publisher.clear()
+
+    # Mock CloudEvent payload for finance.transfer-to-escrow.v1
+    mock_msg_value = {
+        "specversion": "1.0",
+        "id": "event-789",
+        "type": "finance.transfer-to-escrow.v1",
+        "data": {"bookingId": booking_id, "userId": client_id, "amount": 80},
+    }
+
+    class MockMessage:
+        def __init__(self, value):
+            self.value = value
+
+    class MockConsumer:
+        def __init__(self, *args, **kwargs):
+            self.messages = [MockMessage(mock_msg_value)]
+
+        async def start(self):
+            pass
+
+        async def stop(self):
+            pass
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if not self.messages:
+                raise asyncio.CancelledError()
+            return self.messages.pop(0)
+
+    import main as server_main
+
+    monkeypatch.setattr(server_main, "AIOKafkaConsumer", MockConsumer)
+
+    class MockSessionContext:
+        def __init__(self, session):
+            self.session = session
+
+        async def __aenter__(self):
+            return self.session
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    monkeypatch.setattr(
+        server_main, "SessionLocal", lambda: MockSessionContext(db_session)
+    )
+    monkeypatch.setattr(server_main, "bootstrap_services", lambda sess: finance_service)
+
+    # Run the listener
+    await server_main.run_booking_event_listener()
+
+    # Verify client wallet has 0 frozen coins
+    db_session.expire_all()
+    w = await finance_service.wallet_repo.find_by_user_id(client_id)
+    assert w.available_balance.amount == 20
+    assert w.frozen_balance.amount == 0
+
+    # Verify escrow is created in HELD status
+    escrow = await finance_service.escrow_repo.find_by_booking_id(booking_id)
+    assert escrow is not None
+    assert escrow.status == "HELD"
+    assert escrow.amount.amount == 80
+
+    # Verify outbox event (EscrowCreated) is published
+    assert len(mock_publisher.events) == 1
+    assert mock_publisher.events[0].__class__.__name__ == "EscrowCreated"
+    assert mock_publisher.events[0].amount == 80
+    assert mock_publisher.events[0].booking_id == booking_id
+
+
+async def test_transfer_to_escrow_event_listener_wallet_not_found(
+    finance_service, db_session, mock_publisher, monkeypatch
+):
+    import asyncio
+
+    finance_service.session = db_session
+    client_id = "non-existent-client"
+    booking_id = "booking-event-4"
+    mock_publisher.clear()
+
+    # Mock CloudEvent payload for finance.transfer-to-escrow.v1
+    mock_msg_value = {
+        "specversion": "1.0",
+        "id": "event-101",
+        "type": "finance.transfer-to-escrow.v1",
+        "data": {"bookingId": booking_id, "userId": client_id, "amount": 80},
+    }
+
+    class MockMessage:
+        def __init__(self, value):
+            self.value = value
+
+    class MockConsumer:
+        def __init__(self, *args, **kwargs):
+            self.messages = [MockMessage(mock_msg_value)]
+
+        async def start(self):
+            pass
+
+        async def stop(self):
+            pass
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if not self.messages:
+                raise asyncio.CancelledError()
+            return self.messages.pop(0)
+
+    import main as server_main
+
+    monkeypatch.setattr(server_main, "AIOKafkaConsumer", MockConsumer)
+
+    class MockSessionContext:
+        def __init__(self, session):
+            self.session = session
+
+        async def __aenter__(self):
+            return self.session
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    monkeypatch.setattr(
+        server_main, "SessionLocal", lambda: MockSessionContext(db_session)
+    )
+    monkeypatch.setattr(server_main, "bootstrap_services", lambda sess: finance_service)
+
+    # Run the listener
+    await server_main.run_booking_event_listener()
+
+    # Verify EscrowFailed event is published
+    assert len(mock_publisher.events) == 1
+    assert mock_publisher.events[0].__class__.__name__ == "EscrowFailed"
+    assert mock_publisher.events[0].booking_id == booking_id
+    assert mock_publisher.events[0].client_id == client_id
+
+
+async def test_refund_escrow_event_listener_success(
+    finance_service, db_session, mock_publisher, monkeypatch
+):
+    import asyncio
+
+    finance_service.session = db_session
+    client_id = "client-event-5"
+    booking_id = "booking-event-5"
+
+    # Set up client wallet and escrow
+    client_wallet = await finance_service.get_or_create_wallet(client_id)
+    client_wallet.available_balance = client_wallet.available_balance.add(Money(100))
+    client_wallet.frozen_balance = client_wallet.frozen_balance.add(Money(80))
+    await finance_service.wallet_repo.save(client_wallet)
+    await db_session.commit()
+
+    # Create escrow
+    await finance_service.transfer_to_escrow(client_id, 80, booking_id)
+    await db_session.commit()
+    mock_publisher.clear()
+
+    # Mock CloudEvent payload for finance.refund-escrow.v1
+    mock_msg_value = {
+        "specversion": "1.0",
+        "id": "event-202",
+        "type": "finance.refund-escrow.v1",
+        "data": {"bookingId": booking_id, "clientId": client_id, "refundAmount": 80},
+    }
+
+    class MockMessage:
+        def __init__(self, value):
+            self.value = value
+
+    class MockConsumer:
+        def __init__(self, *args, **kwargs):
+            self.messages = [MockMessage(mock_msg_value)]
+
+        async def start(self):
+            pass
+
+        async def stop(self):
+            pass
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if not self.messages:
+                raise asyncio.CancelledError()
+            return self.messages.pop(0)
+
+    import main as server_main
+
+    monkeypatch.setattr(server_main, "AIOKafkaConsumer", MockConsumer)
+
+    class MockSessionContext:
+        def __init__(self, session):
+            self.session = session
+
+        async def __aenter__(self):
+            return self.session
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    monkeypatch.setattr(
+        server_main, "SessionLocal", lambda: MockSessionContext(db_session)
+    )
+    monkeypatch.setattr(server_main, "bootstrap_services", lambda sess: finance_service)
+
+    # Run the listener
+    await server_main.run_booking_event_listener()
+
+    # Verify client wallet has refund deposited (100 + 80 [refund] = 180)
+    db_session.expire_all()
+    w = await finance_service.wallet_repo.find_by_user_id(client_id)
+    assert w.available_balance.amount == 180
+
+    # Verify escrow status is REFUNDED
+    escrow = await finance_service.escrow_repo.find_by_booking_id(booking_id)
+    assert escrow.status == "REFUNDED"
+
+    # Verify EscrowRefunded event is published
+    assert len(mock_publisher.events) == 1
+    assert mock_publisher.events[0].__class__.__name__ == "EscrowRefunded"
+    assert mock_publisher.events[0].booking_id == booking_id
+    assert mock_publisher.events[0].refund_amount == 80
+
+
+async def test_refund_escrow_event_listener_escrow_not_found(
+    finance_service, db_session, mock_publisher, monkeypatch
+):
+    import asyncio
+
+    finance_service.session = db_session
+    client_id = "client-event-6"
+    booking_id = "non-existent-escrow"
+    mock_publisher.clear()
+
+    # Mock CloudEvent payload for finance.refund-escrow.v1
+    mock_msg_value = {
+        "specversion": "1.0",
+        "id": "event-303",
+        "type": "finance.refund-escrow.v1",
+        "data": {"bookingId": booking_id, "clientId": client_id, "refundAmount": 80},
+    }
+
+    class MockMessage:
+        def __init__(self, value):
+            self.value = value
+
+    class MockConsumer:
+        def __init__(self, *args, **kwargs):
+            self.messages = [MockMessage(mock_msg_value)]
+
+        async def start(self):
+            pass
+
+        async def stop(self):
+            pass
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if not self.messages:
+                raise asyncio.CancelledError()
+            return self.messages.pop(0)
+
+    import main as server_main
+
+    monkeypatch.setattr(server_main, "AIOKafkaConsumer", MockConsumer)
+
+    class MockSessionContext:
+        def __init__(self, session):
+            self.session = session
+
+        async def __aenter__(self):
+            return self.session
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    monkeypatch.setattr(
+        server_main, "SessionLocal", lambda: MockSessionContext(db_session)
+    )
+    monkeypatch.setattr(server_main, "bootstrap_services", lambda sess: finance_service)
+
+    # Run the listener
+    await server_main.run_booking_event_listener()
+
+    # Verify RefundFailed event is published
+    assert len(mock_publisher.events) == 1
+    assert mock_publisher.events[0].__class__.__name__ == "RefundFailed"
+    assert mock_publisher.events[0].booking_id == booking_id
+    assert mock_publisher.events[0].client_id == client_id
