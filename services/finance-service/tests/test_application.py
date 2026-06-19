@@ -846,3 +846,27 @@ async def test_refund_escrow_event_listener_escrow_not_found(
     assert mock_publisher.events[0].__class__.__name__ == "RefundFailed"
     assert mock_publisher.events[0].booking_id == booking_id
     assert mock_publisher.events[0].client_id == client_id
+
+
+async def test_check_balance_flow(finance_service):
+    user_id = "user-cb-1"
+
+    # 1. New user has no wallet pre-existing, check_balance should lazy-onboard and return False for positive amount
+    has_sufficient = await finance_service.check_balance(user_id, 100)
+    assert has_sufficient is False
+
+    # Wallet should now exist with 0 balance
+    wallet = await finance_service.wallet_repo.find_by_user_id(user_id)
+    assert wallet is not None
+    assert wallet.available_balance.amount == 0
+
+    # Check balance for 0 amount should be True
+    assert await finance_service.check_balance(user_id, 0) is True
+
+    # 2. Deposit some money and check balance
+    wallet.available_balance = Money(150)
+    await finance_service.wallet_repo.save(wallet)
+
+    assert await finance_service.check_balance(user_id, 100) is True
+    assert await finance_service.check_balance(user_id, 150) is True
+    assert await finance_service.check_balance(user_id, 200) is False

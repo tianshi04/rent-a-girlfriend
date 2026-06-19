@@ -213,6 +213,29 @@ message GetWalletResponse {
 
 ---
 
+### `CheckBalance`
+
+Kiểm tra số dư khả dụng của ví Client trước khi booking. Nếu chưa có ví, tự động khởi tạo (lazy-create) ví mới.
+
+```protobuf
+rpc CheckBalance(CheckBalanceRequest) returns (CheckBalanceResponse);
+
+message CheckBalanceRequest {
+  string user_id = 1;
+  int64  amount  = 2;
+}
+
+message CheckBalanceResponse {
+  bool has_sufficient_balance = 1;
+}
+```
+
+**gRPC Status Codes:**
+- `OK` — Thành công, trả về trạng thái số dư đủ/thiếu qua field `has_sufficient_balance`
+- `FAILED_PRECONDITION` — `amount` truyền vào không hợp lệ (`amount < 0`)
+
+---
+
 ## Response chung cho Commands gRPC
 
 ```protobuf

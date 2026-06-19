@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package finance.v1;
+
+option go_package = "github.com/rent-a-girlfriend/contracts/proto/finance;financev1";
+
+message CheckBalanceRequest {
+  string user_id = 1;
+  int64 amount = 2;
+}

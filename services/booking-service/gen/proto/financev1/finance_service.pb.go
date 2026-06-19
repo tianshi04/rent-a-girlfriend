@@ -25,14 +25,15 @@ var File_finance_v1_service_finance_service_proto protoreflect.FileDescriptor
 const file_finance_v1_service_finance_service_proto_rawDesc = "" +
 	"\n" +
 	"(finance/v1/service/finance_service.proto\x12\n" +
-	"finance.v1\x1a-finance/v1/messages/freeze_coin_request.proto\x1a4finance/v1/messages/transfer_to_escrow_request.proto\x1a0finance/v1/messages/process_payout_request.proto\x1a/finance/v1/messages/refund_escrow_request.proto\x1a,finance/v1/messages/get_wallet_request.proto\x1a2finance/v1/messages/finance_command_response.proto\x1a-finance/v1/messages/get_wallet_response.proto2\xb4\x03\n" +
+	"finance.v1\x1a-finance/v1/messages/freeze_coin_request.proto\x1a4finance/v1/messages/transfer_to_escrow_request.proto\x1a0finance/v1/messages/process_payout_request.proto\x1a/finance/v1/messages/refund_escrow_request.proto\x1a,finance/v1/messages/get_wallet_request.proto\x1a2finance/v1/messages/finance_command_response.proto\x1a-finance/v1/messages/get_wallet_response.proto\x1a/finance/v1/messages/check_balance_request.proto\x1a0finance/v1/messages/check_balance_response.proto2\x87\x04\n" +
 	"\x0eFinanceService\x12O\n" +
 	"\n" +
 	"FreezeCoin\x12\x1d.finance.v1.FreezeCoinRequest\x1a\".finance.v1.FinanceCommandResponse\x12[\n" +
 	"\x10TransferToEscrow\x12#.finance.v1.TransferToEscrowRequest\x1a\".finance.v1.FinanceCommandResponse\x12U\n" +
 	"\rProcessPayout\x12 .finance.v1.ProcessPayoutRequest\x1a\".finance.v1.FinanceCommandResponse\x12S\n" +
 	"\fRefundEscrow\x12\x1f.finance.v1.RefundEscrowRequest\x1a\".finance.v1.FinanceCommandResponse\x12H\n" +
-	"\tGetWallet\x12\x1c.finance.v1.GetWalletRequest\x1a\x1d.finance.v1.GetWalletResponseB@Z>github.com/rent-a-girlfriend/contracts/proto/finance;financev1b\x06proto3"
+	"\tGetWallet\x12\x1c.finance.v1.GetWalletRequest\x1a\x1d.finance.v1.GetWalletResponse\x12Q\n" +
+	"\fCheckBalance\x12\x1f.finance.v1.CheckBalanceRequest\x1a .finance.v1.CheckBalanceResponseB@Z>github.com/rent-a-girlfriend/contracts/proto/finance;financev1b\x06proto3"
 
 var file_finance_v1_service_finance_service_proto_goTypes = []any{
 	(*FreezeCoinRequest)(nil),       // 0: finance.v1.FreezeCoinRequest
@@ -40,8 +41,10 @@ var file_finance_v1_service_finance_service_proto_goTypes = []any{
 	(*ProcessPayoutRequest)(nil),    // 2: finance.v1.ProcessPayoutRequest
 	(*RefundEscrowRequest)(nil),     // 3: finance.v1.RefundEscrowRequest
 	(*GetWalletRequest)(nil),        // 4: finance.v1.GetWalletRequest
-	(*FinanceCommandResponse)(nil),  // 5: finance.v1.FinanceCommandResponse
-	(*GetWalletResponse)(nil),       // 6: finance.v1.GetWalletResponse
+	(*CheckBalanceRequest)(nil),     // 5: finance.v1.CheckBalanceRequest
+	(*FinanceCommandResponse)(nil),  // 6: finance.v1.FinanceCommandResponse
+	(*GetWalletResponse)(nil),       // 7: finance.v1.GetWalletResponse
+	(*CheckBalanceResponse)(nil),    // 8: finance.v1.CheckBalanceResponse
 }
 var file_finance_v1_service_finance_service_proto_depIdxs = []int32{
 	0, // 0: finance.v1.FinanceService.FreezeCoin:input_type -> finance.v1.FreezeCoinRequest
@@ -49,13 +52,15 @@ var file_finance_v1_service_finance_service_proto_depIdxs = []int32{
 	2, // 2: finance.v1.FinanceService.ProcessPayout:input_type -> finance.v1.ProcessPayoutRequest
 	3, // 3: finance.v1.FinanceService.RefundEscrow:input_type -> finance.v1.RefundEscrowRequest
 	4, // 4: finance.v1.FinanceService.GetWallet:input_type -> finance.v1.GetWalletRequest
-	5, // 5: finance.v1.FinanceService.FreezeCoin:output_type -> finance.v1.FinanceCommandResponse
-	5, // 6: finance.v1.FinanceService.TransferToEscrow:output_type -> finance.v1.FinanceCommandResponse
-	5, // 7: finance.v1.FinanceService.ProcessPayout:output_type -> finance.v1.FinanceCommandResponse
-	5, // 8: finance.v1.FinanceService.RefundEscrow:output_type -> finance.v1.FinanceCommandResponse
-	6, // 9: finance.v1.FinanceService.GetWallet:output_type -> finance.v1.GetWalletResponse
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
+	5, // 5: finance.v1.FinanceService.CheckBalance:input_type -> finance.v1.CheckBalanceRequest
+	6, // 6: finance.v1.FinanceService.FreezeCoin:output_type -> finance.v1.FinanceCommandResponse
+	6, // 7: finance.v1.FinanceService.TransferToEscrow:output_type -> finance.v1.FinanceCommandResponse
+	6, // 8: finance.v1.FinanceService.ProcessPayout:output_type -> finance.v1.FinanceCommandResponse
+	6, // 9: finance.v1.FinanceService.RefundEscrow:output_type -> finance.v1.FinanceCommandResponse
+	7, // 10: finance.v1.FinanceService.GetWallet:output_type -> finance.v1.GetWalletResponse
+	8, // 11: finance.v1.FinanceService.CheckBalance:output_type -> finance.v1.CheckBalanceResponse
+	6, // [6:12] is the sub-list for method output_type
+	0, // [0:6] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -73,6 +78,8 @@ func file_finance_v1_service_finance_service_proto_init() {
 	file_finance_v1_messages_get_wallet_request_proto_init()
 	file_finance_v1_messages_finance_command_response_proto_init()
 	file_finance_v1_messages_get_wallet_response_proto_init()
+	file_finance_v1_messages_check_balance_request_proto_init()
+	file_finance_v1_messages_check_balance_response_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
