@@ -184,7 +184,9 @@ async def run_booking_event_listener():
 
                 elif event_type == "finance.transfer-to-escrow.v1":
                     event_data = msg.value.get("data", {})
-                    booking_id = event_data.get("bookingId") or event_data.get("booking_id")
+                    booking_id = event_data.get("bookingId") or event_data.get(
+                        "booking_id"
+                    )
                     user_id = (
                         event_data.get("userId")
                         or event_data.get("user_id")
@@ -220,9 +222,15 @@ async def run_booking_event_listener():
 
                 elif event_type == "finance.refund-escrow.v1":
                     event_data = msg.value.get("data", {})
-                    booking_id = event_data.get("bookingId") or event_data.get("booking_id")
-                    client_id = event_data.get("clientId") or event_data.get("client_id")
-                    refund_amount = event_data.get("refundAmount") or event_data.get("refund_amount")
+                    booking_id = event_data.get("bookingId") or event_data.get(
+                        "booking_id"
+                    )
+                    client_id = event_data.get("clientId") or event_data.get(
+                        "client_id"
+                    )
+                    refund_amount = event_data.get("refundAmount") or event_data.get(
+                        "refund_amount"
+                    )
 
                     if booking_id and client_id and refund_amount is not None:
                         logger.info(

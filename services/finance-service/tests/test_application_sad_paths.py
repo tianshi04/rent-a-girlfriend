@@ -513,6 +513,7 @@ async def test_grpc_refund_escrow_empty_client_resolves_fallback_and_publishes_r
 
 async def test_grpc_freeze_coin_unspecified_type_rejected(test_session_factory):
     from finance.v1.enums import finance_enums_pb2 as enums_pb2
+
     servicer = FinanceServiceServicer(test_session_factory)
     context = MockGRPCContext()
     request = MockRequest(
@@ -542,6 +543,7 @@ async def test_grpc_freeze_coin_invalid_type_rejected(test_session_factory):
 
 async def test_grpc_freeze_coin_valid_type_accepted(test_session_factory, monkeypatch):
     from finance.v1.enums import finance_enums_pb2 as enums_pb2
+
     servicer = FinanceServiceServicer(test_session_factory)
     context = MockGRPCContext()
     request = MockRequest(
@@ -550,16 +552,16 @@ async def test_grpc_freeze_coin_valid_type_accepted(test_session_factory, monkey
         booking_id="b-sad-grpc-1",
         type=enums_pb2.TRANSACTION_TYPE_BOOKING_RESERVATION,
     )
-    
+
     received_txn_type = None
-    
+
     async def mock_freeze_coin(self, user_id, amount, booking_id, txn_type):
         nonlocal received_txn_type
         received_txn_type = txn_type
         return "mocked-txn-id"
-        
+
     monkeypatch.setattr(FinanceCommandService, "freeze_coin", mock_freeze_coin)
-    
+
     await servicer.FreezeCoin(request, context)
     assert received_txn_type == TransactionType.BOOKING_RESERVATION
 

@@ -12,7 +12,6 @@ class TransactionType(str, Enum):
     REFUND = "REFUND"
 
 
-
 @dataclass(frozen=True)
 class Money:
     amount: int  # Kano-Coin is represented as integer

@@ -1,6 +1,6 @@
 import os
 import logging
-import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -81,8 +81,6 @@ async def init_db():
         )
 
 
-
-
 # --- VNPay Adapter Setup ---
 vnpay_adapter = VNPayAdapter(
     tmn_code=settings.VNPAY_TMN_CODE,
@@ -148,7 +146,6 @@ outbox_worker = OutboxPublisherWorker(
 )
 
 # --- Lifespan Setup ---
-from contextlib import asynccontextmanager
 
 
 @asynccontextmanager
