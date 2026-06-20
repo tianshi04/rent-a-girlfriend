@@ -32,7 +32,7 @@ class FinanceServiceServicer(finance_service_pb2_grpc.FinanceServiceServicer):
         logger.info(
             f"gRPC FreezeCoin: user_id={request.user_id}, amount={request.amount}, booking_id={request.booking_id}"
         )
-        
+
         req_type = getattr(request, "type", None)
         if req_type is not None:
             try:
@@ -40,7 +40,7 @@ class FinanceServiceServicer(finance_service_pb2_grpc.FinanceServiceServicer):
                     context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
                     context.set_details("Transaction type cannot be UNSPECIFIED.")
                     return finance_command_response_pb2.FinanceCommandResponse()
-                
+
                 pb_to_domain = {
                     enums_pb2.TRANSACTION_TYPE_TOPUP: TransactionType.TOPUP,
                     enums_pb2.TRANSACTION_TYPE_BOOKING_RESERVATION: TransactionType.BOOKING_RESERVATION,
@@ -48,12 +48,12 @@ class FinanceServiceServicer(finance_service_pb2_grpc.FinanceServiceServicer):
                     enums_pb2.TRANSACTION_TYPE_PENALTY_DEDUCTION: TransactionType.PENALTY_DEDUCTION,
                     enums_pb2.TRANSACTION_TYPE_REFUND: TransactionType.REFUND,
                 }
-                
+
                 if req_type not in pb_to_domain:
                     context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
                     context.set_details(f"Invalid transaction type: {req_type}")
                     return finance_command_response_pb2.FinanceCommandResponse()
-                    
+
                 txn_type = pb_to_domain[req_type]
             except Exception as e:
                 context.set_code(grpc.StatusCode.INVALID_ARGUMENT)

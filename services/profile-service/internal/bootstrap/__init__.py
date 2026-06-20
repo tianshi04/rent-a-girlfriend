@@ -1,6 +1,6 @@
 import os
 import logging
-import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -84,12 +84,6 @@ async def init_db():
         )
 
 
-if os.environ.get("TESTING") != "1":
-    try:
-        asyncio.run(init_db())
-    except Exception as e:
-        logger.warning(f"Could not run database initialization at import time: {e}")
-
 # --- Storage Adapter Setup ---
 storage_adapter = S3Storage(
     bucket_name=settings.S3_BUCKET_NAME,
@@ -159,12 +153,23 @@ outbox_worker = OutboxPublisherWorker(
     batch_size=settings.OUTBOX_BATCH_SIZE,
 )
 
+# --- Lifespan Setup ---
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if os.environ.get("TESTING") != "1":
+        await init_db()
+    yield
+
+
 # --- FastAPI App Setup ---
 app = FastAPI(
     title="Profile & Catalogue Service REST Query API",
     description="Query catalogue and manage profiles.",
     version="1.0.0",
     openapi_url="/api/openapi.json",
+    lifespan=lifespan,
 )
 
 from internal.interfaces.http.router import router  # noqa: E402

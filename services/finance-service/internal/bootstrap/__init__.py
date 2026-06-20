@@ -1,6 +1,6 @@
 import os
 import logging
-import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -81,12 +81,6 @@ async def init_db():
         )
 
 
-if os.environ.get("TESTING") != "1":
-    try:
-        asyncio.run(init_db())
-    except Exception as e:
-        logger.warning(f"Could not run database initialization at import time: {e}")
-
 # --- VNPay Adapter Setup ---
 vnpay_adapter = VNPayAdapter(
     tmn_code=settings.VNPAY_TMN_CODE,
@@ -151,11 +145,22 @@ outbox_worker = OutboxPublisherWorker(
     batch_size=settings.OUTBOX_BATCH_SIZE,
 )
 
+# --- Lifespan Setup ---
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if os.environ.get("TESTING") != "1":
+        await init_db()
+    yield
+
+
 # --- FastAPI App Setup ---
 app = FastAPI(
     title="Finance Service REST API",
     description="REST API for Kano-Coin Top-up & Webhooks",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # router will be imported later in controllers.py to avoid circular dependencies

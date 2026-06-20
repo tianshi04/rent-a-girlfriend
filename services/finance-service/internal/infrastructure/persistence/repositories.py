@@ -139,7 +139,9 @@ class TransactionRepository(ITransactionRepository):
         self, reference_id: str, type: TransactionType, lock: bool = False
     ) -> Optional[Transaction]:
         type_enum = type if isinstance(type, TransactionType) else TransactionType(type)
-        stmt = select(TransactionModel).filter_by(reference_id=reference_id, type=type_enum)
+        stmt = select(TransactionModel).filter_by(
+            reference_id=reference_id, type=type_enum
+        )
         if lock:
             stmt = stmt.with_for_update()
         result = await self.session.execute(stmt)
