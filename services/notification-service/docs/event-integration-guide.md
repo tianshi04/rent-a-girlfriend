@@ -34,7 +34,8 @@ Notification Service hoạt động theo mô hình **Hybrid** (ADR-0005):
 
 | Event Type | Strategy | Recipient Field | Required Payload Fields | Template Variables |
 |:---|:---|:---|:---|:---|
-| `rentagf.booking.requested.v1` | 🟢 Smart | `companion_id` | `booking_id`, `client_id`, `companion_id` | — |
+| `rentagf.booking.requested.v1` | 🟢 Smart | `client_id` | `booking_id`, `client_id`, `companion_id` | `booking_id` |
+| `rentagf.booking.reserved.v1` | 🟢 Smart | `companion_id` | `booking_id`, `client_id`, `companion_id` | — |
 | `rentagf.booking.accepted.v1` | 🟢 Smart | `client_id` | `booking_id`, `client_id`, `companion_id` | `booking_id` |
 | `rentagf.booking.rejected.v1` | 🟢 Smart | `client_id` | `booking_id`, `client_id`, `companion_id`, `reason` | `booking_id` |
 | `rentagf.booking.cancelled.v1` | 🟢 Smart | (đối phương) | `booking_id`, `client_id`, `companion_id`, `actor_role` | `booking_id`, `actor_role` |
