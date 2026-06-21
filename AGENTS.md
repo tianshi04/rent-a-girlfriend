@@ -90,6 +90,7 @@
 
 ### Service Mesh & Auth
 - **Istio Ambient Mode** (Sidecar-less): L4 mTLS via ztunnel, L7 JWT/Routing via Waypoint.
+- **Istio Ambient Standards**: Refer to and strictly follow [docs/06_DevOps_and_CI_CD/03_istio_ambient_standards.md](docs/06_DevOps_and_CI_CD/03_istio_ambient_standards.md) for all Kubernetes namespace, Waypoint proxy, and network isolation configurations. Never configure these resources manually via CLI on persistent environments.
 - **Auth Offloading**: NEVER implement JWT verification in microservice code. Verification is offloaded to Istio Waypoint.
 - **Header Injection** (by Istio after JWT verification):
   - `user-id` (from `sub`), `user-email` (from `email`), `user-role` (from `role`), `user-status` (from `status`).
