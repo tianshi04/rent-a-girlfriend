@@ -1,0 +1,19 @@
+# Ignore git and agent configs
+.git
+.agents
+.github
+
+# Ignore Python virtualenvs and caches
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+
+# Ignore Rust build artifacts
+**/target/
+
+# Ignore Java/Gradle build artifacts
+**/build/
+**/.gradle/
+
+# Ignore Go build binaries
+**/bin/

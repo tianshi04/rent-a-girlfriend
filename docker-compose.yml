@@ -1,0 +1,330 @@
+version: '3.8'
+
+services:
+  # ----------------- INFRASTRUCTURE -----------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./infra/postgres/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@rentgf.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8085:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  api-gateway:
+    image: nginx:alpine
+    container_name: api-gateway
+    ports:
+      - "8000:80"
+    volumes:
+      - ./infra/gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - identity-service
+      - profile-service
+      - booking-service
+      - interaction-service
+      - notification-service
+      - finance-service
+      - dispute-service
+
+  # ----------------- MICROSERVICES -----------------
+  identity-service:
+    image: ghcr.io/tianshi04/rent-a-girlfriend/identity-service:latest
+    container_name: identity-service
+    environment:
+      SERVER_PORT: "8080"
+      GRPC_PORT: "50051"
+      GIN_MODE: "release"
+      DB_URL: "postgres://postgres:postgres@postgres:5432/identity_service?sslmode=disable"
+      REDIS_URL: "redis://redis:6379"
+      KAFKA_BROKERS: "kafka:9092"
+      KAFKA_TOPIC_IDENTITY: "identity-events"
+      ENABLE_TEST_ROUTES: "true"
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET}"
+      GOOGLE_REDIRECT_URI: "http://localhost:8000/api/v1/auth/google/callback"
+      JWT_ACCESS_TTL_MINUTES: "15"
+      JWT_REFRESH_TTL_DAYS: "7"
+      JWT_ISSUER: "identity-service"
+      OUTBOX_POLLING_INTERVAL_MS: "500"
+      OUTBOX_BATCH_SIZE: "50"
+      CLEANUP_INTERVAL_MINUTES: "60"
+      CLEANUP_RETENTION_DAYS: "7"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  profile-service:
+    image: ghcr.io/tianshi04/rent-a-girlfriend/profile-service:latest
+    container_name: profile-service
+    environment:
+      SERVER_PORT: "8080"
+      GRPC_PORT: "50051"
+      APP_ENV: "development"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_USER: "postgres"
+      DB_PASSWORD: "postgres"
+      DB_NAME: "profile_service"
+      DB_SSLMODE: "disable"
+      KAFKA_BROKERS: "kafka:9092"
+      KAFKA_TOPIC_PROFILE: "profile.events"
+      OUTBOX_POLLING_INTERVAL_MS: "500"
+      OUTBOX_BATCH_SIZE: "50"
+      DB_CLEANUP_INTERVAL_MINUTES: "30"
+      OUTBOX_RETENTION_DAYS: "1"
+      S3_ENDPOINT_URL: "http://localhost:9000"
+      S3_REGION: "us-east-1"
+      S3_ACCESS_KEY_ID: "dummy"
+      S3_SECRET_ACCESS_KEY: "dummy"
+      S3_BUCKET_NAME: "rentgf-media"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  booking-service:
+    image: ghcr.io/tianshi04/rent-a-girlfriend/booking-service:latest
+    container_name: booking-service
+    environment:
+      SERVER_PORT: "8080"
+      GRPC_PORT: "50051"
+      GIN_MODE: "release"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_USER: "postgres"
+      DB_PASSWORD: "postgres"
+      DB_NAME: "booking_db"
+      DB_SSLMODE: "disable"
+      DATABASE_URL: "postgres://postgres:postgres@postgres:5432/booking_db?sslmode=disable"
+      KAFKA_BROKERS: "kafka:9092"
+      KAFKA_TOPIC_BOOKING: "booking.events"
+      KAFKA_TOPIC_FINANCE: "finance.events"
+      KAFKA_TOPIC_INTERACTION: "interaction.events"
+      KAFKA_TOPIC_DISPUTE: "dispute.events"
+      PROFILE_SERVICE_ADDR: "profile-service:50051"
+      FINANCE_SERVICE_ADDR: "finance-service:50051"
+      CLEANUP_INTERVAL_MINUTES: "60"
+      CLEANUP_RETENTION_DAYS: "30"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  interaction-service:
+    image: ghcr.io/tianshi04/rent-a-girlfriend/interaction-service:latest
+    container_name: interaction-service
+    environment:
+      SERVER_PORT: "8080"
+      GRPC_PORT: "50051"
+      APP_ENV: "development"
+      DATABASE_URL: "postgres://postgres:postgres@postgres:5432/interaction_service?sslmode=disable"
+      KAFKA_BROKERS: "kafka:9092"
+      KAFKA_TOPIC_INTERACTION: "interaction.events"
+      KAFKA_TOPIC_BOOKING: "booking.events"
+      KAFKA_GROUP_ID: "interaction-service-group"
+      OUTBOX_POLLING_INTERVAL_MS: "500"
+      OUTBOX_BATCH_SIZE: "50"
+      DB_CLEANUP_INTERVAL_MINUTES: "30"
+      PROCESSED_EVENTS_RETENTION_DAYS: "7"
+      OUTBOX_RETENTION_DAYS: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  notification-service:
+    image: ghcr.io/tianshi04/rent-a-girlfriend/notification-service:latest
+    container_name: notification-service
+    environment:
+      SERVER_PORT: "8080"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_NAME: "notification_db"
+      DB_USERNAME: "postgres"
+      DB_PASSWORD: "postgres"
+      DB_OPTIONS: ""
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: "always"
+      MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+      SMTP_HOST: "localhost"
+      SMTP_PORT: "2525"
+      TEMPLATES_PATH: "classpath:templates.yaml"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  finance-service:
+    image: ghcr.io/tianshi04/rent-a-girlfriend/finance-service:latest
+    container_name: finance-service
+    environment:
+      SERVER_PORT: "8080"
+      GRPC_PORT: "50051"
+      APP_ENV: "development"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_USER: "postgres"
+      DB_PASSWORD: "postgres"
+      DB_NAME: "finance_service"
+      DB_SSLMODE: "disable"
+      KAFKA_BROKERS: "kafka:9092"
+      KAFKA_TOPIC_FINANCE: "finance.events"
+      KAFKA_TOPIC_IDENTITY: "identity.events"
+      KAFKA_TOPIC_BOOKING: "booking.events"
+      KAFKA_GROUP_ID: "finance-service-group"
+      OUTBOX_POLLING_INTERVAL_MS: "500"
+      OUTBOX_BATCH_SIZE: "50"
+      DB_CLEANUP_INTERVAL_MINUTES: "30"
+      OUTBOX_RETENTION_DAYS: "1"
+      VNPAY_TMN_CODE: "DEMO2019"
+      VNPAY_HASH_SECRET: "SHA512SECRETKEYEXAMPLE"
+      VNPAY_URL: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+      VNPAY_RETURN_URL: "http://localhost:8080/api/v1/finance/vnpay-return"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  dispute-service:
+    image: ghcr.io/tianshi04/rent-a-girlfriend/dispute-service:latest
+    container_name: dispute-service
+    environment:
+      SERVER_PORT: "8082"
+      GRPC_PORT: "50051"
+      APP_ENV: "development"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_USER: "postgres"
+      DB_PASSWORD: "postgres"
+      DB_NAME: "dispute_service"
+      DB_SSLMODE: "disable"
+      KAFKA_BROKERS: "kafka:9092"
+      KAFKA_TOPIC_DISPUTE: "dispute.events"
+      OUTBOX_POLLING_INTERVAL_MS: "500"
+      OUTBOX_BATCH_SIZE: "50"
+      SAGA_RETRY_INTERVAL_SECONDS: "5.0"
+      USE_MOCKS: "false"
+      FINANCE_SERVICE_ADDR: "finance-service:50051"
+      INTERACTION_SERVICE_ADDR: "interaction-service:50051"
+      DB_CLEANUP_INTERVAL_MINUTES: "30"
+      PROCESSED_EVENTS_RETENTION_DAYS: "7"
+      OUTBOX_RETENTION_DAYS: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # ----------------- DB SEEDER -----------------
+  db-seeder:
+    image: alpine:3.19
+    container_name: db-seeder
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      identity-service:
+        condition: service_started
+      profile-service:
+        condition: service_started
+      booking-service:
+        condition: service_started
+      interaction-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+      finance-service:
+        condition: service_started
+      dispute-service:
+        condition: service_started
+    volumes:
+      - ./infra/postgres:/scripts
+    entrypoint: [ "/bin/sh", "/scripts/seed-data.sh" ]
