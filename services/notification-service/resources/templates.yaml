@@ -6,6 +6,19 @@ events:
   # --- BOOKING EVENTS ---
   booking.booking-requested.v1:
     type: "TRANSACTIONAL"
+    recipient_field: "clientId"
+    priority: "HIGH"
+    channels: ["SSE"]
+    template:
+      vi:
+        title: "Đang xử lý thanh toán ⏳"
+        body: "Yêu cầu đặt lịch #{{bookingId}} của bạn đang chờ thanh toán."
+      en:
+        title: "Payment Pending ⏳"
+        body: "Your booking request #{{bookingId}} is pending payment."
+
+  booking.booking-reserved.v1:
+    type: "TRANSACTIONAL"
     recipient_field: "companionId"
     priority: "HIGH"
     channels: ["SSE", "FCM"]
