@@ -99,6 +99,7 @@
 - Standalone Dockerfile per service (multi-stage build).
 - Configuration via environment variables (`.env.example`). No hard-coded values.
 - **Port Conventions**: HTTP on `8080` (`SERVER_PORT`), gRPC on `50051` (`GRPC_PORT`).
+- **Secret Management**: Use External Secrets Operator (ESO) integrated with external HashiCorp Vault. For detailed guidelines, refer to `docs/06_DevOps_and_CI_CD/04_secret_management_standards.md`.
 
 ## 9. Quality & Documentation
 - **Self-Documenting**: Each service manages its own `docs/` directory. Update documentation immediately upon business logic changes.
