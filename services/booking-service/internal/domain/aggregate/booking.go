@@ -196,7 +196,8 @@ func (b *Booking) Cancel(actorRole vo.ActorRole, now time.Time) error {
 	}
 
 	// Emit appropriate refund event/command based on state
-	if originalStatus == vo.StatusPending {
+	switch originalStatus {
+	case vo.StatusPending:
 		b.addEvent(event.BookingUnfreezeRequested{
 			BookingUnfreezeRequested: &bookingv1.BookingUnfreezeRequested{
 				BookingId:  b.id.String(),
@@ -205,7 +206,7 @@ func (b *Booking) Cancel(actorRole vo.ActorRole, now time.Time) error {
 				OccurredAt: timestamppb.New(now),
 			},
 		})
-	} else if originalStatus == vo.StatusAccepted {
+	case vo.StatusAccepted:
 		if !b.isLateCancel || actorRole == vo.RoleCompanion || string(actorRole) == "SYSTEM" {
 			b.addEvent(event.RefundEscrowCommand{
 				RefundEscrowRequest: &financev1.RefundEscrowRequest{
