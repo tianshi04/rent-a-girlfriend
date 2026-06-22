@@ -119,6 +119,65 @@ class FinanceCommandService:
                     )
             raise e
 
+    async def unfreeze_coin(
+        self,
+        user_id: str,
+        amount: int,
+        booking_id: str,
+    ) -> str:
+        """
+        Unfreezes coins in Client's wallet for a cancelled/rejected booking.
+        """
+        try:
+            wallet = await self.wallet_repo.find_by_user_id(user_id, lock=True)
+            if not wallet:
+                raise WalletNotFoundError(user_id)
+
+            money = Money(amount)
+
+            # Unfreeze coin and append domain event
+            wallet.unfreeze_coin(money, booking_id)
+
+            # Create ledger transaction log for refund/unfreeze
+            txn_id = str(uuid.uuid4())
+            txn = Transaction.create(
+                transaction_id=txn_id,
+                user_id=user_id,
+                amount=money,
+                type=TransactionType.REFUND,
+                status="SUCCESS",
+                reference_id=booking_id,
+            )
+
+            await self.wallet_repo.save(wallet)
+            await self.transaction_repo.save(txn)
+
+            # Commit outbox events
+            for event in wallet.clear_events():
+                self.event_publisher.publish(event)
+
+            return txn_id
+        except Exception as e:
+            if self.session:
+                await self.session.rollback()
+                try:
+                    from internal.domain.events import RefundFailed
+
+                    event = RefundFailed(
+                        booking_id=booking_id,
+                        client_id=user_id or "00000000-0000-0000-0000-000000000000",
+                        reason=str(e),
+                    )
+                    self.event_publisher.publish(event)
+                    await self.session.commit()
+                except Exception as pub_err:
+                    import logging
+
+                    logging.getLogger("finance_command").error(
+                        f"Failed to publish RefundFailed: {pub_err}", exc_info=True
+                    )
+            raise e
+
     async def transfer_to_escrow(
         self, user_id: str, amount: int, booking_id: str
     ) -> str:

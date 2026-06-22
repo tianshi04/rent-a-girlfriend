@@ -256,6 +256,37 @@ async def run_booking_event_listener():
                         logger.warning(
                             f"Missing required fields (bookingId, clientId, refundAmount) in refund-escrow event: {msg.value}"
                         )
+
+                elif event_type == "finance.unfreeze-coin.v1":
+                    event_data = msg.value.get("data", {})
+                    booking_id = event_data.get("bookingId") or event_data.get("booking_id")
+                    client_id = event_data.get("userId") or event_data.get("user_id")
+                    amount = event_data.get("amount")
+
+                    if booking_id and client_id and amount is not None:
+                        logger.info(
+                            f"Processing coin unfreeze: booking_id={booking_id}, client_id={client_id}, amount={amount}"
+                        )
+                        async with SessionLocal() as session:
+                            cmd_service = bootstrap_services(session)
+                            try:
+                                await cmd_service.unfreeze_coin(
+                                    user_id=client_id,
+                                    amount=int(amount),
+                                    booking_id=booking_id,
+                                )
+                                await session.commit()
+                                logger.info(
+                                    f"Coin unfreeze processed successfully for booking_id={booking_id}"
+                                )
+                            except Exception as unfreeze_err:
+                                logger.warning(
+                                    f"Handled error while unfreezing coins for booking_id={booking_id}: {unfreeze_err}"
+                                )
+                    else:
+                        logger.warning(
+                            f"Missing required fields (bookingId, userId, amount) in unfreeze event: {msg.value}"
+                        )
             except Exception as e:
                 logger.error(f"Error processing booking event: {e}", exc_info=True)
     except asyncio.CancelledError:
