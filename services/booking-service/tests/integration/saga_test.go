@@ -52,16 +52,6 @@ func publishTestKafkaEvent(t *testing.T, brokers []string, topic string, eventID
 	}
 }
 
-type mockFinanceService struct{}
-
-func (m *mockFinanceService) FreezeCoin(ctx context.Context, clientID vo.ClientID, amount vo.Money) error {
-	return nil
-}
-
-func (m *mockFinanceService) UnfreezeCoin(ctx context.Context, clientID vo.ClientID, amount vo.Money) error {
-	return nil
-}
-
 func TestSagaLifecycle_E2E_Kafka(t *testing.T) {
 	kafkaBrokers := os.Getenv("KAFKA_BROKERS")
 	if kafkaBrokers == "" {
@@ -86,7 +76,7 @@ func TestSagaLifecycle_E2E_Kafka(t *testing.T) {
 	sagaRepo := persistence.NewBookingSagaRepo(db)
 	outbox := persistence.NewOutboxPublisher(db)
 
-	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox, &mockFinanceService{})
+	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox)
 
 	// Injecting dummy dispute handler
 	disputeHandler := command.NewDisputeBookingHandler(bookingRepo)

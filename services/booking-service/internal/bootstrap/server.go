@@ -112,7 +112,7 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 	)
 
 	// --- SAGA Coordinator ---
-	sagaCoordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outboxPublisher, financeService)
+	sagaCoordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outboxPublisher)
 
 	// --- Kafka Consumer ---
 	kafkaConsumer := messaging.NewKafkaConsumer(

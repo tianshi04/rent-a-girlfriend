@@ -43,8 +43,9 @@ bookingProtos=(
     "booking/v1/events/booking_cancelled_late.proto"
     "booking/v1/events/booking_completed.proto"
     "booking/v1/events/booking_rejected.proto"
-    "booking/v1/events/booking_requested.proto"
     "booking/v1/events/booking_reserved.proto"
+    "booking/v1/events/booking_coins_freeze_requested.proto"
+    "booking/v1/events/booking_coins_unfreeze_requested.proto"
     "booking/v1/events/booking_timed_out.proto"
     "booking/v1/service/booking_service.proto"
 )

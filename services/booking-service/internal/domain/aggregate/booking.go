@@ -60,14 +60,12 @@ func NewBooking(
 		updatedAt:   now,
 	}
 
-	b.addEvent(event.BookingRequested{
-		BookingRequested: &bookingv1.BookingRequested{
-			BookingId:   b.id.String(),
-			ClientId:    b.clientID.String(),
-			CompanionId: b.companionID.String(),
-			Price:       b.scenario.Price().Amount(),
-			StartTime:   timestamppb.New(b.timeRange.StartTime()),
-			OccurredAt:  timestamppb.New(now),
+	b.addEvent(event.BookingCoinsFreezeRequested{
+		BookingCoinsFreezeRequested: &bookingv1.BookingCoinsFreezeRequested{
+			BookingId:  b.id.String(),
+			ClientId:   b.clientID.String(),
+			Amount:     b.scenario.Price().Amount(),
+			OccurredAt: timestamppb.New(now),
 		},
 	})
 

@@ -131,8 +131,6 @@ func (r *BookingRepositoryImpl) update(db *gorm.DB, booking *aggregate.Booking) 
 
 func extractBookingID(evt event.DomainEvent) string {
 	switch e := evt.(type) {
-	case event.BookingRequested:
-		return e.BookingId
 	case event.BookingReserved:
 		return e.BookingId
 	case event.BookingAccepted:
@@ -147,13 +145,15 @@ func extractBookingID(evt event.DomainEvent) string {
 		return e.BookingId
 	case event.BookingCompleted:
 		return e.BookingId
+	case event.BookingCoinsFreezeRequested:
+		return e.BookingId
+	case event.BookingCoinsUnfreezeRequested:
+		return e.BookingId
 	case event.TransferToEscrowCommand:
 		return e.BookingId
 	case event.CreateChatRoomCommand:
 		return e.BookingId
 	case event.RefundEscrowCommand:
-		return e.BookingId
-	case *event.BookingRequested:
 		return e.BookingId
 	case *event.BookingReserved:
 		return e.BookingId
@@ -168,6 +168,10 @@ func extractBookingID(evt event.DomainEvent) string {
 	case *event.BookingTimedOut:
 		return e.BookingId
 	case *event.BookingCompleted:
+		return e.BookingId
+	case *event.BookingCoinsFreezeRequested:
+		return e.BookingId
+	case *event.BookingCoinsUnfreezeRequested:
 		return e.BookingId
 	case *event.TransferToEscrowCommand:
 		return e.BookingId

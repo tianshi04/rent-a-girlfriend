@@ -15,14 +15,7 @@ type DomainEvent interface {
 	ToProto() proto.Message
 }
 
-// BookingRequested is raised when a Client creates a booking request.
-type BookingRequested struct {
-	*bookingv1.BookingRequested
-}
 
-func (e BookingRequested) EventType() string      { return "booking.booking-requested.v1" }
-func (e BookingRequested) OccurredAt() time.Time  { return e.BookingRequested.GetOccurredAt().AsTime() }
-func (e BookingRequested) ToProto() proto.Message { return e.BookingRequested }
 
 // BookingAccepted is raised when a Companion accepts a booking.
 type BookingAccepted struct {
@@ -32,6 +25,36 @@ type BookingAccepted struct {
 func (e BookingAccepted) EventType() string      { return "booking.booking-accepted.v1" }
 func (e BookingAccepted) OccurredAt() time.Time  { return e.BookingAccepted.GetOccurredAt().AsTime() }
 func (e BookingAccepted) ToProto() proto.Message { return e.BookingAccepted }
+
+// BookingCoinsFreezeRequested is raised when a booking requests coins to be frozen.
+type BookingCoinsFreezeRequested struct {
+	*bookingv1.BookingCoinsFreezeRequested
+}
+
+func (e BookingCoinsFreezeRequested) EventType() string {
+	return "booking.booking-coins-freeze-requested.v1"
+}
+func (e BookingCoinsFreezeRequested) OccurredAt() time.Time {
+	return e.BookingCoinsFreezeRequested.GetOccurredAt().AsTime()
+}
+func (e BookingCoinsFreezeRequested) ToProto() proto.Message {
+	return e.BookingCoinsFreezeRequested
+}
+
+// BookingCoinsUnfreezeRequested is raised when a booking requests coins to be unfrozen.
+type BookingCoinsUnfreezeRequested struct {
+	*bookingv1.BookingCoinsUnfreezeRequested
+}
+
+func (e BookingCoinsUnfreezeRequested) EventType() string {
+	return "booking.booking-coins-unfreeze-requested.v1"
+}
+func (e BookingCoinsUnfreezeRequested) OccurredAt() time.Time {
+	return e.BookingCoinsUnfreezeRequested.GetOccurredAt().AsTime()
+}
+func (e BookingCoinsUnfreezeRequested) ToProto() proto.Message {
+	return e.BookingCoinsUnfreezeRequested
+}
 
 // BookingRejected is raised when a Companion rejects a booking.
 type BookingRejected struct {

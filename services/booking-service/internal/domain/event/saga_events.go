@@ -38,3 +38,13 @@ type RefundEscrowCommand struct {
 func (e RefundEscrowCommand) EventType() string      { return "finance.refund-escrow.v1" }
 func (e RefundEscrowCommand) OccurredAt() time.Time  { return e.Timestamp }
 func (e RefundEscrowCommand) ToProto() proto.Message { return e.RefundEscrowRequest }
+
+// UnfreezeCoinCommand is raised by the SAGA coordinator/command handlers to request coin unfreeze asynchronously.
+type UnfreezeCoinCommand struct {
+	*financev1.FreezeCoinRequest
+	Timestamp time.Time
+}
+
+func (e UnfreezeCoinCommand) EventType() string      { return "finance.unfreeze-coin.v1" }
+func (e UnfreezeCoinCommand) OccurredAt() time.Time  { return e.Timestamp }
+func (e UnfreezeCoinCommand) ToProto() proto.Message { return e.FreezeCoinRequest }

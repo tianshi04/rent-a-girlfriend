@@ -7,6 +7,9 @@ import (
 
 	"gorm.io/gorm"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	bookingv1 "github.com/rent-a-girlfriend/booking-service/gen/proto"
 	financev1 "github.com/rent-a-girlfriend/booking-service/gen/proto/financev1"
 	interactionv1 "github.com/rent-a-girlfriend/booking-service/gen/proto/interactionv1"
 	"github.com/rent-a-girlfriend/booking-service/internal/application/port"
@@ -20,11 +23,10 @@ import (
 // SagaCoordinator handles inbound async events from Kafka and drives the
 // BookingAcceptSaga through its state machine.
 type SagaCoordinator struct {
-	bookingRepo    repository.BookingRepository
-	sagaRepo       repository.BookingSagaRepository
-	db             *gorm.DB
-	outbox         port.EventPublisher
-	financeService port.FinanceService
+	bookingRepo repository.BookingRepository
+	sagaRepo    repository.BookingSagaRepository
+	db          *gorm.DB
+	outbox      port.EventPublisher
 }
 
 func NewSagaCoordinator(
@@ -32,14 +34,12 @@ func NewSagaCoordinator(
 	sagaRepo repository.BookingSagaRepository,
 	db *gorm.DB,
 	outbox port.EventPublisher,
-	financeService port.FinanceService,
 ) *SagaCoordinator {
 	return &SagaCoordinator{
-		bookingRepo:    bookingRepo,
-		sagaRepo:       sagaRepo,
-		db:             db,
-		outbox:         outbox,
-		financeService: financeService,
+		bookingRepo: bookingRepo,
+		sagaRepo:    sagaRepo,
+		db:          db,
+		outbox:      outbox,
 	}
 }
 
@@ -307,10 +307,18 @@ func (c *SagaCoordinator) HandleCoinsFrozen(ctx context.Context, bookingID strin
 		}
 
 		if booking.Status() != vo.StatusPendingReserving {
-			// If the booking has already been cancelled or rejected, release the frozen coins
+			// If the booking has already been cancelled or rejected, release the frozen coins asynchronously
 			if booking.Status() == vo.StatusCancelled || booking.Status() == vo.StatusRejected {
-				if err := c.financeService.UnfreezeCoin(txCtx, booking.ClientID(), booking.Scenario().Price()); err != nil {
-					log.Printf("[SAGA] Failed to unfreeze coin for already cancelled/rejected booking %s: %v", booking.ID().String(), err)
+				evt := event.BookingCoinsUnfreezeRequested{
+					BookingCoinsUnfreezeRequested: &bookingv1.BookingCoinsUnfreezeRequested{
+						BookingId:  booking.ID().String(),
+						ClientId:   booking.ClientID().String(),
+						Amount:     booking.Scenario().Price().Amount(),
+						OccurredAt: timestamppb.Now(),
+					},
+				}
+				if err := c.outbox.Publish(txCtx, evt); err != nil {
+					log.Printf("[SAGA] Failed to publish BookingCoinsUnfreezeRequested event for already cancelled/rejected booking %s: %v", booking.ID().String(), err)
 				}
 			}
 			// For all other statuses (PENDING, ACCEPTED, COMPLETED, DISPUTED, RESOLVED), treat as a successful no-op
