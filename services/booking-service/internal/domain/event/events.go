@@ -39,21 +39,6 @@ func (e BookingRequested) ToProto() proto.Message {
 	return e.BookingRequested
 }
 
-// BookingUnfreezeRequested is raised when a booking requests coins to be unfrozen.
-type BookingUnfreezeRequested struct {
-	*bookingv1.BookingUnfreezeRequested
-}
-
-func (e BookingUnfreezeRequested) EventType() string {
-	return "booking.booking-unfreeze-requested.v1"
-}
-func (e BookingUnfreezeRequested) OccurredAt() time.Time {
-	return e.BookingUnfreezeRequested.GetOccurredAt().AsTime()
-}
-func (e BookingUnfreezeRequested) ToProto() proto.Message {
-	return e.BookingUnfreezeRequested
-}
-
 // BookingRejected is raised when a Companion rejects a booking.
 type BookingRejected struct {
 	*bookingv1.BookingRejected

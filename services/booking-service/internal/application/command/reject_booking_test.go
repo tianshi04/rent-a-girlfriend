@@ -44,29 +44,29 @@ func TestRejectBooking_Success(t *testing.T) {
 		t.Errorf("expected REJECTED status, got %s", res.Status())
 	}
 
-	// Verify BookingUnfreezeRequested event is triggered
+	// Verify CoinsUnfreezeRequested event is triggered
 	events := res.Events()
 	var hasUnfreeze bool
 	for _, e := range events {
-		if e.EventType() == "booking.booking-unfreeze-requested.v1" {
+		if e.EventType() == "finance.coins-unfreeze-requested.v1" {
 			hasUnfreeze = true
-			if unfreeze, ok := e.(event.BookingUnfreezeRequested); ok {
+			if unfreeze, ok := e.(event.CoinsUnfreezeRequested); ok {
 				if unfreeze.BookingId != bid.String() {
 					t.Errorf("expected booking ID %s, got %s", bid.String(), unfreeze.BookingId)
 				}
-				if unfreeze.ClientId != clientID.String() {
-					t.Errorf("expected client ID %s, got %s", clientID.String(), unfreeze.ClientId)
+				if unfreeze.UserId != clientID.String() {
+					t.Errorf("expected user ID %s, got %s", clientID.String(), unfreeze.UserId)
 				}
 				if unfreeze.Amount != price.Amount() {
 					t.Errorf("expected amount %d, got %d", price.Amount(), unfreeze.Amount)
 				}
 			} else {
-				t.Errorf("expected event of type BookingUnfreezeRequested, got %T", e)
+				t.Errorf("expected event of type CoinsUnfreezeRequested, got %T", e)
 			}
 		}
 	}
 	if !hasUnfreeze {
-		t.Error("expected BookingUnfreezeRequested event to be emitted")
+		t.Error("expected CoinsUnfreezeRequested event to be emitted")
 	}
 }
 

@@ -45,7 +45,6 @@ bookingProtos=(
     "booking/v1/events/booking_rejected.proto"
     "booking/v1/events/booking_reserved.proto"
     "booking/v1/events/booking_requested.proto"
-    "booking/v1/events/booking_unfreeze_requested.proto"
     "booking/v1/events/booking_timed_out.proto"
     "booking/v1/service/booking_service.proto"
 )
@@ -63,7 +62,9 @@ financeProtos=(
     "finance/v1/messages/check_balance_request.proto"
     "finance/v1/messages/check_balance_response.proto"
     "finance/v1/events/coins_freeze_failed.proto"
+    "finance/v1/events/coins_freeze_requested.proto"
     "finance/v1/events/coins_frozen.proto"
+    "finance/v1/events/coins_unfreeze_requested.proto"
     "finance/v1/events/coins_unfrozen.proto"
     "finance/v1/events/escrow_created.proto"
     "finance/v1/events/escrow_failed.proto"

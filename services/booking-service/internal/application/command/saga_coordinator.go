@@ -9,8 +9,8 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	bookingv1 "github.com/rent-a-girlfriend/booking-service/gen/proto"
 	financev1 "github.com/rent-a-girlfriend/booking-service/gen/proto/financev1"
+	financev1events "github.com/rent-a-girlfriend/booking-service/gen/proto/financev1/events"
 	interactionv1 "github.com/rent-a-girlfriend/booking-service/gen/proto/interactionv1"
 	"github.com/rent-a-girlfriend/booking-service/internal/application/port"
 	domainerr "github.com/rent-a-girlfriend/booking-service/internal/domain/errors"
@@ -309,16 +309,17 @@ func (c *SagaCoordinator) HandleCoinsFrozen(ctx context.Context, bookingID strin
 		if booking.Status() != vo.StatusPendingReserving {
 			// If the booking has already been cancelled or rejected, release the frozen coins asynchronously
 			if booking.Status() == vo.StatusCancelled || booking.Status() == vo.StatusRejected {
-				evt := event.BookingUnfreezeRequested{
-					BookingUnfreezeRequested: &bookingv1.BookingUnfreezeRequested{
+				evt := event.CoinsUnfreezeRequested{
+					CoinsUnfreezeRequested: &financev1events.CoinsUnfreezeRequested{
 						BookingId:  booking.ID().String(),
-						ClientId:   booking.ClientID().String(),
+						UserId:     booking.ClientID().String(),
 						Amount:     booking.Scenario().Price().Amount(),
 						OccurredAt: timestamppb.Now(),
 					},
+					Timestamp: time.Now(),
 				}
 				if err := c.outbox.Publish(txCtx, evt); err != nil {
-					log.Printf("[SAGA] Failed to publish BookingUnfreezeRequested event for already cancelled/rejected booking %s: %v", booking.ID().String(), err)
+					log.Printf("[SAGA] Failed to publish CoinsUnfreezeRequested event for already cancelled/rejected booking %s: %v", booking.ID().String(), err)
 				}
 			}
 			// For all other statuses (PENDING, ACCEPTED, COMPLETED, DISPUTED, RESOLVED), treat as a successful no-op

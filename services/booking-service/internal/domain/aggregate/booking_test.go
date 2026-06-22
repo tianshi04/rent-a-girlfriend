@@ -47,11 +47,14 @@ func TestNewBooking_Success(t *testing.T) {
 		t.Error("expected non-zero booking ID")
 	}
 	events := booking.Events()
-	if len(events) != 1 {
-		t.Fatalf("expected 1 event, got %d", len(events))
+	if len(events) != 2 {
+		t.Fatalf("expected 2 events, got %d", len(events))
 	}
 	if events[0].EventType() != "booking.booking-requested.v1" {
 		t.Errorf("expected BookingRequested event, got %s", events[0].EventType())
+	}
+	if events[1].EventType() != "finance.coins-freeze-requested.v1" {
+		t.Errorf("expected CoinsFreezeRequested event, got %s", events[1].EventType())
 	}
 }
 
@@ -354,8 +357,8 @@ func TestCancel_CancelPendingBooking(t *testing.T) {
 	}
 
 	events := booking.Events()
-	if len(events) != 2 || events[0].EventType() != "booking.booking-cancelled-early.v1" || events[1].EventType() != "booking.booking-unfreeze-requested.v1" {
-		t.Errorf("expected BookingCancelledEarly and BookingUnfreezeRequested events, got %v", events)
+	if len(events) != 2 || events[0].EventType() != "booking.booking-cancelled-early.v1" || events[1].EventType() != "finance.coins-unfreeze-requested.v1" {
+		t.Errorf("expected BookingCancelledEarly and CoinsUnfreezeRequested events, got %v", events)
 	}
 }
 
@@ -482,14 +485,17 @@ func TestConfirmReserved_Success(t *testing.T) {
 	}
 
 	events := booking.Events()
-	if len(events) != 2 {
-		t.Fatalf("expected 2 events, got %d", len(events))
+	if len(events) != 3 {
+		t.Fatalf("expected 3 events, got %d", len(events))
 	}
 	if events[0].EventType() != "booking.booking-requested.v1" {
 		t.Errorf("expected BookingRequested event, got %s", events[0].EventType())
 	}
-	if events[1].EventType() != "booking.booking-reserved.v1" {
-		t.Errorf("expected BookingReserved event, got %s", events[1].EventType())
+	if events[1].EventType() != "finance.coins-freeze-requested.v1" {
+		t.Errorf("expected CoinsFreezeRequested event, got %s", events[1].EventType())
+	}
+	if events[2].EventType() != "booking.booking-reserved.v1" {
+		t.Errorf("expected BookingReserved event, got %s", events[2].EventType())
 	}
 }
 

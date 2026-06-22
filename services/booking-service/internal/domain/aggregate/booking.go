@@ -5,6 +5,7 @@ import (
 
 	bookingv1 "github.com/rent-a-girlfriend/booking-service/gen/proto"
 	financev1 "github.com/rent-a-girlfriend/booking-service/gen/proto/financev1"
+	financev1events "github.com/rent-a-girlfriend/booking-service/gen/proto/financev1/events"
 	domainerr "github.com/rent-a-girlfriend/booking-service/internal/domain/errors"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
@@ -63,11 +64,23 @@ func NewBooking(
 
 	b.addEvent(event.BookingRequested{
 		BookingRequested: &bookingv1.BookingRequested{
+			BookingId:   b.id.String(),
+			ClientId:    b.clientID.String(),
+			CompanionId: b.companionID.String(),
+			Price:       b.scenario.Price().Amount(),
+			StartTime:   timestamppb.New(b.timeRange.StartTime()),
+			OccurredAt:  timestamppb.New(now),
+		},
+	})
+
+	b.addEvent(event.CoinsFreezeRequested{
+		CoinsFreezeRequested: &financev1events.CoinsFreezeRequested{
 			BookingId:  b.id.String(),
-			ClientId:   b.clientID.String(),
+			UserId:     b.clientID.String(),
 			Amount:     b.scenario.Price().Amount(),
 			OccurredAt: timestamppb.New(now),
 		},
+		Timestamp: now,
 	})
 
 	return b, nil
@@ -145,13 +158,14 @@ func (b *Booking) Reject(companionID vo.CompanionID, reason string, now time.Tim
 		},
 	})
 
-	b.addEvent(event.BookingUnfreezeRequested{
-		BookingUnfreezeRequested: &bookingv1.BookingUnfreezeRequested{
+	b.addEvent(event.CoinsUnfreezeRequested{
+		CoinsUnfreezeRequested: &financev1events.CoinsUnfreezeRequested{
 			BookingId:  b.id.String(),
-			ClientId:   b.clientID.String(),
+			UserId:     b.clientID.String(),
 			Amount:     b.scenario.Price().Amount(),
 			OccurredAt: timestamppb.New(now),
 		},
+		Timestamp: now,
 	})
 	return nil
 }
@@ -198,13 +212,14 @@ func (b *Booking) Cancel(actorRole vo.ActorRole, now time.Time) error {
 	// Emit appropriate refund event/command based on state
 	switch originalStatus {
 	case vo.StatusPending:
-		b.addEvent(event.BookingUnfreezeRequested{
-			BookingUnfreezeRequested: &bookingv1.BookingUnfreezeRequested{
+		b.addEvent(event.CoinsUnfreezeRequested{
+			CoinsUnfreezeRequested: &financev1events.CoinsUnfreezeRequested{
 				BookingId:  b.id.String(),
-				ClientId:   b.clientID.String(),
+				UserId:     b.clientID.String(),
 				Amount:     b.scenario.Price().Amount(),
 				OccurredAt: timestamppb.New(now),
 			},
+			Timestamp: now,
 		})
 	case vo.StatusAccepted:
 		if !b.isLateCancel || actorRole == vo.RoleCompanion || string(actorRole) == "SYSTEM" {
@@ -283,13 +298,14 @@ func (b *Booking) SystemTimeout(now time.Time) error {
 		},
 	})
 
-	b.addEvent(event.BookingUnfreezeRequested{
-		BookingUnfreezeRequested: &bookingv1.BookingUnfreezeRequested{
+	b.addEvent(event.CoinsUnfreezeRequested{
+		CoinsUnfreezeRequested: &financev1events.CoinsUnfreezeRequested{
 			BookingId:  b.id.String(),
-			ClientId:   b.clientID.String(),
+			UserId:     b.clientID.String(),
 			Amount:     b.scenario.Price().Amount(),
 			OccurredAt: timestamppb.New(now),
 		},
+		Timestamp: now,
 	})
 	return nil
 }

@@ -147,7 +147,9 @@ func extractBookingID(evt event.DomainEvent) string {
 		return e.BookingId
 	case event.BookingRequested:
 		return e.BookingId
-	case event.BookingUnfreezeRequested:
+	case event.CoinsFreezeRequested:
+		return e.BookingId
+	case event.CoinsUnfreezeRequested:
 		return e.BookingId
 	case event.TransferToEscrowCommand:
 		return e.BookingId
@@ -171,7 +173,9 @@ func extractBookingID(evt event.DomainEvent) string {
 		return e.BookingId
 	case *event.BookingRequested:
 		return e.BookingId
-	case *event.BookingUnfreezeRequested:
+	case *event.CoinsFreezeRequested:
+		return e.BookingId
+	case *event.CoinsUnfreezeRequested:
 		return e.BookingId
 	case *event.TransferToEscrowCommand:
 		return e.BookingId

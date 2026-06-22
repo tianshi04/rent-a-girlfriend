@@ -6,6 +6,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	financev1 "github.com/rent-a-girlfriend/booking-service/gen/proto/financev1"
+	financev1events "github.com/rent-a-girlfriend/booking-service/gen/proto/financev1/events"
 	interactionv1 "github.com/rent-a-girlfriend/booking-service/gen/proto/interactionv1"
 )
 
@@ -48,3 +49,23 @@ type UnfreezeCoinCommand struct {
 func (e UnfreezeCoinCommand) EventType() string      { return "finance.unfreeze-coin.v1" }
 func (e UnfreezeCoinCommand) OccurredAt() time.Time  { return e.Timestamp }
 func (e UnfreezeCoinCommand) ToProto() proto.Message { return e.FreezeCoinRequest }
+
+// CoinsFreezeRequested is raised by the Booking aggregate to request coin freeze.
+type CoinsFreezeRequested struct {
+	*financev1events.CoinsFreezeRequested
+	Timestamp time.Time
+}
+
+func (e CoinsFreezeRequested) EventType() string      { return "finance.coins-freeze-requested.v1" }
+func (e CoinsFreezeRequested) OccurredAt() time.Time  { return e.Timestamp }
+func (e CoinsFreezeRequested) ToProto() proto.Message { return e.CoinsFreezeRequested }
+
+// CoinsUnfreezeRequested is raised by the Booking aggregate or SAGA coordinator to request coin unfreeze.
+type CoinsUnfreezeRequested struct {
+	*financev1events.CoinsUnfreezeRequested
+	Timestamp time.Time
+}
+
+func (e CoinsUnfreezeRequested) EventType() string      { return "finance.coins-unfreeze-requested.v1" }
+func (e CoinsUnfreezeRequested) OccurredAt() time.Time  { return e.Timestamp }
+func (e CoinsUnfreezeRequested) ToProto() proto.Message { return e.CoinsUnfreezeRequested }
