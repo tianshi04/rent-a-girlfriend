@@ -257,21 +257,11 @@ async def run_booking_event_listener():
                             f"Missing required fields (bookingId, clientId, refundAmount) in refund-escrow event: {msg.value}"
                         )
 
-                elif event_type in (
-                    "booking.booking-unfreeze-requested.v1",
-                    "finance.unfreeze-coin.v1",
-                ):
+                elif event_type == "finance.unfreeze-coin.v1":
                     event_data = msg.value.get("data", {})
-                    booking_id = event_data.get("bookingId") or event_data.get(
-                        "booking_id"
-                    )
-                    client_id = (
-                        event_data.get("userId")
-                        or event_data.get("user_id")
-                        or event_data.get("clientId")
-                        or event_data.get("client_id")
-                    )
-                    amount = event_data.get("amount") or event_data.get("price")
+                    booking_id = event_data.get("bookingId") or event_data.get("booking_id")
+                    client_id = event_data.get("userId") or event_data.get("user_id")
+                    amount = event_data.get("amount")
 
                     if booking_id and client_id and amount is not None:
                         logger.info(
@@ -295,7 +285,7 @@ async def run_booking_event_listener():
                                 )
                     else:
                         logger.warning(
-                            f"Missing required fields (bookingId, userId/clientId, amount) in unfreeze event: {msg.value}"
+                            f"Missing required fields (bookingId, userId, amount) in unfreeze event: {msg.value}"
                         )
             except Exception as e:
                 logger.error(f"Error processing booking event: {e}", exc_info=True)
