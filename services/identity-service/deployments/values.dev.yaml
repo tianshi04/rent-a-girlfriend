@@ -19,3 +19,8 @@ config:
 
 # No anti-affinity needed with a single replica.
 affinity: {}
+
+namespace:
+  istio:
+    # Do not label the namespace for Istio Ambient in local/dev clusters
+    ambientEnabled: false
