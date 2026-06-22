@@ -19,7 +19,8 @@ func TestSagaCoordinator_HandleEscrowSuccess(t *testing.T) {
 	db := NewMockGormDB()
 	outbox := persistence.NewOutboxPublisher(db)
 
-	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox)
+	finance := &MockFinanceService{}
+	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox, finance)
 
 	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
 	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
@@ -55,7 +56,8 @@ func TestSagaCoordinator_HandleEscrowFailed(t *testing.T) {
 	db := NewMockGormDB()
 	outbox := persistence.NewOutboxPublisher(db)
 
-	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox)
+	finance := &MockFinanceService{}
+	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox, finance)
 
 	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
 	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
@@ -97,7 +99,8 @@ func TestSagaCoordinator_HandleChatRoomCreated_Success(t *testing.T) {
 	db := NewMockGormDB()
 	outbox := persistence.NewOutboxPublisher(db)
 
-	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox)
+	finance := &MockFinanceService{}
+	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox, finance)
 
 	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
 	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
@@ -139,7 +142,8 @@ func TestSagaCoordinator_HandleChatRoomCreated_OverlapCompensation(t *testing.T)
 	db := NewMockGormDB()
 	outbox := persistence.NewOutboxPublisher(db)
 
-	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox)
+	finance := &MockFinanceService{}
+	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox, finance)
 
 	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
 	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
@@ -188,7 +192,8 @@ func TestSagaCoordinator_HandleChatRoomFailed(t *testing.T) {
 	db := NewMockGormDB()
 	outbox := persistence.NewOutboxPublisher(db)
 
-	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox)
+	finance := &MockFinanceService{}
+	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox, finance)
 
 	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
 	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
@@ -224,7 +229,8 @@ func TestSagaCoordinator_HandleRefundSuccess(t *testing.T) {
 	db := NewMockGormDB()
 	outbox := persistence.NewOutboxPublisher(db)
 
-	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox)
+	finance := &MockFinanceService{}
+	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox, finance)
 
 	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
 	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
@@ -266,7 +272,8 @@ func TestSagaCoordinator_HandleRefundFailed(t *testing.T) {
 	db := NewMockGormDB()
 	outbox := persistence.NewOutboxPublisher(db)
 
-	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox)
+	finance := &MockFinanceService{}
+	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox, finance)
 
 	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
 	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
@@ -299,5 +306,136 @@ func TestSagaCoordinator_HandleRefundFailed(t *testing.T) {
 	updatedBooking, _ := bookingRepo.FindByID(context.Background(), bid)
 	if updatedBooking.Status() != vo.StatusCancelled {
 		t.Errorf("expected booking status %s, got %s", vo.StatusCancelled, updatedBooking.Status())
+	}
+}
+
+func TestSagaCoordinator_HandleCoinsFrozen_Success(t *testing.T) {
+	bookingRepo := NewMockBookingRepository()
+	sagaRepo := NewMockBookingSagaRepository()
+	db := NewMockGormDB()
+	outbox := persistence.NewOutboxPublisher(db)
+	finance := &MockFinanceService{}
+	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox, finance)
+
+	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
+	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
+	price := vo.MustMoney(500)
+	snap, _ := vo.NewScenarioSnapshot(price, 120)
+	now := time.Now()
+	tr, _ := vo.NewTimeRange(now.Add(3*time.Hour), now.Add(5*time.Hour))
+
+	bid := vo.NewBookingID()
+	// Booking is in PENDING_RESERVING state
+	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusPendingReserving, "", false, 1, now, now)
+	_ = bookingRepo.Save(context.Background(), b)
+
+	err := coordinator.HandleCoinsFrozen(context.Background(), bid.String(), uuid.New().String())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	updatedBooking, _ := bookingRepo.FindByID(context.Background(), bid)
+	if updatedBooking.Status() != vo.StatusPending {
+		t.Errorf("expected status PENDING, got %s", updatedBooking.Status())
+	}
+}
+
+func TestSagaCoordinator_HandleCoinsFrozen_AlreadyProcessed(t *testing.T) {
+	bookingRepo := NewMockBookingRepository()
+	sagaRepo := NewMockBookingSagaRepository()
+	db := NewMockGormDB()
+	outbox := persistence.NewOutboxPublisher(db)
+	finance := &MockFinanceService{}
+	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox, finance)
+
+	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
+	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
+	price := vo.MustMoney(500)
+	snap, _ := vo.NewScenarioSnapshot(price, 120)
+	now := time.Now()
+	tr, _ := vo.NewTimeRange(now.Add(3*time.Hour), now.Add(5*time.Hour))
+
+	bid := vo.NewBookingID()
+	// Booking is already ACCEPTED (moved past PENDING)
+	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusAccepted, "", false, 1, now, now)
+	_ = bookingRepo.Save(context.Background(), b)
+
+	err := coordinator.HandleCoinsFrozen(context.Background(), bid.String(), uuid.New().String())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	updatedBooking, _ := bookingRepo.FindByID(context.Background(), bid)
+	if updatedBooking.Status() != vo.StatusAccepted {
+		t.Errorf("expected status ACCEPTED, got %s", updatedBooking.Status())
+	}
+}
+
+func TestSagaCoordinator_HandleCoinsFrozen_CancelledRefunds(t *testing.T) {
+	bookingRepo := NewMockBookingRepository()
+	sagaRepo := NewMockBookingSagaRepository()
+	db := NewMockGormDB()
+	outbox := persistence.NewOutboxPublisher(db)
+	finance := &MockFinanceService{}
+	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox, finance)
+
+	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
+	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
+	price := vo.MustMoney(500)
+	snap, _ := vo.NewScenarioSnapshot(price, 120)
+	now := time.Now()
+	tr, _ := vo.NewTimeRange(now.Add(3*time.Hour), now.Add(5*time.Hour))
+
+	bid := vo.NewBookingID()
+	// Booking is CANCELLED (coins frozen but booking is dead)
+	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusCancelled, "", false, 1, now, now)
+	_ = bookingRepo.Save(context.Background(), b)
+
+	err := coordinator.HandleCoinsFrozen(context.Background(), bid.String(), uuid.New().String())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	updatedBooking, _ := bookingRepo.FindByID(context.Background(), bid)
+	if updatedBooking.Status() != vo.StatusCancelled {
+		t.Errorf("expected status CANCELLED, got %s", updatedBooking.Status())
+	}
+
+	// Verify UnfreezeCoin was called
+	if len(finance.RefundCalls) != 1 {
+		t.Errorf("expected UnfreezeCoin to be called once, got %d calls", len(finance.RefundCalls))
+	} else if finance.RefundCalls[0] != clientID.String() {
+		t.Errorf("expected UnfreezeCoin to be called for client %s, got %s", clientID.String(), finance.RefundCalls[0])
+	}
+}
+
+func TestSagaCoordinator_HandleCoinsFrozen_TerminalSuccess(t *testing.T) {
+	bookingRepo := NewMockBookingRepository()
+	sagaRepo := NewMockBookingSagaRepository()
+	db := NewMockGormDB()
+	outbox := persistence.NewOutboxPublisher(db)
+	finance := &MockFinanceService{}
+	coordinator := command.NewSagaCoordinator(bookingRepo, sagaRepo, db, outbox, finance)
+
+	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
+	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
+	price := vo.MustMoney(500)
+	snap, _ := vo.NewScenarioSnapshot(price, 120)
+	now := time.Now()
+	tr, _ := vo.NewTimeRange(now.Add(3*time.Hour), now.Add(5*time.Hour))
+
+	bid := vo.NewBookingID()
+	// Booking is COMPLETED (moved to terminal success state)
+	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusCompleted, "", false, 1, now, now)
+	_ = bookingRepo.Save(context.Background(), b)
+
+	err := coordinator.HandleCoinsFrozen(context.Background(), bid.String(), uuid.New().String())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	updatedBooking, _ := bookingRepo.FindByID(context.Background(), bid)
+	if updatedBooking.Status() != vo.StatusCompleted {
+		t.Errorf("expected status COMPLETED, got %s", updatedBooking.Status())
 	}
 }

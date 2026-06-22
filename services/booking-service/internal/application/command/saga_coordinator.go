@@ -20,10 +20,11 @@ import (
 // SagaCoordinator handles inbound async events from Kafka and drives the
 // BookingAcceptSaga through its state machine.
 type SagaCoordinator struct {
-	bookingRepo repository.BookingRepository
-	sagaRepo    repository.BookingSagaRepository
-	db          *gorm.DB
-	outbox      port.EventPublisher
+	bookingRepo    repository.BookingRepository
+	sagaRepo       repository.BookingSagaRepository
+	db             *gorm.DB
+	outbox         port.EventPublisher
+	financeService port.FinanceService
 }
 
 func NewSagaCoordinator(
@@ -31,12 +32,14 @@ func NewSagaCoordinator(
 	sagaRepo repository.BookingSagaRepository,
 	db *gorm.DB,
 	outbox port.EventPublisher,
+	financeService port.FinanceService,
 ) *SagaCoordinator {
 	return &SagaCoordinator{
-		bookingRepo: bookingRepo,
-		sagaRepo:    sagaRepo,
-		db:          db,
-		outbox:      outbox,
+		bookingRepo:    bookingRepo,
+		sagaRepo:       sagaRepo,
+		db:             db,
+		outbox:         outbox,
+		financeService: financeService,
 	}
 }
 
@@ -301,6 +304,17 @@ func (c *SagaCoordinator) HandleCoinsFrozen(ctx context.Context, bookingID strin
 		booking, err := c.bookingRepo.FindByID(txCtx, mustBookingID(bookingID))
 		if err != nil {
 			return err
+		}
+
+		if booking.Status() != vo.StatusPendingReserving {
+			// If the booking has already been cancelled or rejected, release the frozen coins
+			if booking.Status() == vo.StatusCancelled || booking.Status() == vo.StatusRejected {
+				if err := c.financeService.UnfreezeCoin(txCtx, booking.ClientID(), booking.Scenario().Price()); err != nil {
+					log.Printf("[SAGA] Failed to unfreeze coin for already cancelled/rejected booking %s: %v", booking.ID().String(), err)
+				}
+			}
+			// For all other statuses (PENDING, ACCEPTED, COMPLETED, DISPUTED, RESOLVED), treat as a successful no-op
+			return nil
 		}
 
 		if err := booking.ConfirmReserved(time.Now()); err != nil {

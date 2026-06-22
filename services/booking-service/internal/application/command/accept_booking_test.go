@@ -121,3 +121,34 @@ func TestAcceptBooking_CompanionOverlap(t *testing.T) {
 		t.Errorf("expected ErrCompanionBookingOverlap, got %v", err)
 	}
 }
+
+func TestAcceptBooking_InvalidStatus(t *testing.T) {
+	bookingRepo := NewMockBookingRepository()
+	sagaRepo := NewMockBookingSagaRepository()
+	db := NewMockGormDB()
+	outbox := persistence.NewOutboxPublisher(db)
+
+	handler := command.NewAcceptBookingHandler(bookingRepo, sagaRepo, db, outbox)
+
+	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
+	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
+	price := vo.MustMoney(500)
+	snap, _ := vo.NewScenarioSnapshot(price, 120)
+	now := time.Now()
+	tr, _ := vo.NewTimeRange(now.Add(3*time.Hour), now.Add(5*time.Hour))
+
+	bid := vo.NewBookingID()
+	// Reconstitute booking in PENDING_RESERVING status (invalid for acceptance)
+	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusPendingReserving, "", false, 1, now, now)
+	_ = bookingRepo.Save(context.Background(), b)
+
+	cmd := command.AcceptBookingCmd{
+		BookingID:   bid.String(),
+		CompanionID: companionID.String(),
+	}
+
+	_, err := handler.Handle(context.Background(), cmd)
+	if !errors.Is(err, domainerr.ErrInvalidStatus) {
+		t.Errorf("expected ErrInvalidStatus, got %v", err)
+	}
+}

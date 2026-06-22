@@ -67,6 +67,11 @@ func (h *AcceptBookingHandler) Handle(ctx context.Context, cmd AcceptBookingCmd)
 		return nil, domainerr.ErrUnauthorized
 	}
 
+	// Ensure the booking is in PENDING status before initiating SAGA
+	if booking.Status() != vo.StatusPending {
+		return nil, domainerr.ErrInvalidStatus
+	}
+
 	// Check if companion has any other overlapping booking in ACCEPTED state
 	companionOverlap, err := h.bookingRepo.HasOverlappingBooking(
 		ctx,
