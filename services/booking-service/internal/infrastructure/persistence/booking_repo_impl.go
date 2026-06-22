@@ -133,6 +133,8 @@ func extractBookingID(evt event.DomainEvent) string {
 	switch e := evt.(type) {
 	case event.BookingRequested:
 		return e.BookingId
+	case event.BookingReserved:
+		return e.BookingId
 	case event.BookingAccepted:
 		return e.BookingId
 	case event.BookingRejected:
@@ -152,6 +154,8 @@ func extractBookingID(evt event.DomainEvent) string {
 	case event.RefundEscrowCommand:
 		return e.BookingId
 	case *event.BookingRequested:
+		return e.BookingId
+	case *event.BookingReserved:
 		return e.BookingId
 	case *event.BookingAccepted:
 		return e.BookingId

@@ -85,3 +85,12 @@ type BookingCompleted struct {
 func (e BookingCompleted) EventType() string      { return "booking.booking-completed.v1" }
 func (e BookingCompleted) OccurredAt() time.Time  { return e.BookingCompleted.GetOccurredAt().AsTime() }
 func (e BookingCompleted) ToProto() proto.Message { return e.BookingCompleted }
+
+// BookingReserved is raised when a Booking transitions to PENDING status after funds are successfully frozen.
+type BookingReserved struct {
+	*bookingv1.BookingReserved
+}
+
+func (e BookingReserved) EventType() string      { return "booking.booking-reserved.v1" }
+func (e BookingReserved) OccurredAt() time.Time  { return e.BookingReserved.GetOccurredAt().AsTime() }
+func (e BookingReserved) ToProto() proto.Message { return e.BookingReserved }
