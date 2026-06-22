@@ -399,14 +399,14 @@ func TestSagaCoordinator_HandleCoinsFrozen_CancelledRefunds(t *testing.T) {
 		if !ok {
 			t.Errorf("expected event type event.BookingCoinsUnfreezeRequested, got %T", outbox.Events[0])
 		} else {
-			if evt.BookingCoinsUnfreezeRequested.ClientId != clientID.String() {
-				t.Errorf("expected client ID %s, got %s", clientID.String(), evt.BookingCoinsUnfreezeRequested.ClientId)
+			if evt.ClientId != clientID.String() {
+				t.Errorf("expected client ID %s, got %s", clientID.String(), evt.ClientId)
 			}
-			if evt.BookingCoinsUnfreezeRequested.BookingId != bid.String() {
-				t.Errorf("expected booking ID %s, got %s", bid.String(), evt.BookingCoinsUnfreezeRequested.BookingId)
+			if evt.BookingId != bid.String() {
+				t.Errorf("expected booking ID %s, got %s", bid.String(), evt.BookingId)
 			}
-			if evt.BookingCoinsUnfreezeRequested.Amount != price.Amount() {
-				t.Errorf("expected amount %d, got %d", price.Amount(), evt.BookingCoinsUnfreezeRequested.Amount)
+			if evt.Amount != price.Amount() {
+				t.Errorf("expected amount %d, got %d", price.Amount(), evt.Amount)
 			}
 		}
 	}

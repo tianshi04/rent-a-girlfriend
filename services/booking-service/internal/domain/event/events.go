@@ -15,8 +15,6 @@ type DomainEvent interface {
 	ToProto() proto.Message
 }
 
-
-
 // BookingAccepted is raised when a Companion accepts a booking.
 type BookingAccepted struct {
 	*bookingv1.BookingAccepted
