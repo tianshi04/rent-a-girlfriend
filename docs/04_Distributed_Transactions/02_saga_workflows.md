@@ -196,7 +196,15 @@ sequenceDiagram
     end
 ```
 
-### C. Luồng Booking Complete
+### Luồng Unfreeze Coin bất đồng bộ (Do sự kiện CoinsFrozen về chậm khi Booking đã bị hủy)
+*   **Mục đích**: Giải phóng tiền cho Client khi sự kiện đóng băng tiền thành công `finance.coins-frozen.v1` trả về muộn (khi Booking ở `Booking Context` đã bị hủy hoặc từ chối trước đó).
+*   `Booking Context` phát command **`finance.unfreeze-coin.v1`** bất đồng bộ (thay thế cuộc gọi gRPC đồng bộ để tránh nghẽn connection pool database).
+*   `Finance Context` lắng nghe command này, thực hiện mở khóa tiền (`unfreeze_coin()`) và ghi nhận giao dịch `REFUND`.
+*   Sau khi mở khóa thành công, `Finance Context` phát đi event `finance.coins-unfrozen.v1`.
+
+
+### Luồng Booking Complete
 *   `Booking Context` phát sự kiện `BookingCompleted` sau khi kết thúc thời gian + khoảng chờ (VD: 12h).
 *   `Finance Context` lắng nghe: Tiến hành trừ hoa hồng nền tảng và Payout tiền về ví Companion.
 *   `Interaction Context` lắng nghe: Tự thực hiện khóa Chat (sau 24h).
+

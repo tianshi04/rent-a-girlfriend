@@ -870,3 +870,95 @@ async def test_check_balance_flow(finance_service):
     assert await finance_service.check_balance(user_id, 100) is True
     assert await finance_service.check_balance(user_id, 150) is True
     assert await finance_service.check_balance(user_id, 200) is False
+
+
+async def test_booking_event_listener_unfreeze_coin_success(
+    finance_service, db_session, mock_publisher, monkeypatch
+):
+    import asyncio
+
+    finance_service.session = db_session
+    client_id = "client-unfreeze-1"
+    booking_id = "booking-unfreeze-1"
+
+    # Set up client wallet with 50 available, 50 frozen
+    client_wallet = await finance_service.get_or_create_wallet(client_id)
+    client_wallet.available_balance = Money(50)
+    client_wallet.frozen_balance = Money(50)
+    await finance_service.wallet_repo.save(client_wallet)
+    await db_session.commit()
+
+    # Mock CloudEvent payload for finance.unfreeze-coin.v1
+    mock_msg_value = {
+        "specversion": "1.0",
+        "id": "event-1234",
+        "type": "finance.unfreeze-coin.v1",
+        "data": {
+            "bookingId": booking_id,
+            "userId": client_id,
+            "amount": 30,
+        },
+    }
+
+    class MockMessage:
+        def __init__(self, value):
+            self.value = value
+
+    class MockConsumer:
+        def __init__(self, *args, **kwargs):
+            self.messages = [MockMessage(mock_msg_value)]
+
+        async def start(self):
+            pass
+
+        async def stop(self):
+            pass
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if not self.messages:
+                raise asyncio.CancelledError()
+            return self.messages.pop(0)
+
+    import main as server_main
+
+    monkeypatch.setattr(server_main, "AIOKafkaConsumer", MockConsumer)
+
+    class MockSessionContext:
+        def __init__(self, session):
+            self.session = session
+
+        async def __aenter__(self):
+            return self.session
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    monkeypatch.setattr(
+        server_main, "SessionLocal", lambda: MockSessionContext(db_session)
+    )
+    monkeypatch.setattr(server_main, "bootstrap_services", lambda sess: finance_service)
+
+    # Run the listener
+    await server_main.run_booking_event_listener()
+
+    # Verify wallet balances
+    db_session.expire_all()
+    w = await finance_service.wallet_repo.find_by_user_id(client_id)
+    assert w.available_balance.amount == 80
+    assert w.frozen_balance.amount == 20
+
+    # Verify transaction log in DB
+    txn = await finance_service.transaction_repo.find_by_reference_id(
+        booking_id, "REFUND"
+    )
+    assert txn is not None
+    assert txn.status == "SUCCESS"
+    assert txn.amount.amount == 30
+
+    # Verify outbox event (CoinsUnfrozen) is published
+    assert len(mock_publisher.events) == 1
+    assert mock_publisher.events[0].__class__.__name__ == "CoinsUnfrozen"
+    assert mock_publisher.events[0].amount == 30

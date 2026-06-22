@@ -4,6 +4,9 @@ namespace:
     team: backend
     purpose: identity-authentication
     service: identity-service
+  istio:
+    # Set to false in dev/local environments to skip Istio Ambient injection
+    ambientEnabled: true
 
 replicaCount: 3
 
