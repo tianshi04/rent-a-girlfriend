@@ -7,6 +7,7 @@ metadata:
     app: {{ include "booking-service.name" . }}
     {{- if .Values.namespace.istio.ambientEnabled }}
     istio.io/dataplane-mode: ambient
+    istio.io/use-waypoint: waypoint
     {{- end }}
     {{- with .Values.namespace.labels }}
     {{- toYaml . | nindent 4 }}
