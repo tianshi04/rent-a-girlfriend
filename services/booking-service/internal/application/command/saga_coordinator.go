@@ -306,16 +306,14 @@ func (c *SagaCoordinator) HandleCoinsFrozen(ctx context.Context, bookingID strin
 			return err
 		}
 
-		// If the booking is already confirmed or accepted, we treat it as successfully processed (no-op)
-		if booking.Status() == vo.StatusPending || booking.Status() == vo.StatusAccepted {
-			return nil
-		}
-
-		// If the booking has already been cancelled or rejected, release the frozen coins
-		if booking.Status() == vo.StatusCancelled || booking.Status() == vo.StatusRejected {
-			if err := c.financeService.UnfreezeCoin(txCtx, booking.ClientID(), booking.Scenario().Price()); err != nil {
-				log.Printf("[SAGA] Failed to unfreeze coin for already cancelled/rejected booking %s: %v", booking.ID().String(), err)
+		if booking.Status() != vo.StatusPendingReserving {
+			// If the booking has already been cancelled or rejected, release the frozen coins
+			if booking.Status() == vo.StatusCancelled || booking.Status() == vo.StatusRejected {
+				if err := c.financeService.UnfreezeCoin(txCtx, booking.ClientID(), booking.Scenario().Price()); err != nil {
+					log.Printf("[SAGA] Failed to unfreeze coin for already cancelled/rejected booking %s: %v", booking.ID().String(), err)
+				}
 			}
+			// For all other statuses (PENDING, ACCEPTED, COMPLETED, DISPUTED, RESOLVED), treat as a successful no-op
 			return nil
 		}
 
