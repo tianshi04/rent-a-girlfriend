@@ -9,13 +9,13 @@ import (
 	"github.com/rent-a-girlfriend/booking-service/internal/application/command"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/aggregate"
 	domainerr "github.com/rent-a-girlfriend/booking-service/internal/domain/errors"
+	"github.com/rent-a-girlfriend/booking-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
 )
 
 func TestRejectBooking_Success(t *testing.T) {
 	repo := NewMockBookingRepository()
-	finance := &MockFinanceService{}
-	handler := command.NewRejectBookingHandler(repo, finance)
+	handler := command.NewRejectBookingHandler(repo)
 
 	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
 	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
@@ -44,16 +44,35 @@ func TestRejectBooking_Success(t *testing.T) {
 		t.Errorf("expected REJECTED status, got %s", res.Status())
 	}
 
-	// Verify unfreeze coin is triggered
-	if len(finance.RefundCalls) != 1 || finance.RefundCalls[0] != clientID.String() {
-		t.Errorf("expected UnfreezeCoin to be called once for %s, got %v", clientID.String(), finance.RefundCalls)
+	// Verify BookingUnfreezeRequested event is triggered
+	events := res.Events()
+	var hasUnfreeze bool
+	for _, e := range events {
+		if e.EventType() == "booking.booking-unfreeze-requested.v1" {
+			hasUnfreeze = true
+			if unfreeze, ok := e.(event.BookingUnfreezeRequested); ok {
+				if unfreeze.BookingId != bid.String() {
+					t.Errorf("expected booking ID %s, got %s", bid.String(), unfreeze.BookingId)
+				}
+				if unfreeze.ClientId != clientID.String() {
+					t.Errorf("expected client ID %s, got %s", clientID.String(), unfreeze.ClientId)
+				}
+				if unfreeze.Amount != price.Amount() {
+					t.Errorf("expected amount %d, got %d", price.Amount(), unfreeze.Amount)
+				}
+			} else {
+				t.Errorf("expected event of type BookingUnfreezeRequested, got %T", e)
+			}
+		}
+	}
+	if !hasUnfreeze {
+		t.Error("expected BookingUnfreezeRequested event to be emitted")
 	}
 }
 
 func TestRejectBooking_UnauthorizedCompanion(t *testing.T) {
 	repo := NewMockBookingRepository()
-	finance := &MockFinanceService{}
-	handler := command.NewRejectBookingHandler(repo, finance)
+	handler := command.NewRejectBookingHandler(repo)
 
 	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
 	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")

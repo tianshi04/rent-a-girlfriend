@@ -2,10 +2,8 @@ package command
 
 import (
 	"context"
-	"log"
 	"time"
 
-	"github.com/rent-a-girlfriend/booking-service/internal/application/port"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/aggregate"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/repository"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
@@ -16,14 +14,12 @@ type SystemRejectBookingCmd struct {
 }
 
 type SystemRejectBookingHandler struct {
-	repo           repository.BookingRepository
-	financeService port.FinanceService
+	repo repository.BookingRepository
 }
 
-func NewSystemRejectBookingHandler(repo repository.BookingRepository, financeService port.FinanceService) *SystemRejectBookingHandler {
+func NewSystemRejectBookingHandler(repo repository.BookingRepository) *SystemRejectBookingHandler {
 	return &SystemRejectBookingHandler{
-		repo:           repo,
-		financeService: financeService,
+		repo: repo,
 	}
 }
 
@@ -40,11 +36,6 @@ func (h *SystemRejectBookingHandler) Handle(ctx context.Context, cmd SystemRejec
 
 	if err := booking.SystemTimeout(time.Now()); err != nil {
 		return nil, err
-	}
-
-	// Unfreeze coin since booking is rejected due to timeout
-	if err := h.financeService.UnfreezeCoin(ctx, booking.ClientID(), booking.Scenario().Price()); err != nil {
-		log.Printf("[SYSTEM-REJECT-BOOKING] Failed to unfreeze coin for client %s: %v", booking.ClientID().String(), err)
 	}
 
 	if err := h.repo.Update(ctx, booking); err != nil {

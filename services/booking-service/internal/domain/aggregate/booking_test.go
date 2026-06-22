@@ -50,8 +50,8 @@ func TestNewBooking_Success(t *testing.T) {
 	if len(events) != 1 {
 		t.Fatalf("expected 1 event, got %d", len(events))
 	}
-	if events[0].EventType() != "booking.booking-coins-freeze-requested.v1" {
-		t.Errorf("expected BookingCoinsFreezeRequested event, got %s", events[0].EventType())
+	if events[0].EventType() != "booking.booking-requested.v1" {
+		t.Errorf("expected BookingRequested event, got %s", events[0].EventType())
 	}
 }
 
@@ -251,8 +251,8 @@ func TestCancel_ClientEarly(t *testing.T) {
 	}
 
 	events := booking.Events()
-	if len(events) != 1 || events[0].EventType() != "booking.booking-cancelled-early.v1" {
-		t.Errorf("expected BookingCancelledEarly event, got %v", events)
+	if len(events) != 2 || events[0].EventType() != "booking.booking-cancelled-early.v1" || events[1].EventType() != "finance.refund-escrow.v1" {
+		t.Errorf("expected BookingCancelledEarly and RefundEscrowCommand events, got %v", events)
 	}
 }
 
@@ -303,8 +303,8 @@ func TestCancel_CompanionEarly(t *testing.T) {
 	}
 
 	events := booking.Events()
-	if len(events) != 1 || events[0].EventType() != "booking.booking-cancelled-early.v1" {
-		t.Errorf("expected BookingCancelledEarly event, got %v", events)
+	if len(events) != 2 || events[0].EventType() != "booking.booking-cancelled-early.v1" || events[1].EventType() != "finance.refund-escrow.v1" {
+		t.Errorf("expected BookingCancelledEarly and RefundEscrowCommand events, got %v", events)
 	}
 }
 
@@ -329,8 +329,8 @@ func TestCancel_CompanionLate(t *testing.T) {
 	}
 
 	events := booking.Events()
-	if len(events) != 1 || events[0].EventType() != "booking.booking-cancelled-late.v1" {
-		t.Errorf("expected BookingCancelledLate event, got %v", events)
+	if len(events) != 2 || events[0].EventType() != "booking.booking-cancelled-late.v1" || events[1].EventType() != "finance.refund-escrow.v1" {
+		t.Errorf("expected BookingCancelledLate and RefundEscrowCommand events, got %v", events)
 	}
 }
 
@@ -354,8 +354,8 @@ func TestCancel_CancelPendingBooking(t *testing.T) {
 	}
 
 	events := booking.Events()
-	if len(events) != 1 || events[0].EventType() != "booking.booking-cancelled-early.v1" {
-		t.Errorf("expected BookingCancelledEarly event, got %v", events)
+	if len(events) != 2 || events[0].EventType() != "booking.booking-cancelled-early.v1" || events[1].EventType() != "booking.booking-unfreeze-requested.v1" {
+		t.Errorf("expected BookingCancelledEarly and BookingUnfreezeRequested events, got %v", events)
 	}
 }
 
@@ -485,8 +485,8 @@ func TestConfirmReserved_Success(t *testing.T) {
 	if len(events) != 2 {
 		t.Fatalf("expected 2 events, got %d", len(events))
 	}
-	if events[0].EventType() != "booking.booking-coins-freeze-requested.v1" {
-		t.Errorf("expected BookingCoinsFreezeRequested event, got %s", events[0].EventType())
+	if events[0].EventType() != "booking.booking-requested.v1" {
+		t.Errorf("expected BookingRequested event, got %s", events[0].EventType())
 	}
 	if events[1].EventType() != "booking.booking-reserved.v1" {
 		t.Errorf("expected BookingReserved event, got %s", events[1].EventType())

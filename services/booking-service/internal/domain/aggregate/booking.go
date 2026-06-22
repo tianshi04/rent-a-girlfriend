@@ -4,6 +4,7 @@ import (
 	"time"
 
 	bookingv1 "github.com/rent-a-girlfriend/booking-service/gen/proto"
+	financev1 "github.com/rent-a-girlfriend/booking-service/gen/proto/financev1"
 	domainerr "github.com/rent-a-girlfriend/booking-service/internal/domain/errors"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
@@ -60,8 +61,8 @@ func NewBooking(
 		updatedAt:   now,
 	}
 
-	b.addEvent(event.BookingCoinsFreezeRequested{
-		BookingCoinsFreezeRequested: &bookingv1.BookingCoinsFreezeRequested{
+	b.addEvent(event.BookingRequested{
+		BookingRequested: &bookingv1.BookingRequested{
 			BookingId:  b.id.String(),
 			ClientId:   b.clientID.String(),
 			Amount:     b.scenario.Price().Amount(),
@@ -143,6 +144,15 @@ func (b *Booking) Reject(companionID vo.CompanionID, reason string, now time.Tim
 			OccurredAt:  timestamppb.New(now),
 		},
 	})
+
+	b.addEvent(event.BookingUnfreezeRequested{
+		BookingUnfreezeRequested: &bookingv1.BookingUnfreezeRequested{
+			BookingId:  b.id.String(),
+			ClientId:   b.clientID.String(),
+			Amount:     b.scenario.Price().Amount(),
+			OccurredAt: timestamppb.New(now),
+		},
+	})
 	return nil
 }
 
@@ -183,6 +193,29 @@ func (b *Booking) Cancel(actorRole vo.ActorRole, now time.Time) error {
 				OccurredAt: timestamppb.New(now),
 			},
 		})
+	}
+
+	// Emit appropriate refund event/command based on state
+	if originalStatus == vo.StatusPending {
+		b.addEvent(event.BookingUnfreezeRequested{
+			BookingUnfreezeRequested: &bookingv1.BookingUnfreezeRequested{
+				BookingId:  b.id.String(),
+				ClientId:   b.clientID.String(),
+				Amount:     b.scenario.Price().Amount(),
+				OccurredAt: timestamppb.New(now),
+			},
+		})
+	} else if originalStatus == vo.StatusAccepted {
+		if !b.isLateCancel || actorRole == vo.RoleCompanion || string(actorRole) == "SYSTEM" {
+			b.addEvent(event.RefundEscrowCommand{
+				RefundEscrowRequest: &financev1.RefundEscrowRequest{
+					BookingId:    b.id.String(),
+					ClientId:     b.clientID.String(),
+					RefundAmount: b.scenario.Price().Amount(),
+				},
+				Timestamp: now,
+			})
+		}
 	}
 	return nil
 }
@@ -245,6 +278,15 @@ func (b *Booking) SystemTimeout(now time.Time) error {
 		BookingTimedOut: &bookingv1.BookingTimedOut{
 			BookingId:  b.id.String(),
 			ClientId:   b.clientID.String(),
+			OccurredAt: timestamppb.New(now),
+		},
+	})
+
+	b.addEvent(event.BookingUnfreezeRequested{
+		BookingUnfreezeRequested: &bookingv1.BookingUnfreezeRequested{
+			BookingId:  b.id.String(),
+			ClientId:   b.clientID.String(),
+			Amount:     b.scenario.Price().Amount(),
 			OccurredAt: timestamppb.New(now),
 		},
 	})

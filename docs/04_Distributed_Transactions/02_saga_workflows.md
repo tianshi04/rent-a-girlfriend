@@ -127,16 +127,76 @@ Tương tự Refund, Dispute gọi Finance để `PayoutFromEscrow()`, sau đó 
 ---
 
 ## 3. LUỒNG HỦY VÀ HOÀN TẤT (CANCELLATION & COMPLETION)
-*   **Mô hình:** **SAGA Choreography** (Tự điều phối phân tán).
-*   **Đặc điểm:** Các hành động nhánh hoàn toàn độc lập, không cần liên kết hủy bỏ (rollback) nhau. Dựa vào Event phát ra, các service tự chịu trách nhiệm logic nghiệp vụ.
+*   **Mô hình:** **SAGA Choreography** kết hợp **SAGA Orchestration** (ở luồng hoàn Escrow).
+*   **Đặc điểm:** 
+    *   **Trạng thái PENDING (Tiền bị đóng băng):** Giải phóng tiền hoàn toàn bất đồng bộ bằng cách phát sự kiện `booking.booking-unfreeze-requested.v1`.
+    *   **Trạng thái ACCEPTED (Tiền trong Escrow):** Sử dụng Saga Command `finance.refund-escrow.v1` để yêu cầu Finance hoàn trả, sau đó lắng nghe phản hồi thành công/thất bại để cập nhật trạng thái hoặc nâng cảnh báo.
 
-### Luồng Booking Cancel (Bởi Client hoặc Companion)
-*   `Booking Context` phát sự kiện `BookingCancelledEarly` hoặc `BookingCancelledLate`.
-*   `Finance Context` lắng nghe: tự tính toán (hoặc dựa trên loại sự kiện hủy sớm/muộn) để quyết định Hoàn 100% cho Client hay Phạt chuyển tiền bồi thường cho Companion.
-*   `Interaction Context` lắng nghe: tự thực hiện khóa Chat.
-*   *Lỗi của Interaction khóa Chat không làm ảnh hưởng luồng hoàn tiền.*
+### A. Hủy/Từ chối Booking ở trạng thái PENDING (Tiền đang bị đóng băng)
+*   **Hành động:** Client hủy hoặc Companion/Hệ thống từ chối (Reject/Timeout).
+*   **Sự kiện phát ra:** `BookingCancelledEarly` (nếu hủy) hoặc `BookingRejected` / `BookingCancelled` cùng với `booking.booking-unfreeze-requested.v1`.
+*   **Xử lý tại Finance:** Lắng nghe `booking.booking-unfreeze-requested.v1` để tự động giải phóng (unfreeze) số coin tương ứng của Client.
 
-### Luồng Booking Complete
+```mermaid
+sequenceDiagram
+    participant CL as Client/Companion/System
+    participant BA as Booking Context
+    participant FA as Finance Context
+    participant IA as Interaction Context
+
+    CL->>BA: Cancel/Reject Booking (State: PENDING)
+    BA->>BA: Update State: CANCELLED / REJECTED
+    BA->>BA: Publish: booking.booking-unfreeze-requested.v1
+    BA->>BA: Publish: booking.booking-cancelled-early.v1 / booking.booking-rejected.v1
+    BA-->>CL: Response: 200 OK
+
+    Note over BA, FA: Xử lý giải phóng tiền bất đồng bộ
+    FA->>FA: Consume: BookingUnfreezeRequested
+    FA->>FA: Execute: unfreeze_coin()
+    
+    Note over BA, IA: Khóa chatroom (nếu có)
+    IA->>IA: Consume: BookingCancelledEarly/BookingRejected
+    IA->>IA: Execute: LockChatRoom()
+```
+
+### B. Hủy Booking ở trạng thái ACCEPTED (Tiền đang trong Escrow)
+*   **Hành động:** Client hoặc Companion yêu cầu hủy booking đã được chấp nhận.
+*   **Saga Orchestration:** 
+    *   `Booking Context` cập nhật trạng thái booking thành `CANCELLED`.
+    *   `Booking Context` phát lệnh `finance.refund-escrow.v1` (`RefundEscrowCommand`).
+    *   `Finance Context` xử lý hoàn tiền từ Escrow về ví và trả lời bằng `finance.escrow-refunded.v1` (thành công) hoặc `finance.refund-failed.v1` (thất bại).
+    *   `Interaction Context` lắng nghe sự kiện hủy để khóa chatroom.
+
+```mermaid
+sequenceDiagram
+    participant CL as Client/Companion
+    participant BA as Booking Context (Orchestrator)
+    participant FA as Finance Context
+    participant IA as Interaction Context
+
+    CL->>BA: CancelBooking() (State: ACCEPTED)
+    BA->>BA: Update State: CANCELLED
+    BA->>BA: Publish: finance.refund-escrow.v1 (RefundEscrowCommand)
+    BA->>BA: Publish: booking.booking-cancelled-early.v1 / booking-cancelled-late.v1
+    BA-->>CL: Response: 200 OK
+
+    par Finance thực hiện hoàn tiền
+        FA->>FA: Consume: RefundEscrowCommand
+        FA->>FA: Execute: refund_escrow_to_wallet()
+        alt Thành công
+            FA->>BA: Publish: finance.escrow-refunded.v1
+            BA->>BA: HandleRefundSuccess()
+        else Thất bại
+            FA->>BA: Publish: finance.refund-failed.v1
+            BA->>BA: HandleRefundFailed() -> Trigger Alert
+        end
+    and Interaction thực hiện khóa Chat
+        IA->>IA: Consume: BookingCancelled
+        IA->>IA: Execute: LockChatRoom()
+    end
+```
+
+### C. Luồng Booking Complete
 *   `Booking Context` phát sự kiện `BookingCompleted` sau khi kết thúc thời gian + khoảng chờ (VD: 12h).
 *   `Finance Context` lắng nghe: Tiến hành trừ hoa hồng nền tảng và Payout tiền về ví Companion.
 *   `Interaction Context` lắng nghe: Tự thực hiện khóa Chat (sau 24h).

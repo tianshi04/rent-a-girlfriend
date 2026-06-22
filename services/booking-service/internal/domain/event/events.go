@@ -24,34 +24,34 @@ func (e BookingAccepted) EventType() string      { return "booking.booking-accep
 func (e BookingAccepted) OccurredAt() time.Time  { return e.BookingAccepted.GetOccurredAt().AsTime() }
 func (e BookingAccepted) ToProto() proto.Message { return e.BookingAccepted }
 
-// BookingCoinsFreezeRequested is raised when a booking requests coins to be frozen.
-type BookingCoinsFreezeRequested struct {
-	*bookingv1.BookingCoinsFreezeRequested
+// BookingRequested is raised when a booking is requested.
+type BookingRequested struct {
+	*bookingv1.BookingRequested
 }
 
-func (e BookingCoinsFreezeRequested) EventType() string {
-	return "booking.booking-coins-freeze-requested.v1"
+func (e BookingRequested) EventType() string {
+	return "booking.booking-requested.v1"
 }
-func (e BookingCoinsFreezeRequested) OccurredAt() time.Time {
-	return e.BookingCoinsFreezeRequested.GetOccurredAt().AsTime()
+func (e BookingRequested) OccurredAt() time.Time {
+	return e.BookingRequested.GetOccurredAt().AsTime()
 }
-func (e BookingCoinsFreezeRequested) ToProto() proto.Message {
-	return e.BookingCoinsFreezeRequested
-}
-
-// BookingCoinsUnfreezeRequested is raised when a booking requests coins to be unfrozen.
-type BookingCoinsUnfreezeRequested struct {
-	*bookingv1.BookingCoinsUnfreezeRequested
+func (e BookingRequested) ToProto() proto.Message {
+	return e.BookingRequested
 }
 
-func (e BookingCoinsUnfreezeRequested) EventType() string {
-	return "booking.booking-coins-unfreeze-requested.v1"
+// BookingUnfreezeRequested is raised when a booking requests coins to be unfrozen.
+type BookingUnfreezeRequested struct {
+	*bookingv1.BookingUnfreezeRequested
 }
-func (e BookingCoinsUnfreezeRequested) OccurredAt() time.Time {
-	return e.BookingCoinsUnfreezeRequested.GetOccurredAt().AsTime()
+
+func (e BookingUnfreezeRequested) EventType() string {
+	return "booking.booking-unfreeze-requested.v1"
 }
-func (e BookingCoinsUnfreezeRequested) ToProto() proto.Message {
-	return e.BookingCoinsUnfreezeRequested
+func (e BookingUnfreezeRequested) OccurredAt() time.Time {
+	return e.BookingUnfreezeRequested.GetOccurredAt().AsTime()
+}
+func (e BookingUnfreezeRequested) ToProto() proto.Message {
+	return e.BookingUnfreezeRequested
 }
 
 // BookingRejected is raised when a Companion rejects a booking.

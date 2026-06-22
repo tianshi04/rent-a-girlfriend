@@ -2,10 +2,8 @@ package command
 
 import (
 	"context"
-	"log"
 	"time"
 
-	"github.com/rent-a-girlfriend/booking-service/internal/application/port"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/aggregate"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/repository"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
@@ -20,12 +18,11 @@ type RejectBookingCmd struct {
 
 // RejectBookingHandler handles the RejectBooking command.
 type RejectBookingHandler struct {
-	repo           repository.BookingRepository
-	financeService port.FinanceService
+	repo repository.BookingRepository
 }
 
-func NewRejectBookingHandler(repo repository.BookingRepository, financeService port.FinanceService) *RejectBookingHandler {
-	return &RejectBookingHandler{repo: repo, financeService: financeService}
+func NewRejectBookingHandler(repo repository.BookingRepository) *RejectBookingHandler {
+	return &RejectBookingHandler{repo: repo}
 }
 
 func (h *RejectBookingHandler) Handle(ctx context.Context, cmd RejectBookingCmd) (*aggregate.Booking, error) {
@@ -45,11 +42,6 @@ func (h *RejectBookingHandler) Handle(ctx context.Context, cmd RejectBookingCmd)
 
 	if err := booking.Reject(companionID, cmd.Reason, time.Now()); err != nil {
 		return nil, err
-	}
-
-	// Unfreeze coin since booking is rejected
-	if err := h.financeService.UnfreezeCoin(ctx, booking.ClientID(), booking.Scenario().Price()); err != nil {
-		log.Printf("[REJECT-BOOKING] Failed to unfreeze coin for client %s: %v", booking.ClientID().String(), err)
 	}
 
 	if err := h.repo.Update(ctx, booking); err != nil {
