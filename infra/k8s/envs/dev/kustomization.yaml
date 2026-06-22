@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - global-gateway-config.yaml
 
 helmCharts:
   - name: kafka
@@ -11,3 +12,23 @@ helmCharts:
     releaseName: kafka
     namespace: kafka
     valuesFile: kafka-values.dev.yaml
+
+patches:
+  - target:
+      group: gateway.networking.k8s.io
+      version: v1
+      kind: Gateway
+      name: global-gateway
+      namespace: istio-ingress
+    patch: |-
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: Gateway
+      metadata:
+        name: global-gateway
+        namespace: istio-ingress
+      spec:
+        infrastructure:
+          parametersRef:
+            group: ""
+            kind: ConfigMap
+            name: global-gateway-config
