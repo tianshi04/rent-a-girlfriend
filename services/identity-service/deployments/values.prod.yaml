@@ -19,3 +19,7 @@ hpa:
 config:
   GIN_MODE: "release"
   ENABLE_TEST_ROUTES: "false"
+
+namespace:
+  istio:
+    ambientEnabled: true
