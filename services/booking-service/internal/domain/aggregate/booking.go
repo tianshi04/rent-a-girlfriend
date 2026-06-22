@@ -292,6 +292,15 @@ func (b *Booking) ConfirmReserved(now time.Time) error {
 	}
 	b.status = vo.StatusPending
 	b.updatedAt = now
+
+	b.addEvent(event.BookingReserved{
+		BookingReserved: &bookingv1.BookingReserved{
+			BookingId:   b.id.String(),
+			CompanionId: b.companionID.String(),
+			ClientId:    b.clientID.String(),
+			OccurredAt:  timestamppb.New(now),
+		},
+	})
 	return nil
 }
 
