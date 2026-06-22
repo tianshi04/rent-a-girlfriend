@@ -136,7 +136,14 @@ Tương tự Refund, Dispute gọi Finance để `PayoutFromEscrow()`, sau đó 
 *   `Interaction Context` lắng nghe: tự thực hiện khóa Chat.
 *   *Lỗi của Interaction khóa Chat không làm ảnh hưởng luồng hoàn tiền.*
 
+### Luồng Unfreeze Coin bất đồng bộ (Hủy/Từ chối Booking trong thời gian PENDING)
+*   Để giải quyết vấn đề connection pool database bị nghẽn (do gọi gRPC đồng bộ từ SagaCoordinator), khi một booking bị hủy hoặc từ chối khi đang ở trạng thái `PENDING_RESERVING`, hệ thống chuyển đổi cuộc gọi gRPC `UnfreezeCoin` đồng bộ sang bất đồng bộ:
+    *   `Booking Context` lưu lệnh unfreeze vào Outbox và phát hành sự kiện/command **`finance.unfreeze-coin.v1`** (hoặc event **`booking.booking-unfreeze-requested.v1`**).
+    *   `Finance Context` lắng nghe các sự kiện này, thực hiện xử lý nghiệp vụ mở khóa tiền (`unfreeze_coin()`) cho Client bất đồng bộ và ghi lại Ledger giao dịch loại `REFUND` với trạng thái `SUCCESS`.
+    *   Sau khi mở khóa thành công, `Finance Context` phát đi event `finance.coins-unfrozen.v1`.
+
 ### Luồng Booking Complete
 *   `Booking Context` phát sự kiện `BookingCompleted` sau khi kết thúc thời gian + khoảng chờ (VD: 12h).
 *   `Finance Context` lắng nghe: Tiến hành trừ hoa hồng nền tảng và Payout tiền về ví Companion.
 *   `Interaction Context` lắng nghe: Tự thực hiện khóa Chat (sau 24h).
+
