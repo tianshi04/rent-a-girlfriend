@@ -73,16 +73,6 @@ func NewBooking(
 		},
 	})
 
-	b.addEvent(event.CoinsFreezeRequested{
-		CoinsFreezeRequested: &financev1events.CoinsFreezeRequested{
-			BookingId:  b.id.String(),
-			UserId:     b.clientID.String(),
-			Amount:     b.scenario.Price().Amount(),
-			OccurredAt: timestamppb.New(now),
-		},
-		Timestamp: now,
-	})
-
 	return b, nil
 }
 
@@ -158,8 +148,8 @@ func (b *Booking) Reject(companionID vo.CompanionID, reason string, now time.Tim
 		},
 	})
 
-	b.addEvent(event.CoinsUnfreezeRequested{
-		CoinsUnfreezeRequested: &financev1events.CoinsUnfreezeRequested{
+	b.addEvent(event.UnfreezeCoin{
+		UnfreezeCoin: &financev1events.UnfreezeCoin{
 			BookingId:  b.id.String(),
 			UserId:     b.clientID.String(),
 			Amount:     b.scenario.Price().Amount(),
@@ -212,8 +202,8 @@ func (b *Booking) Cancel(actorRole vo.ActorRole, now time.Time) error {
 	// Emit appropriate refund event/command based on state
 	switch originalStatus {
 	case vo.StatusPending:
-		b.addEvent(event.CoinsUnfreezeRequested{
-			CoinsUnfreezeRequested: &financev1events.CoinsUnfreezeRequested{
+		b.addEvent(event.UnfreezeCoin{
+			UnfreezeCoin: &financev1events.UnfreezeCoin{
 				BookingId:  b.id.String(),
 				UserId:     b.clientID.String(),
 				Amount:     b.scenario.Price().Amount(),
@@ -298,8 +288,8 @@ func (b *Booking) SystemTimeout(now time.Time) error {
 		},
 	})
 
-	b.addEvent(event.CoinsUnfreezeRequested{
-		CoinsUnfreezeRequested: &financev1events.CoinsUnfreezeRequested{
+	b.addEvent(event.UnfreezeCoin{
+		UnfreezeCoin: &financev1events.UnfreezeCoin{
 			BookingId:  b.id.String(),
 			UserId:     b.clientID.String(),
 			Amount:     b.scenario.Price().Amount(),

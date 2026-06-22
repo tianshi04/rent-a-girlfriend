@@ -40,32 +40,14 @@ func (e RefundEscrowCommand) EventType() string      { return "finance.refund-es
 func (e RefundEscrowCommand) OccurredAt() time.Time  { return e.Timestamp }
 func (e RefundEscrowCommand) ToProto() proto.Message { return e.RefundEscrowRequest }
 
-// UnfreezeCoinCommand is raised by the SAGA coordinator/command handlers to request coin unfreeze asynchronously.
-type UnfreezeCoinCommand struct {
-	*financev1.FreezeCoinRequest
+// UnfreezeCoin is raised by the Booking aggregate or SAGA coordinator to request coin unfreeze.
+type UnfreezeCoin struct {
+	*financev1events.UnfreezeCoin
 	Timestamp time.Time
 }
 
-func (e UnfreezeCoinCommand) EventType() string      { return "finance.unfreeze-coin.v1" }
-func (e UnfreezeCoinCommand) OccurredAt() time.Time  { return e.Timestamp }
-func (e UnfreezeCoinCommand) ToProto() proto.Message { return e.FreezeCoinRequest }
+func (e UnfreezeCoin) EventType() string      { return "finance.unfreeze-coin.v1" }
+func (e UnfreezeCoin) OccurredAt() time.Time  { return e.Timestamp }
+func (e UnfreezeCoin) ToProto() proto.Message { return e.UnfreezeCoin }
 
-// CoinsFreezeRequested is raised by the Booking aggregate to request coin freeze.
-type CoinsFreezeRequested struct {
-	*financev1events.CoinsFreezeRequested
-	Timestamp time.Time
-}
 
-func (e CoinsFreezeRequested) EventType() string      { return "finance.coins-freeze-requested.v1" }
-func (e CoinsFreezeRequested) OccurredAt() time.Time  { return e.Timestamp }
-func (e CoinsFreezeRequested) ToProto() proto.Message { return e.CoinsFreezeRequested }
-
-// CoinsUnfreezeRequested is raised by the Booking aggregate or SAGA coordinator to request coin unfreeze.
-type CoinsUnfreezeRequested struct {
-	*financev1events.CoinsUnfreezeRequested
-	Timestamp time.Time
-}
-
-func (e CoinsUnfreezeRequested) EventType() string      { return "finance.coins-unfreeze-requested.v1" }
-func (e CoinsUnfreezeRequested) OccurredAt() time.Time  { return e.Timestamp }
-func (e CoinsUnfreezeRequested) ToProto() proto.Message { return e.CoinsUnfreezeRequested }

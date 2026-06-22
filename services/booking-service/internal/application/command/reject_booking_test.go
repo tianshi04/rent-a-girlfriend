@@ -44,13 +44,13 @@ func TestRejectBooking_Success(t *testing.T) {
 		t.Errorf("expected REJECTED status, got %s", res.Status())
 	}
 
-	// Verify CoinsUnfreezeRequested event is triggered
+	// Verify UnfreezeCoin event is triggered
 	events := res.Events()
 	var hasUnfreeze bool
 	for _, e := range events {
-		if e.EventType() == "finance.coins-unfreeze-requested.v1" {
+		if e.EventType() == "finance.unfreeze-coin.v1" {
 			hasUnfreeze = true
-			if unfreeze, ok := e.(event.CoinsUnfreezeRequested); ok {
+			if unfreeze, ok := e.(event.UnfreezeCoin); ok {
 				if unfreeze.BookingId != bid.String() {
 					t.Errorf("expected booking ID %s, got %s", bid.String(), unfreeze.BookingId)
 				}
@@ -61,12 +61,12 @@ func TestRejectBooking_Success(t *testing.T) {
 					t.Errorf("expected amount %d, got %d", price.Amount(), unfreeze.Amount)
 				}
 			} else {
-				t.Errorf("expected event of type CoinsUnfreezeRequested, got %T", e)
+				t.Errorf("expected event of type UnfreezeCoin, got %T", e)
 			}
 		}
 	}
 	if !hasUnfreeze {
-		t.Error("expected CoinsUnfreezeRequested event to be emitted")
+		t.Error("expected UnfreezeCoin event to be emitted")
 	}
 }
 

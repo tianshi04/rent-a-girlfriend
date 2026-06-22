@@ -6,7 +6,7 @@ option go_package = "github.com/rent-a-girlfriend/contracts/proto/finance/events
 
 import "google/protobuf/timestamp.proto";
 
-message CoinsUnfreezeRequested {
+message UnfreezeCoin {
   string booking_id = 1;
   string user_id = 2;
   int64 amount = 3;

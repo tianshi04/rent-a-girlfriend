@@ -195,13 +195,13 @@ func TestCancelBooking_SuccessPending(t *testing.T) {
 		t.Errorf("expected CANCELLED status, got %s", res.Status())
 	}
 
-	// Verify CoinsUnfreezeRequested is emitted (since it was PENDING)
+	// Verify UnfreezeCoin is emitted (since it was PENDING)
 	events := res.Events()
 	var hasUnfreeze bool
 	for _, e := range events {
-		if e.EventType() == "finance.coins-unfreeze-requested.v1" {
+		if e.EventType() == "finance.unfreeze-coin.v1" {
 			hasUnfreeze = true
-			if unfreeze, ok := e.(event.CoinsUnfreezeRequested); ok {
+			if unfreeze, ok := e.(event.UnfreezeCoin); ok {
 				if unfreeze.BookingId != bid.String() {
 					t.Errorf("expected booking ID %s, got %s", bid.String(), unfreeze.BookingId)
 				}
@@ -212,12 +212,12 @@ func TestCancelBooking_SuccessPending(t *testing.T) {
 					t.Errorf("expected amount %d, got %d", price.Amount(), unfreeze.Amount)
 				}
 			} else {
-				t.Errorf("expected CoinsUnfreezeRequested, got %T", e)
+				t.Errorf("expected UnfreezeCoin, got %T", e)
 			}
 		}
 	}
 	if !hasUnfreeze {
-		t.Error("expected CoinsUnfreezeRequested to be emitted for pending booking cancellation")
+		t.Error("expected UnfreezeCoin to be emitted for pending booking cancellation")
 	}
 }
 

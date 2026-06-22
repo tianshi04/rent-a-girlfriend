@@ -309,8 +309,8 @@ func (c *SagaCoordinator) HandleCoinsFrozen(ctx context.Context, bookingID strin
 		if booking.Status() != vo.StatusPendingReserving {
 			// If the booking has already been cancelled or rejected, release the frozen coins asynchronously
 			if booking.Status() == vo.StatusCancelled || booking.Status() == vo.StatusRejected {
-				evt := event.CoinsUnfreezeRequested{
-					CoinsUnfreezeRequested: &financev1events.CoinsUnfreezeRequested{
+				evt := event.UnfreezeCoin{
+					UnfreezeCoin: &financev1events.UnfreezeCoin{
 						BookingId:  booking.ID().String(),
 						UserId:     booking.ClientID().String(),
 						Amount:     booking.Scenario().Price().Amount(),
@@ -319,7 +319,7 @@ func (c *SagaCoordinator) HandleCoinsFrozen(ctx context.Context, bookingID strin
 					Timestamp: time.Now(),
 				}
 				if err := c.outbox.Publish(txCtx, evt); err != nil {
-					log.Printf("[SAGA] Failed to publish CoinsUnfreezeRequested event for already cancelled/rejected booking %s: %v", booking.ID().String(), err)
+					log.Printf("[SAGA] Failed to publish UnfreezeCoin event for already cancelled/rejected booking %s: %v", booking.ID().String(), err)
 				}
 			}
 			// For all other statuses (PENDING, ACCEPTED, COMPLETED, DISPUTED, RESOLVED), treat as a successful no-op
