@@ -6,14 +6,15 @@ resources:
   - global-gateway-config.yaml
   - postgres-namespace.yaml
   - minio-namespace.yaml
+  - kafka-cluster.yaml
 
 helmCharts:
-  - name: kafka
-    repo: https://charts.bitnami.com/bitnami
-    version: 31.3.0
-    releaseName: kafka
+  - name: strimzi-kafka-operator
+    repo: https://strimzi.io/charts/
+    version: 1.0.1
+    releaseName: strimzi-operator
     namespace: kafka
-    valuesFile: kafka-values.dev.yaml
+    includeCRDs: true
   - name: postgresql
     repo: https://charts.bitnami.com/bitnami
     version: 15.5.4

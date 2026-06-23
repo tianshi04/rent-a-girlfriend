@@ -3,14 +3,15 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - kafka-cluster.yaml
 
 helmCharts:
-  - name: kafka
-    repo: https://charts.bitnami.com/bitnami
-    version: 31.3.0
-    releaseName: kafka
+  - name: strimzi-kafka-operator
+    repo: https://strimzi.io/charts/
+    version: 1.0.1
+    releaseName: strimzi-operator
     namespace: kafka
-    valuesFile: kafka-values.prod.yaml
+    includeCRDs: true
 
 patches:
   - target:
