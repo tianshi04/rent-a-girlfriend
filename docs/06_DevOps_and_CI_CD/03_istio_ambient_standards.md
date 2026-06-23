@@ -14,35 +14,56 @@ Mọi cấu hình liên quan đến Kubernetes Namespaces, Istio Gateways, Polic
 
 ## 2. Tiêu chuẩn cấu hình Namespace nghiệp vụ (Business Namespaces)
 
-Đối với các namespace chứa microservice nghiệp vụ (như `booking-service`, `identity-service`), cấu hình bao gồm hai phần:
+Đối với các namespace chứa microservice nghiệp vụ (như `booking-service`, `identity-service`, `interaction-service`), cấu hình bao gồm hai phần và có thể được quản lý theo hai mô hình: **tích hợp trong Helm chart** của từng service hoặc **quản lý tập trung bởi DevOps** thông qua Kustomize base (`infra/k8s/base/`).
 
 ### 2.1. Đăng ký tham gia Mesh (L4)
 Namespace phải được gắn nhãn `istio.io/dataplane-mode: ambient` để ztunnel tự động mã hóa mTLS và kiểm soát kết nối ở lớp mạng L4.
-Khai báo trong file `templates/k8s/namespace.yaml`:
-```yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: {{ .Release.Namespace }}
-  labels:
-    istio.io/dataplane-mode: ambient
-```
+
+* **Mô hình Helm (Service tự quản lý):** Khai báo trong `templates/k8s/namespace.yaml`:
+  ```yaml
+  apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: {{ .Release.Namespace }}
+    labels:
+      istio.io/dataplane-mode: ambient
+  ```
+* **Mô hình Kustomize (DevOps quản lý tập trung):** Khai báo trong `infra/k8s/base/<service>-namespace.yaml`:
+  ```yaml
+  apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: <service-name>
+    labels:
+      istio.io/dataplane-mode: ambient
+  ```
 
 ### 2.2. Khai báo Waypoint Proxy & Liên kết (L7)
 - **Tên cố định:** Mọi Waypoint Proxy trong namespace nghiệp vụ phải có tên cố định là `waypoint`.
 - **Liên kết namespace:** Gắn nhãn `istio.io/use-waypoint: waypoint` trực tiếp tại tài nguyên Namespace để chỉ định mọi traffic đi qua Waypoint.
-- **Khai báo Waypoint Gateway:** Tạo file template `templates/istio/waypoint.yaml` trong Helm chart của từng service:
-```yaml
-{{- if .Values.namespace.istio.ambientEnabled }}
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-metadata:
-  name: waypoint
-  namespace: {{ .Release.Namespace }}
-spec:
-  gatewayClassName: istio-waypoint
-{{- end }}
-```
+- **Khai báo Waypoint Gateway:**
+  * **Mô hình Helm (Service tự quản lý):** Tạo file template `templates/istio/waypoint.yaml` trong Helm chart:
+    ```yaml
+    {{- if .Values.namespace.istio.ambientEnabled }}
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: Gateway
+    metadata:
+      name: waypoint
+      namespace: {{ .Release.Namespace }}
+    spec:
+      gatewayClassName: istio-waypoint
+    {{- end }}
+    ```
+  * **Mô hình Kustomize (DevOps quản lý tập trung):** Tạo file `infra/k8s/base/<service>-waypoint.yaml`:
+    ```yaml
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: Gateway
+    metadata:
+      name: waypoint
+      namespace: <service-name>
+    spec:
+      gatewayClassName: istio-waypoint
+    ```
 
 ---
 

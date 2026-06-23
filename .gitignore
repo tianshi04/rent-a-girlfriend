@@ -43,6 +43,7 @@ __pycache__/
 
 # Secrets
 **/secrets.yaml
+**/values.secret.yaml
 
 # Antigravity CLI
 .antigravitycli

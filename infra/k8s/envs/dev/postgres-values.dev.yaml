@@ -22,10 +22,10 @@ primary:
     enabled: true
     size: 2Gi
 
-networkPolicy:
-  enabled: true
-  extraIngress:
-    # Allow Istio Ambient ztunnel HBONE traffic
-    - ports:
-        - port: 15008
-          protocol: TCP
+  networkPolicy:
+    enabled: true
+    extraIngress:
+      # Allow Istio Ambient ztunnel HBONE traffic
+      - ports:
+          - port: 15008
+            protocol: TCP

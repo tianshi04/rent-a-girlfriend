@@ -1,0 +1,84 @@
+replicaCount: 3
+
+image:
+  repository: ghcr.io/tianshi04/rent-a-girlfriend/interaction-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  ports:
+    http: 8080
+    grpc: 50051
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+config:
+  SERVER_PORT: "8080"
+  GRPC_PORT: "50051"
+  APP_ENV: "production"
+  RUST_LOG: "info,interaction_service=debug,tower_http=debug"
+  KAFKA_BROKERS: "kafka-headless.kafka.svc.cluster.local:9092"
+  KAFKA_TOPIC_INTERACTION: "interaction.events"
+  KAFKA_TOPIC_BOOKING: "booking.events"
+  KAFKA_GROUP_ID: "interaction-service-group"
+  OUTBOX_POLLING_INTERVAL_MS: "5000"
+  OUTBOX_BATCH_SIZE: "50"
+secrets:
+  DATABASE_URL: ""
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+gateway:
+  enabled: false
+  hostname: "interaction.example.com"
+  tls:
+    certificateName: "interaction-service-tls"
+
+httpRoute:
+  enabled: false
+  hosts:
+    - "interaction.example.com"
+  paths:
+    - /api/v1/interaction
+    - /health
+
+  authorizationPolicy:
+    enabled: true
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+
+tolerations: []
+
+nodeSelector: {}
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - interaction-service
+          topologyKey: "kubernetes.io/hostname"
+
+extraEnv: []
+
+extraVolumeMounts: []
+
+extraVolumes: []

@@ -1,0 +1,7 @@
+apiVersion: v2
+name: interaction-service
+description: "Helm chart for the Interaction Service deployment and Istio resources"
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+icon: "https://example.com/interaction-service-icon.png"
