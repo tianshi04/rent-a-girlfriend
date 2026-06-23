@@ -20,6 +20,9 @@ spec:
     metadata:
       labels:
         app: {{ include "interaction-service.fullname" . }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ include "interaction-service.fullname" . }}
       securityContext:

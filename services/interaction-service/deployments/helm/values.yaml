@@ -9,7 +9,7 @@ namespace:
 replicaCount: 3
 
 image:
-  repository: your-registry/interaction-service
+  repository: ghcr.io/tianshi04/rent-a-girlfriend/interaction-service
   tag: latest
   pullPolicy: IfNotPresent
 
