@@ -30,7 +30,7 @@ Quản lý vòng đời (State Machine), trạng thái của cuộc hẹn và đ
 | :--- | :--- | :--- |
 | `RequestBooking` | `clientId`, `companionId`, `scenarioId`, `startTime`, `price` | `BookingRequested` { bookingId, clientId, companionId, price, startTime } |
 | `AcceptBooking` | `bookingId`, `companionId` | `BookingAccepted` { bookingId, companionId, price } |
-| `CancelBooking` | `bookingId`, `actorId`, `actorRole` | `BookingCancelledEarly` / `BookingCancelledLate` { bookingId, actorRole, isLate } |
+| `CancelBooking` | `bookingId`, `actorId`, `actorRole` | `BookingCancelledEarly` / `BookingCancelledLate` { bookingId, clientId, companionId, actorId, actorRole } |
 
 ## 6. SAGA STATE (PROCESS MANAGERS)
 *   **Saga Entity:** `BookingAcceptSaga`

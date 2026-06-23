@@ -22,7 +22,7 @@ Aggregate là ranh giới nhất quán của dữ liệu. Mọi Command đi vào
 | :--- | :--- | :--- |
 | `RequestBooking` | `clientId`, `companionId`, `scenarioId`, `startTime`, `price` | `BookingRequested` { bookingId, clientId, companionId, price, startTime } |
 | `AcceptBooking` | `bookingId`, `companionId` | `BookingAccepted` { bookingId, companionId, price } |
-| `CancelBooking` | `bookingId`, `actorId`, `actorRole` | `BookingCancelledEarly` / `BookingCancelledLate` { bookingId, actorRole, isLate } |
+| `CancelBooking` | `bookingId`, `actorId`, `actorRole` | `BookingCancelledEarly` / `BookingCancelledLate` { bookingId, clientId, companionId, actorId, actorRole } |
 
 ---
 
