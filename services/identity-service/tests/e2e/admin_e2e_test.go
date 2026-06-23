@@ -56,7 +56,7 @@ func TestAdminLockAccountE2E(t *testing.T) {
 	}
 	lockBody, _ := json.Marshal(lockPayload)
 
-	lockReq, _ := http.NewRequest(http.MethodPut, lockURL, bytes.NewBuffer(lockBody))
+	lockReq, _ := http.NewRequest(http.MethodPost, lockURL, bytes.NewBuffer(lockBody))
 	lockReq.Header.Set("Content-Type", "application/json")
 	injectMeshHeaders(t, lockReq, adminAccessToken)
 

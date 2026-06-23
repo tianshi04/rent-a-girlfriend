@@ -74,7 +74,7 @@ func TestCompanionUpgradeE2E(t *testing.T) {
 
 	// 5. Admin approves the request
 	approveURL := fmt.Sprintf("%s/api/v1/admin/upgrade-requests/%s/approve", getBaseURL(), requestID)
-	approveReq, _ := http.NewRequest(http.MethodPut, approveURL, nil)
+	approveReq, _ := http.NewRequest(http.MethodPost, approveURL, nil)
 	injectMeshHeaders(t, approveReq, adminAccessToken)
 
 	approveResp, err := clientHTTP.Do(approveReq)
