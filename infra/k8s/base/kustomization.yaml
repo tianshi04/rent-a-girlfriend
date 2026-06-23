@@ -5,3 +5,4 @@ resources:
   - kafka-namespace.yaml
   - global-gateway.yaml
   - interaction-namespace.yaml
+  - interaction-waypoint.yaml

@@ -1,0 +1,7 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: waypoint
+  namespace: interaction-service
+spec:
+  gatewayClassName: istio-waypoint

@@ -4,6 +4,7 @@ metadata:
   name: interaction-service
   labels:
     istio.io/dataplane-mode: ambient
+    istio.io/use-waypoint: waypoint
     team: backend
     purpose: booking-chat-reviews
     service: interaction-service

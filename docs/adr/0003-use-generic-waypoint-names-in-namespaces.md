@@ -21,20 +21,15 @@ Khi triển khai Waypoint Proxy để cô lập tài nguyên và chính sách L7
 Chúng tôi quyết định chuẩn hóa mô hình triển khai Waypoint Proxy và quản lý cấu hình mạng trong Mesh như sau:
 
 ### 1. Chọn Option A: Tên Waypoint cố định (`waypoint`) cho từng Namespace nghiệp vụ
-*   Mỗi namespace chứa microservice nghiệp vụ (như `booking-service`, `identity-service`) sẽ triển khai một Waypoint Proxy riêng với tên tài nguyên Gateway cố định là `waypoint`.
-*   Cấu hình này được nhúng trực tiếp trong Helm chart của từng dịch vụ (`templates/istio/waypoint.yaml`):
-    ```yaml
-    apiVersion: gateway.networking.k8s.io/v1
-    kind: Gateway
-    metadata:
-      name: waypoint
-      namespace: {{ .Release.Namespace }}
-    spec:
-      gatewayClassName: istio-waypoint
-    ```
+*   Mỗi namespace chứa microservice nghiệp vụ (như `booking-service`, `identity-service`, `interaction-service`) sẽ triển khai một Waypoint Proxy riêng với tên tài nguyên Gateway cố định là `waypoint`.
+*   Cấu hình này có thể được quản lý theo một trong hai mô hình:
+    *   **Mô hình Helm (Dịch vụ tự quản lý):** Nhúng trực tiếp trong Helm chart của từng dịch vụ (`templates/istio/waypoint.yaml`).
+    *   **Mô hình Kustomize (DevOps quản lý tập trung):** Khai báo trong thư mục Kustomize base của hạ tầng (`infra/k8s/base/<service>-waypoint.yaml`).
 
 ### 2. Khai báo nhãn liên kết trực tiếp trong Git (Git-based Labeling)
-*   Để liên kết namespace với Waypoint Proxy, nhãn `istio.io/use-waypoint: waypoint` phải được khai báo trực tiếp trong file định nghĩa namespace thuộc Helm chart (`templates/k8s/namespace.yaml`).
+*   Để liên kết namespace với Waypoint Proxy, nhãn `istio.io/use-waypoint: waypoint` phải được khai báo trực tiếp trong file định nghĩa namespace:
+    *   Đối với mô hình Helm: Khai báo trong `templates/k8s/namespace.yaml`.
+    *   Đối với mô hình Kustomize: Khai báo trong `infra/k8s/base/<service>-namespace.yaml`.
 *   **Tuyệt đối nghiêm cấm** việc gán nhãn hoặc tạo Waypoint thủ công bằng lệnh CLI (`kubectl label namespace` hoặc `istioctl waypoint apply`) trên các môi trường persistent (Dev, Production). Mọi thay đổi cấu hình bắt buộc phải đi qua GitOps (FluxCD) để tránh hiện tượng trôi lệch cấu hình (Configuration Drift).
 
 ### 3. Chính sách cô lập Namespace hạ tầng & hệ thống:
