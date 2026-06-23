@@ -130,3 +130,38 @@ async def test_get_saga_state(client, db_session, integration_deps):
     assert saga_data["bookingId"] == booking_id
     assert saga_data["sagaType"] == "REFUND"
     assert saga_data["currentState"] == "DISPUTE_RESOLVED_REFUNDED"
+
+
+async def test_create_dispute(client):
+    headers = {"user-id": "client-123", "user-role": "CLIENT"}
+    booking_id = str(uuid.uuid4())
+    payload = {
+        "bookingId": booking_id,
+        "accusedId": "companion-456",
+        "reason": "NO_SHOW",
+        "evidences": [{"evidenceType": "TEXT", "content": "Chat log"}],
+    }
+    response = await client.post("/disputes", json=payload, headers=headers)
+    assert response.status_code == 201
+    data = response.json()
+    assert "disputeId" in data
+
+
+async def test_resolve_dispute(client, db_session, integration_deps):
+    cmd_service = integration_deps["cmd_service"]
+    booking_id = str(uuid.uuid4())
+    dispute_id = await cmd_service.create_report(
+        booking_id=booking_id,
+        reporter_id="client-123",
+        accused_id="companion-456",
+        reason="NO_SHOW",
+    )
+    await db_session.commit()
+
+    headers = {"user-id": "admin-123", "user-role": "ADMIN"}
+    payload = {"resolution": "REFUND_CLIENT", "notes": "Evidence is clear"}
+    response = await client.post(
+        f"/disputes/{dispute_id}/resolve", json=payload, headers=headers
+    )
+    assert response.status_code == 200
+    assert response.json() == {"success": True}
