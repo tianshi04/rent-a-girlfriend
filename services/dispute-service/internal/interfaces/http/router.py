@@ -2,12 +2,13 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
+from internal.application.command.dispute import DisputeCommandService
 from internal.application.query import DisputeQueryService
 from internal.domain.errors import DomainError
 
 router = APIRouter(prefix="/api/v1")
 
-from internal.bootstrap import get_query_service  # noqa: E402
+from internal.bootstrap import get_query_service, get_cmd_service  # noqa: E402
 
 
 class AuthInfo(BaseModel):
@@ -38,7 +39,60 @@ def get_admin_auth_info(
     )
 
 
+def get_auth_info(
+    user_id: Optional[str] = Header(None, alias="user-id"),
+    user_role: Optional[str] = Header(None, alias="user-role"),
+    user_email: Optional[str] = Header(None, alias="user-email"),
+) -> AuthInfo:
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User authentication missing",
+        )
+    return AuthInfo(
+        user_id=user_id,
+        user_role=user_role,
+        user_email=user_email,
+    )
+
+
+# --- Request DTOs ---
+
+
+class CreateReportEvidence(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    evidence_type: str
+    content: str
+
+
+class CreateReportRequest(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    booking_id: str
+    accused_id: str
+    reason: str
+    evidences: Optional[List[CreateReportEvidence]] = None
+
+
+class ResolveDisputeRequest(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    resolution: str
+    notes: str = ""
+
+
 # --- Response DTOs ---
+
+
+class CreateReportResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    dispute_id: str
+
+
+class SuccessResponse(BaseModel):
+    success: bool
 
 
 class EvidenceDTO(BaseModel):
@@ -187,6 +241,74 @@ async def get_saga_state(
         if not saga:
             return None
         return SagaStateDTO.from_domain(saga)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post(
+    "/disputes",
+    response_model=CreateReportResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Dispute Management"],
+)
+async def create_dispute(
+    payload: CreateReportRequest,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    cmd_service: DisputeCommandService = Depends(get_cmd_service),
+):
+    try:
+        evidences = []
+        if payload.evidences:
+            evidences = [
+                {"evidence_type": ev.evidence_type, "content": ev.content}
+                for ev in payload.evidences
+            ]
+
+        dispute_id = await cmd_service.create_report(
+            booking_id=payload.booking_id,
+            reporter_id=auth_info.user_id,
+            accused_id=payload.accused_id,
+            reason=payload.reason,
+            evidences=evidences,
+        )
+        return CreateReportResponse(disputeId=dispute_id)
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post(
+    "/disputes/{dispute_id}/resolve",
+    response_model=SuccessResponse,
+    tags=["Admin Dispute Management"],
+)
+async def resolve_dispute(
+    dispute_id: str,
+    payload: ResolveDisputeRequest,
+    auth_info: AuthInfo = Depends(get_admin_auth_info),
+    cmd_service: DisputeCommandService = Depends(get_cmd_service),
+):
+    try:
+        # Step 1: Assign the admin to the dispute
+        await cmd_service.assign_admin(
+            dispute_id=dispute_id, admin_id=auth_info.user_id
+        )
+
+        # Step 2: Resolve the dispute
+        await cmd_service.resolve_dispute(
+            dispute_id=dispute_id,
+            admin_id=auth_info.user_id,
+            resolution=payload.resolution,
+            notes=payload.notes,
+        )
+        return SuccessResponse(success=True)
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)

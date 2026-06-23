@@ -160,6 +160,10 @@ async def get_query_service(services=Depends(get_services)) -> DisputeQueryServi
     return services[1]
 
 
+async def get_cmd_service(services=Depends(get_services)) -> DisputeCommandService:
+    return services[0]
+
+
 # --- Workers & Consumers Setup ---
 db_cleanup_worker = DbCleanupWorker(
     session_factory=SessionLocal,
