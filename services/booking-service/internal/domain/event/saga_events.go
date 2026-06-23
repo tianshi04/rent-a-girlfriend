@@ -3,10 +3,9 @@ package event
 import (
 	"time"
 
-	"google.golang.org/protobuf/proto"
-
 	financev1 "github.com/rent-a-girlfriend/booking-service/gen/proto/financev1"
 	interactionv1 "github.com/rent-a-girlfriend/booking-service/gen/proto/interactionv1"
+	"google.golang.org/protobuf/proto"
 )
 
 // TransferToEscrowCommand is raised by the SAGA coordinator to request Escrow coin hold.
