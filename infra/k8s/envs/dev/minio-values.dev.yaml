@@ -1,0 +1,22 @@
+mode: standalone
+rootUser: "minio_admin"
+rootPassword: "minio_secure_password"
+
+replicas: 1
+
+persistence:
+  enabled: true
+  size: 2Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+buckets:
+  - name: rentgf-media
+    policy: public
+    purge: false

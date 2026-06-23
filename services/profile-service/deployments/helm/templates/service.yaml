@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "profile-service.fullname" . }}
+  labels:
+    {{- include "profile-service.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: {{ include "profile-service.fullname" . }}
+  ports:
+    - name: http
+      port: {{ .Values.service.ports.http }}
+      targetPort: http
+    - name: grpc
+      port: {{ .Values.service.ports.grpc }}
+      targetPort: grpc

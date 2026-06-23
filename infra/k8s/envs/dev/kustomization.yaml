@@ -5,6 +5,7 @@ resources:
   - ../../base
   - global-gateway-config.yaml
   - postgres-namespace.yaml
+  - minio-namespace.yaml
 
 helmCharts:
   - name: kafka
@@ -19,8 +20,26 @@ helmCharts:
     releaseName: postgres
     namespace: postgres
     valuesFile: postgres-values.dev.yaml
+  - name: minio
+    repo: https://charts.min.io/
+    version: 5.4.0
+    releaseName: minio
+    namespace: minio
+    valuesFile: minio-values.dev.yaml
 
 patches:
+  - target:
+      name: minio.*
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: minio
+  - target:
+      name: export-minio.*
+    patch: |-
+      - op: add
+        path: /metadata/namespace
+        value: minio
   - target:
       group: gateway.networking.k8s.io
       version: v1

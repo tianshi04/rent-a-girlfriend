@@ -6,3 +6,6 @@ resources:
   - global-gateway.yaml
   - interaction-namespace.yaml
   - interaction-waypoint.yaml
+  - profile-namespace.yaml
+  - profile-waypoint.yaml
+
