@@ -31,6 +31,11 @@ config:
   OUTBOX_POLLING_INTERVAL_MS: "5000"
   OUTBOX_BATCH_SIZE: "50"
 
+externalSecrets:
+  enabled: false
+  secretStoreName: global-vault-store
+  vaultPath: interaction-service
+
 secrets:
   DATABASE_URL: ""
 
