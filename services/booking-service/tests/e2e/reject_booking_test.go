@@ -36,14 +36,14 @@ func TestE2E_RejectBooking_Success(t *testing.T) {
 		t.Fatalf("failed to save booking: %v", err)
 	}
 
-	// Call RejectBooking PUT /api/v1/bookings/:id/reject
+	// Call RejectBooking POST /api/v1/bookings/:id/reject
 	reqBody := map[string]interface{}{
 		"companionId": "00000000-0000-0000-0000-000000000456",
 	}
 	bodyBytes, _ := json.Marshal(reqBody)
 
 	url := fmt.Sprintf("%s/api/v1/bookings/%s/reject", getBaseURL(), bid.String())
-	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(bodyBytes))
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("user-id", "00000000-0000-0000-0000-000000000456")
 	req.Header.Set("user-role", "COMPANION")

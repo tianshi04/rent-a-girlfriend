@@ -32,28 +32,28 @@ service BookingService {
 
   rpc AcceptBooking(AcceptBookingRequest) returns (AcceptBookingResponse) {
     option (google.api.http) = {
-      put: "/api/v1/bookings/{booking_id}/accept"
+      post: "/api/v1/bookings/{booking_id}/accept"
       body: "*"
     };
   }
 
   rpc CancelBooking(CancelBookingRequest) returns (CancelBookingResponse) {
     option (google.api.http) = {
-      put: "/api/v1/bookings/{booking_id}/cancel"
+      post: "/api/v1/bookings/{booking_id}/cancel"
       body: "*"
     };
   }
 
   rpc CompleteBooking(CompleteBookingRequest) returns (CompleteBookingResponse) {
     option (google.api.http) = {
-      put: "/api/v1/bookings/{booking_id}/complete"
+      post: "/api/v1/bookings/{booking_id}/complete"
       body: "*"
     };
   }
 
   rpc RejectBooking(RejectBookingRequest) returns (RejectBookingResponse) {
     option (google.api.http) = {
-      put: "/api/v1/bookings/{booking_id}/reject"
+      post: "/api/v1/bookings/{booking_id}/reject"
       body: "*"
     };
   }

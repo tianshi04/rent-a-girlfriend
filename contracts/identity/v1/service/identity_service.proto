@@ -67,7 +67,7 @@ service IdentityService {
   // ApproveUpgrade — Admin duyệt yêu cầu nâng cấp.
   rpc ApproveUpgrade(ApproveUpgradeRequest) returns (identity.v1.MessageResponse) {
     option (google.api.http) = {
-      put: "/api/v1/admin/upgrade-requests/{id}/approve"
+      post: "/api/v1/admin/upgrade-requests/{id}/approve"
       body: "*"
     };
   }
@@ -75,7 +75,7 @@ service IdentityService {
   // RejectUpgrade — Admin từ chối yêu cầu nâng cấp.
   rpc RejectUpgrade(RejectUpgradeRequest) returns (identity.v1.MessageResponse) {
     option (google.api.http) = {
-      put: "/api/v1/admin/upgrade-requests/{id}/reject"
+      post: "/api/v1/admin/upgrade-requests/{id}/reject"
       body: "*"
     };
   }
@@ -83,7 +83,7 @@ service IdentityService {
   // LockAccount — Admin khóa tài khoản người dùng.
   rpc LockAccount(LockAccountRequest) returns (identity.v1.MessageResponse) {
     option (google.api.http) = {
-      put: "/api/v1/admin/accounts/{id}/lock"
+      post: "/api/v1/admin/accounts/{id}/lock"
       body: "*"
     };
   }
@@ -91,7 +91,7 @@ service IdentityService {
   // UnlockAccount — Admin mở khóa tài khoản người dùng.
   rpc UnlockAccount(UnlockAccountRequest) returns (identity.v1.MessageResponse) {
     option (google.api.http) = {
-      put: "/api/v1/admin/accounts/{id}/unlock"
+      post: "/api/v1/admin/accounts/{id}/unlock"
       body: "*"
     };
   }

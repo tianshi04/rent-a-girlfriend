@@ -37,14 +37,14 @@ func TestE2E_AcceptBooking_Success(t *testing.T) {
 		t.Fatalf("failed to save booking: %v", err)
 	}
 
-	// Call AcceptBooking PUT /api/v1/bookings/:id/accept
+	// Call AcceptBooking POST /api/v1/bookings/:id/accept
 	reqBody := map[string]interface{}{
 		"companionId": "00000000-0000-0000-0000-000000000456",
 	}
 	bodyBytes, _ := json.Marshal(reqBody)
 
 	url := fmt.Sprintf("%s/api/v1/bookings/%s/accept", getBaseURL(), bid.String())
-	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(bodyBytes))
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("user-id", "00000000-0000-0000-0000-000000000456")
 	req.Header.Set("user-role", "COMPANION")
