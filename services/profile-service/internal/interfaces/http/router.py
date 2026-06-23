@@ -8,7 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/api/v1")
 
-from internal.bootstrap import get_query_service, get_media_cmd, get_scenario_cmd, get_db_session  # noqa: E402
+from internal.bootstrap import (  # noqa: E402
+    get_query_service,
+    get_media_cmd,
+    get_scenario_cmd,
+    get_db_session,
+)
 
 # --- Input/Output Schemas ---
 
