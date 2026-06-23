@@ -69,4 +69,3 @@ func (h *SystemRejectBookingHandler) Handle(ctx context.Context, cmd SystemRejec
 
 	return booking, nil
 }
-

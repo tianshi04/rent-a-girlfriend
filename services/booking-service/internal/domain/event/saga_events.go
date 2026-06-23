@@ -48,4 +48,3 @@ type UnfreezeCoinCommand struct {
 func (e UnfreezeCoinCommand) EventType() string      { return "finance.unfreeze-coin.v1" }
 func (e UnfreezeCoinCommand) OccurredAt() time.Time  { return e.Timestamp }
 func (e UnfreezeCoinCommand) ToProto() proto.Message { return e.UnfreezeCoin }
-

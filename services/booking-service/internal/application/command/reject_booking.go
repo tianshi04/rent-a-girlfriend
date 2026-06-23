@@ -73,4 +73,3 @@ func (h *RejectBookingHandler) Handle(ctx context.Context, cmd RejectBookingCmd)
 
 	return booking, nil
 }
-

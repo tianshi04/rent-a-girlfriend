@@ -349,4 +349,3 @@ func (m *MockOutboxPublisher) Publish(ctx context.Context, evt event.DomainEvent
 	m.Published = append(m.Published, evt)
 	return nil
 }
-
