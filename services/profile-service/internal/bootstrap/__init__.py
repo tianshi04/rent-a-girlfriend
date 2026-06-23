@@ -29,12 +29,7 @@ class Settings(BaseSettings):
     GRPC_PORT: int = 50051
     APP_ENV: str = "development"
 
-    DB_HOST: str = "localhost"
-    DB_PORT: int = 5432
-    DB_USER: str = "profile_admin"
-    DB_PASSWORD: str = "super_secure_password"
-    DB_NAME: str = "profile_service"
-    DB_SSLMODE: str = "disable"
+    DATABASE_URL: str = "postgresql+asyncpg://profile_admin:super_secure_password@localhost:5432/profile_service"
 
     S3_ENDPOINT_URL: str = "http://localhost:9000"
     S3_REGION: str = "us-east-1"
@@ -61,7 +56,7 @@ settings = Settings()
 if os.environ.get("TESTING") == "1":
     DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 else:
-    DATABASE_URL = f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
+    DATABASE_URL = settings.DATABASE_URL
 
 logger.info(
     f"Connecting to database at {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else DATABASE_URL}"
