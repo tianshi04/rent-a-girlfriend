@@ -2,11 +2,14 @@ package command
 
 import (
 	"context"
-	"log"
 	"time"
 
+	"gorm.io/gorm"
+
+	financev1 "github.com/rent-a-girlfriend/booking-service/gen/proto/financev1"
 	"github.com/rent-a-girlfriend/booking-service/internal/application/port"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/aggregate"
+	"github.com/rent-a-girlfriend/booking-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/repository"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
 )
@@ -16,14 +19,16 @@ type SystemRejectBookingCmd struct {
 }
 
 type SystemRejectBookingHandler struct {
-	repo           repository.BookingRepository
-	financeService port.FinanceService
+	repo   repository.BookingRepository
+	db     *gorm.DB
+	outbox port.EventPublisher
 }
 
-func NewSystemRejectBookingHandler(repo repository.BookingRepository, financeService port.FinanceService) *SystemRejectBookingHandler {
+func NewSystemRejectBookingHandler(repo repository.BookingRepository, db *gorm.DB, outbox port.EventPublisher) *SystemRejectBookingHandler {
 	return &SystemRejectBookingHandler{
-		repo:           repo,
-		financeService: financeService,
+		repo:   repo,
+		db:     db,
+		outbox: outbox,
 	}
 }
 
@@ -42,14 +47,26 @@ func (h *SystemRejectBookingHandler) Handle(ctx context.Context, cmd SystemRejec
 		return nil, err
 	}
 
-	// Unfreeze coin since booking is rejected due to timeout
-	if err := h.financeService.UnfreezeCoin(ctx, booking.ClientID(), booking.Scenario().Price()); err != nil {
-		log.Printf("[SYSTEM-REJECT-BOOKING] Failed to unfreeze coin for client %s: %v", booking.ClientID().String(), err)
-	}
+	err = h.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txCtx := context.WithValue(ctx, vo.TxKey, tx)
 
-	if err := h.repo.Update(ctx, booking); err != nil {
+		if err := h.repo.Update(txCtx, booking); err != nil {
+			return err
+		}
+
+		return h.outbox.Publish(txCtx, event.UnfreezeCoinCommand{
+			UnfreezeCoin: &financev1.UnfreezeCoin{
+				UserId:    booking.ClientID().String(),
+				Amount:    booking.Scenario().Price().Amount(),
+				BookingId: booking.ID().String(),
+			},
+			Timestamp: time.Now(),
+		})
+	})
+	if err != nil {
 		return nil, err
 	}
 
 	return booking, nil
 }
+

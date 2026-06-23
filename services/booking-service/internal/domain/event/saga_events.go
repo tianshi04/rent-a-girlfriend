@@ -38,3 +38,14 @@ type RefundEscrowCommand struct {
 func (e RefundEscrowCommand) EventType() string      { return "finance.refund-escrow.v1" }
 func (e RefundEscrowCommand) OccurredAt() time.Time  { return e.Timestamp }
 func (e RefundEscrowCommand) ToProto() proto.Message { return e.RefundEscrowRequest }
+
+// UnfreezeCoinCommand is raised to request coin unfreezing.
+type UnfreezeCoinCommand struct {
+	*financev1.UnfreezeCoin
+	Timestamp time.Time
+}
+
+func (e UnfreezeCoinCommand) EventType() string      { return "finance.unfreeze-coin.v1" }
+func (e UnfreezeCoinCommand) OccurredAt() time.Time  { return e.Timestamp }
+func (e UnfreezeCoinCommand) ToProto() proto.Message { return e.UnfreezeCoin }
+
