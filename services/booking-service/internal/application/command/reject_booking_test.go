@@ -9,13 +9,15 @@ import (
 	"github.com/rent-a-girlfriend/booking-service/internal/application/command"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/aggregate"
 	domainerr "github.com/rent-a-girlfriend/booking-service/internal/domain/errors"
+	"github.com/rent-a-girlfriend/booking-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
 )
 
 func TestRejectBooking_Success(t *testing.T) {
 	repo := NewMockBookingRepository()
-	finance := &MockFinanceService{}
-	handler := command.NewRejectBookingHandler(repo, finance)
+	db := NewMockGormDB()
+	outbox := &MockOutboxPublisher{}
+	handler := command.NewRejectBookingHandler(repo, db, outbox)
 
 	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
 	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")
@@ -44,16 +46,24 @@ func TestRejectBooking_Success(t *testing.T) {
 		t.Errorf("expected REJECTED status, got %s", res.Status())
 	}
 
-	// Verify unfreeze coin is triggered
-	if len(finance.RefundCalls) != 1 || finance.RefundCalls[0] != clientID.String() {
-		t.Errorf("expected UnfreezeCoin to be called once for %s, got %v", clientID.String(), finance.RefundCalls)
+	// Verify unfreeze coin is triggered in outbox
+	if len(outbox.Published) != 1 {
+		t.Errorf("expected 1 event published, got %d", len(outbox.Published))
+	} else {
+		evt, ok := outbox.Published[0].(event.UnfreezeCoinCommand)
+		if !ok {
+			t.Errorf("expected UnfreezeCoinCommand, got %T", outbox.Published[0])
+		} else if evt.UserId != clientID.String() {
+			t.Errorf("expected client ID %s, got %s", clientID.String(), evt.UserId)
+		}
 	}
 }
 
 func TestRejectBooking_UnauthorizedCompanion(t *testing.T) {
 	repo := NewMockBookingRepository()
-	finance := &MockFinanceService{}
-	handler := command.NewRejectBookingHandler(repo, finance)
+	db := NewMockGormDB()
+	outbox := &MockOutboxPublisher{}
+	handler := command.NewRejectBookingHandler(repo, db, outbox)
 
 	clientID, _ := vo.NewClientID("550e8400-e29b-41d4-a716-446655440001")
 	companionID, _ := vo.NewCompanionID("550e8400-e29b-41d4-a716-446655440002")

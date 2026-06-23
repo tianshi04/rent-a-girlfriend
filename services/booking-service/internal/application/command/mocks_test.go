@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/aggregate"
+	"github.com/rent-a-girlfriend/booking-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/repository"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
 	"gorm.io/driver/postgres"
@@ -334,4 +335,17 @@ func NewMockGormDB() *gorm.DB {
 		panic(err)
 	}
 	return db
+}
+
+// MockOutboxPublisher implements port.EventPublisher for testing.
+type MockOutboxPublisher struct {
+	mu        sync.Mutex
+	Published []event.DomainEvent
+}
+
+func (m *MockOutboxPublisher) Publish(ctx context.Context, evt event.DomainEvent) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.Published = append(m.Published, evt)
+	return nil
 }

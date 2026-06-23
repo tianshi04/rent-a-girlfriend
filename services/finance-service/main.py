@@ -287,6 +287,140 @@ async def run_booking_event_listener():
                         logger.warning(
                             f"Missing required fields (bookingId, userId, amount) in unfreeze event: {msg.value}"
                         )
+
+                elif event_type == "booking.booking-cancelled-early.v1":
+                    event_data = msg.value.get("data", {})
+                    booking_id = event_data.get("bookingId") or event_data.get("booking_id")
+                    client_id = event_data.get("clientId") or event_data.get("client_id")
+
+                    if booking_id and client_id:
+                        logger.info(
+                            f"Processing early cancellation: booking_id={booking_id}, client_id={client_id}"
+                        )
+                        async with SessionLocal() as session:
+                            cmd_service = bootstrap_services(session)
+                            try:
+                                from internal.domain.vo import TransactionType
+                                # Check idempotency
+                                existing_refund = await cmd_service.transaction_repo.find_by_reference_id(
+                                    booking_id, TransactionType.REFUND
+                                )
+                                if existing_refund:
+                                    logger.info(f"Refund already exists for booking_id={booking_id}. Skipping.")
+                                else:
+                                    escrow = await cmd_service.escrow_repo.find_by_booking_id(booking_id)
+                                    if escrow and escrow.status == "HELD":
+                                        await cmd_service.refund_escrow(
+                                            booking_id=booking_id,
+                                            client_id=client_id,
+                                            refund_amount=escrow.amount.amount,
+                                        )
+                                    else:
+                                        # Refund from frozen
+                                        reservation_txn = await cmd_service.transaction_repo.find_by_reference_id(
+                                            booking_id, TransactionType.BOOKING_RESERVATION
+                                        )
+                                        if reservation_txn:
+                                            await cmd_service.unfreeze_coin(
+                                                user_id=client_id,
+                                                amount=reservation_txn.amount.amount,
+                                                booking_id=booking_id,
+                                            )
+                                        else:
+                                            logger.warning(
+                                                f"No reservation transaction found for booking_id={booking_id}"
+                                            )
+                                    await session.commit()
+                                    logger.info(
+                                        f"Early cancellation processed successfully for booking_id={booking_id}"
+                                    )
+                            except Exception as cancel_err:
+                                logger.warning(
+                                    f"Handled error while processing early cancellation for booking_id={booking_id}: {cancel_err}"
+                                )
+                    else:
+                        logger.warning(
+                            f"Missing required fields (bookingId, clientId) in early cancel event: {msg.value}"
+                        )
+
+                elif event_type == "booking.booking-cancelled-late.v1":
+                    event_data = msg.value.get("data", {})
+                    booking_id = event_data.get("bookingId") or event_data.get("booking_id")
+                    client_id = event_data.get("clientId") or event_data.get("client_id")
+                    companion_id = event_data.get("companionId") or event_data.get("companion_id")
+                    actor_role = event_data.get("actorRole") or event_data.get("actor_role")
+
+                    if booking_id and client_id and companion_id and actor_role:
+                        logger.info(
+                            f"Processing late cancellation: booking_id={booking_id}, client_id={client_id}, companion_id={companion_id}, actor_role={actor_role}"
+                        )
+                        async with SessionLocal() as session:
+                            cmd_service = bootstrap_services(session)
+                            try:
+                                from internal.domain.vo import TransactionType
+                                # Check idempotency
+                                existing_refund = await cmd_service.transaction_repo.find_by_reference_id(
+                                    booking_id, TransactionType.REFUND
+                                )
+                                existing_payout = await cmd_service.transaction_repo.find_by_reference_id(
+                                    booking_id, TransactionType.ESCROW_RELEASE
+                                )
+                                if existing_refund or existing_payout:
+                                    logger.info(f"Refund/Payout already exists for booking_id={booking_id}. Skipping.")
+                                else:
+                                    if actor_role.upper() == "COMPANION":
+                                        # Companion cancelled late -> refund Client 100%
+                                        escrow = await cmd_service.escrow_repo.find_by_booking_id(booking_id)
+                                        if escrow and escrow.status == "HELD":
+                                            await cmd_service.refund_escrow(
+                                                booking_id=booking_id,
+                                                client_id=client_id,
+                                                refund_amount=escrow.amount.amount,
+                                            )
+                                        else:
+                                            # Refund from frozen
+                                            reservation_txn = await cmd_service.transaction_repo.find_by_reference_id(
+                                                booking_id, TransactionType.BOOKING_RESERVATION
+                                            )
+                                            if reservation_txn:
+                                                await cmd_service.unfreeze_coin(
+                                                    user_id=client_id,
+                                                    amount=reservation_txn.amount.amount,
+                                                    booking_id=booking_id,
+                                                )
+                                            else:
+                                                logger.warning(
+                                                    f"No reservation transaction found for booking_id={booking_id}"
+                                                )
+                                    elif actor_role.upper() == "CLIENT":
+                                        # Client cancelled late -> payout to Companion 100%
+                                        escrow = await cmd_service.escrow_repo.find_by_booking_id(booking_id)
+                                        if escrow and escrow.status == "HELD":
+                                            # Payout to Companion with 0% platform commission
+                                            await cmd_service.process_payout(
+                                                booking_id=booking_id,
+                                                companion_id=companion_id,
+                                                commission_rate=0.0,
+                                            )
+                                        else:
+                                            logger.warning(
+                                                f"Escrow not found for late cancellation of accepted booking_id={booking_id}"
+                                            )
+                                    else:
+                                        logger.warning(f"Unknown actor role: {actor_role} for booking_id={booking_id}")
+                                    
+                                    await session.commit()
+                                    logger.info(
+                                        f"Late cancellation processed successfully for booking_id={booking_id}"
+                                    )
+                            except Exception as cancel_err:
+                                logger.warning(
+                                    f"Handled error while processing late cancellation for booking_id={booking_id}: {cancel_err}"
+                                )
+                    else:
+                        logger.warning(
+                            f"Missing required fields (bookingId, clientId, companionId, actorRole) in late cancel event: {msg.value}"
+                        )
             except Exception as e:
                 logger.error(f"Error processing booking event: {e}", exc_info=True)
     except asyncio.CancelledError:
