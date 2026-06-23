@@ -12,7 +12,3 @@ config:
 hpa:
   maxReplicas: 10
   targetCPUUtilizationPercentage: 75
-
-externalSecrets:
-  enabled: true
-  vaultPath: interaction-service
