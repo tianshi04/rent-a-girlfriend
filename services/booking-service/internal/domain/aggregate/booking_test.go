@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/aggregate"
+	"github.com/rent-a-girlfriend/booking-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/booking-service/internal/domain/vo"
 )
 
@@ -200,8 +201,15 @@ func TestCancel_LateCancellation(t *testing.T) {
 	if len(events) != 1 {
 		t.Fatalf("expected 1 event, got %d", len(events))
 	}
-	if events[0].EventType() != "booking.booking-cancelled-late.v1" {
-		t.Errorf("expected BookingCancelledLate, got %s", events[0].EventType())
+	evt, ok := events[0].(event.BookingCancelledLate)
+	if !ok {
+		t.Fatalf("expected BookingCancelledLate event type, got %T", events[0])
+	}
+	if evt.ClientId != clientID.String() {
+		t.Errorf("expected ClientId %s, got %s", clientID.String(), evt.ClientId)
+	}
+	if evt.CompanionId != companionID.String() {
+		t.Errorf("expected CompanionId %s, got %s", companionID.String(), evt.CompanionId)
 	}
 }
 
@@ -225,8 +233,18 @@ func TestCancel_EarlyCancellation(t *testing.T) {
 	}
 
 	events := booking.Events()
-	if events[0].EventType() != "booking.booking-cancelled-early.v1" {
-		t.Errorf("expected BookingCancelledEarly, got %s", events[0].EventType())
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+	evt, ok := events[0].(event.BookingCancelledEarly)
+	if !ok {
+		t.Fatalf("expected BookingCancelledEarly event type, got %T", events[0])
+	}
+	if evt.ClientId != clientID.String() {
+		t.Errorf("expected ClientId %s, got %s", clientID.String(), evt.ClientId)
+	}
+	if evt.CompanionId != companionID.String() {
+		t.Errorf("expected CompanionId %s, got %s", companionID.String(), evt.CompanionId)
 	}
 }
 

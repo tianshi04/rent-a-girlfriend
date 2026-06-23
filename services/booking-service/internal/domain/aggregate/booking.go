@@ -170,19 +170,23 @@ func (b *Booking) Cancel(actorRole vo.ActorRole, now time.Time) error {
 	if b.isLateCancel {
 		b.addEvent(event.BookingCancelledLate{
 			BookingCancelledLate: &bookingv1.BookingCancelledLate{
-				BookingId:  b.id.String(),
-				ActorId:    b.resolveActorID(actorRole),
-				ActorRole:  string(actorRole),
-				OccurredAt: timestamppb.New(now),
+				BookingId:   b.id.String(),
+				ClientId:    b.clientID.String(),
+				CompanionId: b.companionID.String(),
+				ActorId:     b.resolveActorID(actorRole),
+				ActorRole:   string(actorRole),
+				OccurredAt:  timestamppb.New(now),
 			},
 		})
 	} else {
 		b.addEvent(event.BookingCancelledEarly{
 			BookingCancelledEarly: &bookingv1.BookingCancelledEarly{
-				BookingId:  b.id.String(),
-				ActorId:    b.resolveActorID(actorRole),
-				ActorRole:  string(actorRole),
-				OccurredAt: timestamppb.New(now),
+				BookingId:   b.id.String(),
+				ClientId:    b.clientID.String(),
+				CompanionId: b.companionID.String(),
+				ActorId:     b.resolveActorID(actorRole),
+				ActorRole:   string(actorRole),
+				OccurredAt:  timestamppb.New(now),
 			},
 		})
 	}
