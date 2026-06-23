@@ -194,18 +194,14 @@ func (h *BookingGRPCHandler) GetBooking(ctx context.Context, req *bookingv1.GetB
 
 // ListBookings handles listing and filtering bookings.
 func (h *BookingGRPCHandler) ListBookings(ctx context.Context, req *bookingv1.ListBookingsRequest) (*bookingv1.ListBookingsResponse, error) {
-	// Strictly extract authenticated user ID and role from context (injected by Istio Waypoint)
-	authID := util.GetUserID(ctx)
-	authRole := util.GetUserRole(ctx)
-
-	// Fallback to request payload ONLY if context metadata is missing (e.g. in local development / unit tests)
-	callerID := authID
-	if callerID == "" {
-		callerID = req.ActorId
+	// Identity and role are injected by Istio Waypoint Proxy — never read from request body.
+	actorID := util.GetUserID(ctx)
+	if actorID == "" {
+		return nil, status.Error(codes.Unauthenticated, "actor identity is missing")
 	}
-	callerRole := authRole
-	if callerRole == "" {
-		callerRole = req.ActorRole
+	actorRole := util.GetUserRole(ctx)
+	if actorRole == "" {
+		return nil, status.Error(codes.PermissionDenied, "missing user role header")
 	}
 
 	page := int64(1)
@@ -221,33 +217,15 @@ func (h *BookingGRPCHandler) ListBookings(ctx context.Context, req *bookingv1.Li
 	}
 
 	var clientIDPtr, companionIDPtr *string
-	switch callerRole {
+	switch actorRole {
 	case "CLIENT":
-		// Non-admin CLIENT is strictly restricted to their own authenticated ID
-		actualID := authID
-		if actualID == "" {
-			actualID = callerID // fallback for local/unit testing
-		}
-		clientIDPtr = &actualID
+		clientIDPtr = &actorID
 	case "COMPANION":
-		// Non-admin COMPANION is strictly restricted to their own authenticated ID
-		actualID := authID
-		if actualID == "" {
-			actualID = callerID // fallback for local/unit testing
-		}
-		companionIDPtr = &actualID
+		companionIDPtr = &actorID
 	case "ADMIN":
-		// Admin can filter by any actor using request parameters
-		if req.ActorId != "" {
-			switch req.ActorRole {
-			case "CLIENT":
-				clientIDPtr = &req.ActorId
-			case "COMPANION":
-				companionIDPtr = &req.ActorId
-			}
-		}
+		// Admin sees all bookings with no user filter.
 	default:
-		// Missing or unrecognized role must be rejected to prevent BOLA data leakage
+		// Missing or unrecognized role must be rejected to prevent BOLA data leakage.
 		return nil, status.Error(codes.PermissionDenied, "unauthorized or missing user role header")
 	}
 
@@ -255,13 +233,28 @@ func (h *BookingGRPCHandler) ListBookings(ctx context.Context, req *bookingv1.Li
 	if req.View != "" {
 		switch req.View {
 		case "pending":
-			statusesFilter = []string{"PENDING"}
+			// Include PENDING_RESERVING so CLIENT sees the booking immediately after creation,
+			// while the coin reservation SAGA is still in-flight.
+			// Companion filter downstream will remove PENDING_RESERVING for COMPANION role.
+			statusesFilter = []string{"PENDING_RESERVING", "PENDING"}
 		case "upcoming":
 			statusesFilter = []string{"ACCEPTED"}
 		case "history":
 			statusesFilter = []string{"COMPLETED", "CANCELLED", "DISPUTED"}
 		default:
 			statusesFilter = []string{req.View}
+		}
+	}
+
+	// [BIZ] Companion must never see bookings in PENDING_RESERVING state.
+	// This status is an internal in-flight state while the coin reservation SAGA
+	// is executing — the companion has no actionable role at this stage.
+	if actorRole == "COMPANION" {
+		if len(statusesFilter) == 0 {
+			// No view filter means "all statuses" — explicitly enumerate all visible ones.
+			statusesFilter = []string{"PENDING", "ACCEPTED", "COMPLETED", "CANCELLED", "DISPUTED", "RESOLVED"}
+		} else {
+			statusesFilter = excludeStatus(statusesFilter, "PENDING_RESERVING")
 		}
 	}
 
@@ -346,4 +339,15 @@ func mapDomainError(err error) error {
 	default:
 		return status.Error(codes.Internal, err.Error())
 	}
+}
+
+// excludeStatus returns a new slice with the specified status removed.
+func excludeStatus(statuses []string, exclude string) []string {
+	result := make([]string, 0, len(statuses))
+	for _, s := range statuses {
+		if s != exclude {
+			result = append(result, s)
+		}
+	}
+	return result
 }

@@ -65,3 +65,56 @@ func TestE2E_ListBookings_RoleFilters(t *testing.T) {
 		t.Errorf("expected 1 booking in list, got %+v", listResp)
 	}
 }
+
+// TestE2E_ListBookings_Companion_HidesPendingReserving asserts that a companion
+// cannot see bookings in PENDING_RESERVING status, since the coin reservation
+// SAGA is still in-flight and the companion has no actionable role at this stage.
+func TestE2E_ListBookings_Companion_HidesPendingReserving(t *testing.T) {
+	db := getTestDB(t)
+	truncateTables(db)
+	defer truncateTables(db)
+
+	repo := persistence.NewBookingRepository(db)
+
+	clientID, _ := vo.NewClientID("00000000-0000-0000-0000-000000000333")
+	companionID, _ := vo.NewCompanionID("00000000-0000-0000-0000-000000000444")
+	price := vo.MustMoney(500)
+	snap, _ := vo.NewScenarioSnapshot(price, 120)
+	now := time.Now()
+	tr, _ := vo.NewTimeRange(now.Add(3*time.Hour), now.Add(5*time.Hour))
+	bid := vo.NewBookingID()
+
+	// Seed a booking with PENDING_RESERVING status
+	b := aggregate.Reconstitute(bid, clientID, companionID, snap, tr, vo.StatusPendingReserving, "", false, 1, now, now)
+	if err := repo.Save(context.Background(), b); err != nil {
+		t.Fatalf("failed to save booking: %v", err)
+	}
+
+	url := fmt.Sprintf("%s/api/v1/bookings", getBaseURL())
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("user-id", "00000000-0000-0000-0000-000000000444")
+	req.Header.Set("user-role", "COMPANION")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("failed HTTP request: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200 OK, got %d", resp.StatusCode)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+
+	var listResp struct {
+		Bookings []struct {
+			BookingId string `json:"bookingId"`
+		} `json:"bookings"`
+	}
+	_ = json.Unmarshal(body, &listResp)
+
+	if len(listResp.Bookings) != 0 {
+		t.Errorf("companion should not see PENDING_RESERVING bookings, got %+v", listResp)
+	}
+}
