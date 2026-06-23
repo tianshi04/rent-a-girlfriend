@@ -1,13 +1,13 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from pydantic import BaseModel, Field, model_validator
-from internal.application.command import MediaCommandService
+from internal.application.command import MediaCommandService, ScenarioCommandService
 from internal.application.query import ProfileQueryService
 from internal.domain.errors import DomainError
 
 router = APIRouter(prefix="/api/v1")
 
-from internal.bootstrap import get_query_service, get_media_cmd  # noqa: E402
+from internal.bootstrap import get_query_service, get_media_cmd, get_scenario_cmd  # noqa: E402
 
 # --- Input/Output Schemas ---
 
@@ -50,6 +50,45 @@ class PresignedUrlRequest(BaseModel):
 class PresignedUrlResponse(BaseModel):
     uploadUrl: str
     fileUrl: str
+
+
+class CreateScenarioRequest(BaseModel):
+    title: str = Field(
+        ...,
+        description="Scenario title",
+        json_schema_extra={"example": "A walk in the park"},
+    )
+    description: str = Field(
+        ...,
+        description="Detailed description",
+        json_schema_extra={"example": "We will walk in the central park"},
+    )
+    price: int = Field(
+        ..., description="Price in Kano-Coin", json_schema_extra={"example": 100}
+    )
+    durationMinutes: int = Field(
+        ...,
+        description="Duration in minutes (e.g., 60, 120)",
+        json_schema_extra={"example": 60},
+    )
+
+
+class UpdateScenarioRequest(BaseModel):
+    title: str = Field(..., description="Scenario title")
+    description: str = Field(..., description="Detailed description")
+    price: int = Field(..., description="Price in Kano-Coin")
+    durationMinutes: int = Field(..., description="Duration in minutes")
+    status: str = Field(
+        ..., description="ACTIVE or INACTIVE", json_schema_extra={"example": "ACTIVE"}
+    )
+
+
+class CreateScenarioResponse(BaseModel):
+    scenarioId: str
+
+
+class SuccessResponse(BaseModel):
+    success: bool
 
 
 class AuthInfo(BaseModel):
@@ -162,6 +201,87 @@ async def request_presigned_url(
         return PresignedUrlResponse(
             uploadUrl=presign_data["uploadUrl"], fileUrl=presign_data["fileUrl"]
         )
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post(
+    "/profile/me/scenarios",
+    response_model=CreateScenarioResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Scenario Management"],
+)
+async def create_scenario(
+    payload: CreateScenarioRequest,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    scenario_cmd: ScenarioCommandService = Depends(get_scenario_cmd),
+):
+    try:
+        scenario_id = await scenario_cmd.create_scenario(
+            companion_id=auth_info.user_id,
+            title=payload.title,
+            description=payload.description,
+            price=payload.price,
+            duration_minutes=payload.durationMinutes,
+        )
+        return CreateScenarioResponse(scenarioId=scenario_id)
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.put(
+    "/profile/me/scenarios/{scenario_id}",
+    response_model=SuccessResponse,
+    tags=["Scenario Management"],
+)
+async def update_scenario(
+    scenario_id: str,
+    payload: UpdateScenarioRequest,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    scenario_cmd: ScenarioCommandService = Depends(get_scenario_cmd),
+):
+    try:
+        await scenario_cmd.update_scenario(
+            scenario_id=scenario_id,
+            companion_id=auth_info.user_id,
+            title=payload.title,
+            description=payload.description,
+            price=payload.price,
+            duration_minutes=payload.durationMinutes,
+            status=payload.status,
+        )
+        return SuccessResponse(success=True)
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.delete(
+    "/profile/me/scenarios/{scenario_id}",
+    response_model=SuccessResponse,
+    tags=["Scenario Management"],
+)
+async def delete_scenario(
+    scenario_id: str,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    scenario_cmd: ScenarioCommandService = Depends(get_scenario_cmd),
+):
+    try:
+        await scenario_cmd.delete_scenario(
+            scenario_id=scenario_id, companion_id=auth_info.user_id
+        )
+        return SuccessResponse(success=True)
     except DomainError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
