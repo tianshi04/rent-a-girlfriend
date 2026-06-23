@@ -5,3 +5,7 @@ metadata:
   namespace: interaction-service
 spec:
   gatewayClassName: istio-waypoint
+  listeners:
+  - name: mesh
+    port: 15008
+    protocol: HBONE
