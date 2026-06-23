@@ -290,7 +290,7 @@ func (c *mockConn) Begin() (driver.Tx, error) {
 
 type mockStmt struct{}
 
-func (s *mockStmt) Close() error  { return nil }
+func (s *mockStmt) Close() error { return nil }
 func (s *mockStmt) NumInput() int { return -1 }
 func (s *mockStmt) Exec(args []driver.Value) (driver.Result, error) {
 	return &mockResult{}, nil
@@ -301,7 +301,7 @@ func (s *mockStmt) Query(args []driver.Value) (driver.Rows, error) {
 
 type mockTx struct{}
 
-func (t *mockTx) Commit() error   { return nil }
+func (t *mockTx) Commit() error { return nil }
 func (t *mockTx) Rollback() error { return nil }
 
 type mockResult struct{}
@@ -311,8 +311,8 @@ func (r *mockResult) RowsAffected() (int64, error) { return 0, nil }
 
 type mockRows struct{}
 
-func (r *mockRows) Columns() []string              { return nil }
-func (r *mockRows) Close() error                   { return nil }
+func (r *mockRows) Columns() []string { return nil }
+func (r *mockRows) Close() error { return nil }
 func (r *mockRows) Next(dest []driver.Value) error { return io.EOF }
 
 func init() {
