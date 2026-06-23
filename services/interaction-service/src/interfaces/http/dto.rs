@@ -33,3 +33,21 @@ pub struct PaginationQuery {
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubmitReviewRequest {
+    pub booking_id: String,
+    pub client_id: String,
+    pub companion_id: String,
+    pub rating: i32,
+    pub comment: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewCommandResponse {
+    pub review_id: String,
+    pub status: String,
+    pub message: String,
+}
