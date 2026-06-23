@@ -51,13 +51,13 @@ httpRoute:
   paths:
     - /api/v1/interaction
 
+  authorizationPolicy:
+    enabled: true
+
 grpcRoute:
   enabled: true
   services:
     - "interaction.v1.InteractionService"
-
-authorizationPolicy:
-  enabled: true
 
 podSecurityContext:
   runAsNonRoot: true
