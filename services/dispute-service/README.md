@@ -50,7 +50,7 @@ Service chịu trách nhiệm thực thi nghiêm ngặt các quy tắc nghiệp 
 - **REST Framework**: FastAPI + Uvicorn (Phục vụ Dashboard Queries)
 - **gRPC Framework**: `grpcio` + Protobuf (Phục vụ Commands giải quyết tranh chấp)
 - **Database**: PostgreSQL (SQLAlchemy Async ORM) / SQLite in-memory phục vụ môi trường test.
-- **Event Broker**: `aiokafka` (Kafka Consumer cho Saga replies và Transactional Outbox Worker)
+- **Event Broker**: `aiokafka` (Transactional Outbox Worker)
 - **Testing**: `pytest` + `pytest-asyncio` + `aiosqlite` (Chia sẻ connection qua StaticPool)
 
 ---

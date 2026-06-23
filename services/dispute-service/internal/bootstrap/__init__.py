@@ -15,7 +15,6 @@ from internal.infrastructure.broker import (
     DatabaseEventPublisher,
     OutboxPublisherWorker,
     SagaRetryWorker,
-    DisputeEventConsumer,
 )
 from internal.infrastructure.adapters import (
     MockFinanceAdapter,
@@ -183,12 +182,6 @@ outbox_worker = OutboxPublisherWorker(
     topic=settings.KAFKA_TOPIC_DISPUTE,
     polling_interval_ms=settings.OUTBOX_POLLING_INTERVAL_MS,
     batch_size=settings.OUTBOX_BATCH_SIZE,
-)
-
-event_consumer = DisputeEventConsumer(
-    session_factory=SessionLocal,
-    kafka_brokers=settings.KAFKA_BROKERS,
-    topics=["finance-replies", "interaction-replies"],
 )
 
 # --- FastAPI App Setup ---

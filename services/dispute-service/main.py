@@ -10,7 +10,6 @@ from internal.bootstrap import (
     SessionLocal,
     outbox_worker,
     saga_retry_worker,
-    event_consumer,
     db_cleanup_worker,
     app,
     init_db,
@@ -91,12 +90,6 @@ async def main():
     except Exception as e:
         logger.warning(f"Saga Retry Worker failed to start: {e}.")
 
-    # Start Kafka Event Consumer
-    try:
-        await event_consumer.start()
-    except Exception as e:
-        logger.warning(f"Event Consumer failed to start: {e}.")
-
     # Start Database Cleanup Worker
     try:
         await db_cleanup_worker.start()
@@ -112,7 +105,6 @@ async def main():
         logger.info("Stopping background workers...")
         await outbox_worker.stop()
         await saga_retry_worker.stop()
-        await event_consumer.stop()
         await db_cleanup_worker.stop()
         logger.info("Server successfully stopped.")
 
