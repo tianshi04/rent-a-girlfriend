@@ -4,10 +4,11 @@ from pydantic import BaseModel, Field, model_validator
 from internal.application.command import MediaCommandService, ScenarioCommandService
 from internal.application.query import ProfileQueryService
 from internal.domain.errors import DomainError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/api/v1")
 
-from internal.bootstrap import get_query_service, get_media_cmd, get_scenario_cmd  # noqa: E402
+from internal.bootstrap import get_query_service, get_media_cmd, get_scenario_cmd, get_db_session  # noqa: E402
 
 # --- Input/Output Schemas ---
 
@@ -219,6 +220,7 @@ async def create_scenario(
     payload: CreateScenarioRequest,
     auth_info: AuthInfo = Depends(get_auth_info),
     scenario_cmd: ScenarioCommandService = Depends(get_scenario_cmd),
+    db: AsyncSession = Depends(get_db_session),
 ):
     try:
         scenario_id = await scenario_cmd.create_scenario(
@@ -228,6 +230,7 @@ async def create_scenario(
             price=payload.price,
             duration_minutes=payload.durationMinutes,
         )
+        await db.commit()
         return CreateScenarioResponse(scenarioId=scenario_id)
     except DomainError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -247,6 +250,7 @@ async def update_scenario(
     payload: UpdateScenarioRequest,
     auth_info: AuthInfo = Depends(get_auth_info),
     scenario_cmd: ScenarioCommandService = Depends(get_scenario_cmd),
+    db: AsyncSession = Depends(get_db_session),
 ):
     try:
         await scenario_cmd.update_scenario(
@@ -258,6 +262,7 @@ async def update_scenario(
             duration_minutes=payload.durationMinutes,
             status=payload.status,
         )
+        await db.commit()
         return SuccessResponse(success=True)
     except DomainError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -276,11 +281,13 @@ async def delete_scenario(
     scenario_id: str,
     auth_info: AuthInfo = Depends(get_auth_info),
     scenario_cmd: ScenarioCommandService = Depends(get_scenario_cmd),
+    db: AsyncSession = Depends(get_db_session),
 ):
     try:
         await scenario_cmd.delete_scenario(
             scenario_id=scenario_id, companion_id=auth_info.user_id
         )
+        await db.commit()
         return SuccessResponse(success=True)
     except DomainError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
