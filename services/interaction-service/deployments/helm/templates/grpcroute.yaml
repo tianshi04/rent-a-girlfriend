@@ -1,4 +1,4 @@
-{{- if .Values.grpcRoute.enabled }}
+{{- if and .Values.grpcRoute.enabled .Values.grpcRoute.parentRefs }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: GRPCRoute
 metadata:
@@ -7,10 +7,7 @@ metadata:
     {{- include "interaction-service.labels" . | nindent 4 }}
 spec:
   parentRefs:
-    - group: ""
-      kind: Service
-      name: {{ include "interaction-service.fullname" . }}
-      port: {{ .Values.service.ports.grpc }}
+    {{- toYaml .Values.grpcRoute.parentRefs | nindent 4 }}
   rules:
     - matches:
       {{- range .Values.grpcRoute.services }}

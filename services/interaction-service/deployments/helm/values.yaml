@@ -47,12 +47,14 @@ gateway:
 
 httpRoute:
   enabled: true
+  parentRefs: []
   hosts: []
   paths:
     - /api/v1/interaction
 
 grpcRoute:
   enabled: true
+  parentRefs: []
   services:
     - "interaction.v1.InteractionService"
 

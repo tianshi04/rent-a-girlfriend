@@ -1,4 +1,4 @@
-{{- if .Values.httpRoute.enabled }}
+{{- if and .Values.httpRoute.enabled .Values.httpRoute.parentRefs }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -7,8 +7,7 @@ metadata:
     {{- include "interaction-service.labels" . | nindent 4 }}
 spec:
   parentRefs:
-    - name: global-gateway
-      namespace: istio-ingress
+    {{- toYaml .Values.httpRoute.parentRefs | nindent 4 }}
   {{- if .Values.httpRoute.hosts }}
   hostnames:
   {{- range .Values.httpRoute.hosts }}
