@@ -51,9 +51,6 @@ httpRoute:
   paths:
     - /api/v1/interaction
 
-  authorizationPolicy:
-    enabled: true
-
 grpcRoute:
   enabled: true
   services:
