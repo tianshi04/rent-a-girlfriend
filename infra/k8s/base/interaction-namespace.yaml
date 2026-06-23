@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: interaction-service
+  labels:
+    istio.io/dataplane-mode: ambient
+    team: backend
+    purpose: booking-chat-reviews
+    service: interaction-service
