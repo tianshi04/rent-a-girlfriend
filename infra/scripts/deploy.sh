@@ -10,9 +10,6 @@ fi
 
 echo "Deploying base infra and Kafka for environment: ${ENV}..."
 
-# Add Homebrew to PATH so Kustomize can find the helm binary
-export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
-
 # Deploy using Kustomize and pipe to kubectl apply
 kubectl kustomize "infra/k8s/envs/${ENV}/" --enable-helm | kubectl apply -f -
 

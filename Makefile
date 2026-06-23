@@ -5,6 +5,9 @@ setup:
 deploy:
 	bash infra/scripts/deploy.sh dev
 
+deploy-apps:
+	bash infra/scripts/deploy-apps.sh
+
 mesh:
 	bash infra/scripts/istio-install.sh
 	kubectl apply -f infra/istio/
