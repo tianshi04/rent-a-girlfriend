@@ -1,6 +1,6 @@
 # ADR 0004: Sử dụng External Secrets Operator (ESO) kết hợp với HashiCorp Vault ngoài cụm để quản lý Secrets
 
-**Trạng thái:** Accepted  
+**Trạng thái:** Superseded by [ADR 0006](0006-use-native-kubernetes-secrets.md)  
 **Ngày:** 2026-06-22  
 
 ---

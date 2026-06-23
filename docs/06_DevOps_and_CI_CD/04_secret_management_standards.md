@@ -1,180 +1,96 @@
 # 🔑 QUY CHUẨN QUẢN LÝ SECRET HỆ THỐNG (SECRET MANAGEMENT STANDARDS)
 
-Dự án **Rent-a-Girlfriend Platform** áp dụng cơ chế quản lý secret tập trung, bảo mật và tuân thủ tuyệt đối triết lý GitOps thông qua việc tích hợp **External Secrets Operator (ESO)** và **HashiCorp Vault** chạy ngoài cụm (External Vault).
+Dự án **Rent-a-Girlfriend Platform** áp dụng cơ chế quản lý secret trực tiếp thông qua **Native Kubernetes Secrets** (`kind: Secret` với `type: Opaque`). Quyết định này giúp tối giản hóa hạ tầng triển khai, loại bỏ sự phụ thuộc vào các operator bên thứ ba như External Secrets Operator (ESO) và các dịch vụ lưu trữ ngoài cụm như HashiCorp Vault.
 
-Tài liệu này hướng dẫn chi tiết kiến trúc, cách cấu hình và quy chuẩn tích hợp dành cho nhà phát triển và kỹ sư vận hành (DevOps).
+Tài liệu này hướng dẫn chi tiết cách cấu hình, tích hợp và các quy chuẩn bảo mật khi làm việc với Secret trong cụm Kubernetes và quy trình GitOps.
 
 ---
 
 ## 1. KIẾN TRÚC TỔNG QUAN (ARCHITECTURE OVERVIEW)
 
-Thay vì lưu trữ secret dưới dạng plaintext trong Git hoặc truyền thủ công qua CI/CD pipeline, chúng ta sử dụng cơ chế kéo secret tự động (Pull-based) từ Vault ngoài cụm dựa trên định danh của Kubernetes Pod (`ServiceAccount`).
+Secret được định nghĩa trực tiếp dưới dạng các đối tượng Kubernetes Secret của từng namespace tương ứng. 
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    participant Pod as Microservice Pod
-    participant SA as ServiceAccount Token
-    participant ESO as External Secrets Operator
-    participant Vault as External HashiCorp Vault
-    participant K8sAPI as K8s API Server (TokenReview)
-
-    ESO->>Vault: Gửi yêu cầu lấy Secret kèm JWT của ServiceAccount
-    Vault->>K8sAPI: Gọi TokenReview API để xác minh Token JWT
-    K8sAPI-->>Vault: Trả về trạng thái xác thực thành công (Pod Identity)
-    Vault->>Vault: Kiểm tra Policy gán với Role của ServiceAccount
-    Vault-->>ESO: Trả về Secret data dạng plaintext (qua kết nối TLS)
-    ESO->>ESO: Tạo/Cập nhật Kubernetes Secret tương ứng
-    Pod->>ESO: Mount K8s Secret làm Biến môi trường lúc khởi chạy
+graph TD
+    CI_CD[CI/CD Pipeline / GitHub Actions] -- Nạp Secret thật từ kho bảo mật --> Helm[Helm Upgrade --set / -f values.secret.yaml]
+    Helm -- Khởi tạo --> K8sSecret[Kubernetes Secret: opaque]
+    Pod[Microservice Pod] -- envFrom / secretRef --> K8sSecret
 ```
+
+Để tuân thủ triết lý GitOps mà vẫn đảm bảo an toàn thông tin nhạy cảm:
+1. **Không bao giờ commit plaintext secrets lên Git:** Tất cả tệp tin chứa giá trị secret thật (như `values.secret.yaml`) đều phải nằm trong `.gitignore`.
+2. **Khai báo Schema/Placeholders trong Git:** Định nghĩa khóa (key) nhưng để trống giá trị (value) trong `values.yaml` của Helm Chart để làm mẫu cấu hình.
+3. **Nạp secret động lúc Deploy:** CI/CD pipeline hoặc Quản trị viên hệ thống sẽ nạp các giá trị thực tế vào cụm thông qua tham số Helm hoặc áp dụng tệp tin cấu hình secret cục bộ.
 
 ---
 
-## 2. HƯỚNG DẪN CẤU HÌNH TRÊN HASHICORP VAULT (VAULT CONFIGURATION)
+## 2. QUY CHUẨN TÍCH HỢP CHO MICROSERVICE (HELM CHART STANDARDS)
 
-Để chuẩn bị cho việc kết nối, Kỹ sư vận hành cần thiết lập trên cụm Vault ngoài theo các bước sau:
+Để triển khai một microservice mới cần sử dụng secret, lập trình viên thực hiện theo các quy chuẩn dưới đây:
 
-### Bước 2.1. Kích hoạt Kubernetes Auth Method
-```bash
-# Kích hoạt auth method kubernetes
-vault auth enable kubernetes
-```
-
-### Bước 2.2. Liên kết Vault với Kubernetes Cluster
-Cấu hình để Vault có thể giao tiếp ngược lại với Kubernetes API Server nhằm kiểm tra tính hợp lệ của token:
-```bash
-vault write auth/kubernetes/config \
-    kubernetes_host="https://<KUBERNETES_API_SERVER_ADDRESS>:443" \
-    kubernetes_ca_cert="<KUBERNETES_CA_CERTIFICATE_CONTENT>"
-```
-
-### Bước 2.3. Tạo Policy phân quyền tối thiểu (Least Privilege)
-Tạo chính sách chỉ cho phép đọc secret thuộc đường dẫn của service đó. Ví dụ, tạo policy cho `identity-service` lưu tại file `identity-service-policy.hcl`:
-```hcl
-# Cho phép đọc thông tin secret từ path của identity-service
-path "secret/data/dev/identity-service" {
-  capabilities = ["read"]
-}
-path "secret/data/prod/identity-service" {
-  capabilities = ["read"]
-}
-```
-Nạp policy vào Vault:
-```bash
-vault policy write identity-service-policy identity-service-policy.hcl
-```
-
-### Bước 2.4. Tạo Vault Auth Role liên kết với ServiceAccount
-Tạo liên kết giữa ServiceAccount trong Kubernetes cluster với Policy vừa tạo:
-```bash
-vault write auth/kubernetes/role/identity-service-role \
-    bound_service_account_names=identity-service-sa \
-    bound_service_account_namespaces=identity-service \
-    policies=identity-service-policy \
-    ttl=1h
-```
-
----
-
-## 3. CẤU HÌNH HẠ TẦNG KUBERNETES (GLOBAL GITOPS MANIFESTS)
-
-Chúng ta triển khai duy nhất một `ClusterSecretStore` toàn cục dùng chung cho toàn bộ cluster. Tài liệu cấu hình này được lưu trữ trong GitOps Repository tại `infra/k8s/base/vault-clustersecretstore.yaml`.
-
-```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ClusterSecretStore
-metadata:
-  name: global-vault-store
-spec:
-  provider:
-    vault:
-      server: "https://vault.example.com" # Địa chỉ external Vault
-      path: "secret"
-      version: "v2"
-      auth:
-        kubernetes:
-          mountPath: "kubernetes"
-          # Sử dụng tên role đã cấu hình ở Vault tương ứng với ServiceAccount của Pod gọi tới
-          role: "k8s-auth-role"
-          serviceAccountRef:
-            # Không khai báo namespace ở đây để tự động kế thừa ServiceAccount
-            # từ namespace của tài nguyên ExternalSecret gọi tới
-            name: app-service-account
-```
-
----
-
-## 4. QUY CHUẨN TÍCH HỢP CHO MICROSERVICE (HELM CHART STANDARDS)
-
-Để tích hợp một microservice mới vào hệ thống quản lý secret này, lập trình viên thực hiện sửa đổi Helm Chart theo quy chuẩn dưới đây:
-
-### Bước 4.1. Khai báo biến cấu hình trong `values.yaml`
-Cung cấp tùy chọn bật/tắt ESO linh hoạt (cho phép fallback về Secret tĩnh khi chạy thử nghiệm offline):
+### Bước 2.1. Định nghĩa khóa secret trong `values.yaml`
+Khai báo cấu trúc các biến nhạy cảm dưới dạng khóa trống để định hình schema cấu hình:
 
 ```yaml
 # values.yaml
-externalSecrets:
-  enabled: false                      # Mặc định tắt để test offline dễ dàng
-  secretStoreName: global-vault-store # Tên ClusterSecretStore toàn cục
-  vaultPath: dev/identity-service     # Đường dẫn lưu secret tương ứng trên Vault
+secrets:
+  DB_URL: ""
+  REDIS_URL: ""
+  # Thêm các cấu hình nhạy cảm khác tại đây
 ```
 
-### Bước 4.2. Tạo mẫu `externalsecret.yaml`
-Tạo tệp [externalsecret.yaml](file:///f:/Rent-a-Girlfriend/services/identity-service/deployments/templates/k8s/externalsecret.yaml) trong thư mục `templates/k8s/` của Helm Chart:
+### Bước 2.2. Tạo file template `secret.yaml`
+Tạo tệp `secret.yaml` trong thư mục `templates/k8s/` của Helm Chart để sinh K8s Secret từ các giá trị cấu hình:
 
 ```yaml
-{{- if .Values.externalSecrets.enabled }}
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: {{ include "service-name.fullname" . }}-secrets
-  labels:
-    {{- include "service-name.labels" . | nindent 4 }}
-spec:
-  refreshInterval: 1h # Tần suất kiểm tra cập nhật từ Vault (tránh rate limit)
-  secretStoreRef:
-    name: {{ .Values.externalSecrets.secretStoreName }}
-    kind: ClusterSecretStore
-  target:
-    name: {{ include "service-name.fullname" . }}-secrets
-    creationPolicy: Owner
-  data:
-    # Định nghĩa tường minh các key cần thiết
-    - secretKey: DB_URL
-      remoteRef:
-        key: {{ .Values.externalSecrets.vaultPath }}
-        property: DB_URL
-    - secretKey: REDIS_URL
-      remoteRef:
-        key: {{ .Values.externalSecrets.vaultPath }}
-        property: REDIS_URL
-{{- end }}
-```
-
-### Bước 4.3. Cập nhật `secret.yaml` tĩnh hiện có
-Đảm bảo Secret tĩnh không được khởi tạo khi đã kích hoạt `externalSecrets`:
-
-```yaml
-# templates/k8s/secret.yaml
-{{- if and .Values.secrets (not .Values.externalSecrets.enabled) }}
 apiVersion: v1
 kind: Secret
 metadata:
   name: {{ include "service-name.fullname" . }}-secrets
-...
+  labels:
+    {{- include "service-name.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+{{- with .Values.secrets }}
+{{- toYaml . | nindent 2 }}
 {{- end }}
 ```
 
-### Bước 4.4. Giữ nguyên cấu hình `deployment.yaml`
-Nhờ cơ chế đặt tên Kubernetes Secret đồng nhất (`{{ include "service-name.fullname" . }}-secrets`), tệp `deployment.yaml` sẽ **không cần thay đổi bất kỳ dòng code nào**. Nó tự động mount dữ liệu từ K8s Secret (do ESO sinh ra hoặc do Helm Chart sinh ra tĩnh).
+### Bước 2.3. Mount Secret vào `deployment.yaml`
+Sử dụng `envFrom` để tự động nạp tất cả các key-value từ K8s Secret thành biến môi trường trong container:
+
+```yaml
+# templates/k8s/deployment.yaml
+spec:
+  containers:
+    - name: {{ .Chart.Name }}
+      # ... các cấu hình khác ...
+      envFrom:
+        - configMapRef:
+            name: {{ include "service-name.fullname" . }}-config
+        - secretRef:
+            name: {{ include "service-name.fullname" . }}-secrets
+```
 
 ---
 
-## 5. TIÊU CHUẨN LOCAL DEVELOPMENT (LOCAL DEVELOPMENT STANDARDS)
+## 3. TRIỂN KHAI TRÊN MÔI TRƯỜNG MÁY CÁ NHÂN (LOCAL DEVELOPMENT STANDARDS)
 
-Để tránh làm chậm tốc độ phát triển và tạo ra sự phụ thuộc phức tạp vào hạ tầng Vault thật, toàn bộ lập trình viên bắt buộc phải:
+Khi làm việc hoặc kiểm thử Helm Chart cục bộ (ví dụ: trên Minikube hoặc Kind):
 
-1. **Tuyệt đối không** cấu hình kết nối Vault trên máy local để debug code hàng ngày.
-2. Sử dụng tệp tin `.env` cục bộ (sao chép từ `.env.example`).
-3. Đảm bảo `.env` đã được liệt kê trong `.gitignore` để tránh commit nhầm mật khẩu mock lên Git.
-4. Sử dụng các container cơ sở dữ liệu/mock service chạy độc lập qua Docker Compose local (`docker-compose.yml`) làm đích kết nối trong `.env`.
+1. Sao chép tệp tin mẫu `values.secret.yaml.example` thành `values.secret.yaml` (tệp này đã được đưa vào `.gitignore` toàn cục).
+2. Điền các giá trị môi trường phát triển cục bộ vào file `values.secret.yaml`.
+3. Triển khai ứng dụng cục bộ bằng lệnh Helm kết hợp nạp file secret:
+   ```bash
+   helm upgrade --install identity-service ./deployments -f ./deployments/values.dev.yaml -f ./deployments/values.secret.yaml
+   ```
+4. Để chạy và debug code trực tiếp bằng IDE mà không thông qua Kubernetes, copy `.env.example` thành `.env` để nạp biến môi trường cục bộ.
+
+---
+
+## 4. QUY TRÌNH DEPLOY PRODUCTION / CI-CD GITOPS
+
+Trên các môi trường dùng chung (Staging, Production) vận hành bởi GitOps (như FluxCD):
+
+* **Phương án 1 (Khuyên dùng):** CI/CD pipeline (GitHub Actions) kéo secret từ GitHub Secrets hoặc Vault trung tâm của doanh nghiệp và chạy lệnh Helm upgrade trực tiếp với tham số `--set secrets.DB_URL=$PROD_DB_URL`.
+* **Phương án 2 (FluxCD HelmRelease Decryption):** Sử dụng tính năng giải mã HelmRelease Sops của FluxCD để lưu trữ các file `values.secret.yaml` đã mã hóa bằng SOPS (sử dụng khóa AWS KMS/GCP KMS/Age) trực tiếp trên kho lưu trữ GitOps. FluxCD sẽ tự động giải mã secret khi cài đặt Chart.
