@@ -156,3 +156,62 @@ async def test_search_companions_camel_case(client, integration_deps, db_session
     data = response.json()
     assert len(data["data"]) == 1
     assert data["data"][0]["companionId"] == "user_companion_123"
+
+
+async def test_create_scenario(client):
+    headers = {"user-id": "user_companion_123", "user-role": "COMPANION"}
+    payload = {
+        "title": "Movie Date",
+        "description": "Watch a movie together",
+        "price": 200,
+        "durationMinutes": 120,
+    }
+    response = await client.post("/profile/me/scenarios", json=payload, headers=headers)
+    assert response.status_code == 201
+    data = response.json()
+    assert "scenarioId" in data
+
+
+async def test_update_scenario(client, integration_deps, db_session):
+    scenario_cmd = integration_deps["scenario_cmd"]
+    scenario_id = await scenario_cmd.create_scenario(
+        companion_id="user_companion_123",
+        title="Walk in park",
+        description="A nice walk",
+        price=100,
+        duration_minutes=60,
+    )
+    await db_session.commit()
+
+    headers = {"user-id": "user_companion_123", "user-role": "COMPANION"}
+    payload = {
+        "title": "Walk in park updated",
+        "description": "A very nice walk",
+        "price": 150,
+        "durationMinutes": 120,
+        "status": "INACTIVE",
+    }
+    response = await client.put(
+        f"/profile/me/scenarios/{scenario_id}", json=payload, headers=headers
+    )
+    assert response.status_code == 200
+    assert response.json() == {"success": True}
+
+
+async def test_delete_scenario(client, integration_deps, db_session):
+    scenario_cmd = integration_deps["scenario_cmd"]
+    scenario_id = await scenario_cmd.create_scenario(
+        companion_id="user_companion_123",
+        title="To be deleted",
+        description="Delete me",
+        price=100,
+        duration_minutes=60,
+    )
+    await db_session.commit()
+
+    headers = {"user-id": "user_companion_123", "user-role": "COMPANION"}
+    response = await client.delete(
+        f"/profile/me/scenarios/{scenario_id}", headers=headers
+    )
+    assert response.status_code == 200
+    assert response.json() == {"success": True}

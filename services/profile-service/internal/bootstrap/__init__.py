@@ -134,6 +134,10 @@ async def get_query_service(services=Depends(get_services)) -> ProfileQueryServi
     return services[3]
 
 
+async def get_scenario_cmd(services=Depends(get_services)) -> ScenarioCommandService:
+    return services[1]
+
+
 async def get_media_cmd(services=Depends(get_services)) -> MediaCommandService:
     return services[2]
 
