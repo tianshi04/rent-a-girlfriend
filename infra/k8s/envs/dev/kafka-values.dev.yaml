@@ -1,16 +1,18 @@
 global:
-  imageRegistry: public.ecr.aws
+  imageRegistry: docker.io
   image:
-    registry: public.ecr.aws
+    registry: docker.io
   security:
     allowInsecureImages: true
 
 image:
-  registry: public.ecr.aws
+  registry: docker.io
+  repository: bitnamilegacy/kafka
 
 provisioning:
   image:
-    registry: public.ecr.aws
+    registry: docker.io
+    repository: bitnamilegacy/kafka
 
 kraft:
   enabled: true
@@ -43,6 +45,8 @@ controller:
     size: 2Gi
 
 extraEnvVars:
+  - name: KAFKA_HEAP_OPTS
+    value: "-Xmx256m -Xms256m"
   - name: KAFKA_CFG_NUM_PARTITIONS
     value: "1"
   - name: KAFKA_CFG_DEFAULT_REPLICATION_FACTOR
@@ -56,3 +60,11 @@ extraEnvVars:
 
 provisioning:
   enabled: false
+
+networkPolicy:
+  enabled: true
+  extraIngress:
+    # Allow Istio Ambient ztunnel HBONE traffic
+    - ports:
+        - port: 15008
+          protocol: TCP
