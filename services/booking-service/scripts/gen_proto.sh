@@ -61,6 +61,7 @@ financeProtos=(
     "finance/v1/messages/transfer_to_escrow_request.proto"
     "finance/v1/messages/check_balance_request.proto"
     "finance/v1/messages/check_balance_response.proto"
+    "finance/v1/commands/unfreeze_coin.proto"
     "finance/v1/events/coins_freeze_failed.proto"
     "finance/v1/events/coins_frozen.proto"
     "finance/v1/events/coins_unfrozen.proto"

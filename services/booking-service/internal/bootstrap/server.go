@@ -81,7 +81,7 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 	// --- Application (Command Handlers) ---
 	requestBookingHandler := command.NewRequestBookingHandler(bookingRepo, profileService, financeService)
 	acceptBookingHandler := command.NewAcceptBookingHandler(bookingRepo, sagaRepo, db, outboxPublisher)
-	rejectBookingHandler := command.NewRejectBookingHandler(bookingRepo, financeService)
+	rejectBookingHandler := command.NewRejectBookingHandler(bookingRepo, db, outboxPublisher)
 	cancelBookingHandler := command.NewCancelBookingHandler(bookingRepo)
 	completeBookingHandler := command.NewCompleteBookingHandler(bookingRepo)
 	systemCompleteBookingHandler := command.NewSystemCompleteBookingHandler(bookingRepo)
@@ -97,7 +97,7 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 	)
 
 	// --- Pending Timeout Worker ---
-	systemRejectBookingHandler := command.NewSystemRejectBookingHandler(bookingRepo, financeService)
+	systemRejectBookingHandler := command.NewSystemRejectBookingHandler(bookingRepo, db, outboxPublisher)
 	pendingTimeoutWorker := worker.NewPendingTimeoutWorker(
 		bookingRepo,
 		systemRejectBookingHandler,
