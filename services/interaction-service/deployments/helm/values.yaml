@@ -41,20 +41,22 @@ hpa:
 
 gateway:
   enabled: false
-  hostname: "interaction.example.com"
+  hostname: ""
   tls:
     certificateName: "interaction-service-tls"
 
 httpRoute:
-  enabled: false
-  hosts:
-    - "interaction.example.com"
+  enabled: true
+  parentRefs: []
+  hosts: []
   paths:
     - /api/v1/interaction
-    - /health
 
-  authorizationPolicy:
-    enabled: true
+grpcRoute:
+  enabled: true
+  parentRefs: []
+  services:
+    - "interaction.v1.InteractionService"
 
 podSecurityContext:
   runAsNonRoot: true
