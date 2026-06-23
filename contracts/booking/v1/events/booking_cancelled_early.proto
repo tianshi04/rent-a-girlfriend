@@ -8,7 +8,9 @@ import "google/protobuf/timestamp.proto";
 
 message BookingCancelledEarly {
   string booking_id = 1;
-  string actor_id = 2;
-  string actor_role = 3;
-  google.protobuf.Timestamp occurred_at = 4;
+  string client_id = 2;
+  string companion_id = 3;
+  string actor_id = 4;
+  string actor_role = 5;
+  google.protobuf.Timestamp occurred_at = 6;
 }
