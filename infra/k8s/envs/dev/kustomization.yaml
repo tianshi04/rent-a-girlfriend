@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - ../../base
   - global-gateway-config.yaml
+  - postgres-namespace.yaml
 
 helmCharts:
   - name: kafka
@@ -12,6 +13,12 @@ helmCharts:
     releaseName: kafka
     namespace: kafka
     valuesFile: kafka-values.dev.yaml
+  - name: postgresql
+    repo: https://charts.bitnami.com/bitnami
+    version: 15.5.4
+    releaseName: postgres
+    namespace: postgres
+    valuesFile: postgres-values.dev.yaml
 
 patches:
   - target:
