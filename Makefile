@@ -4,6 +4,7 @@ setup:
 
 deploy:
 	bash infra/scripts/deploy.sh dev
+	bash infra/scripts/deploy-apps.sh
 
 deploy-apps:
 	bash infra/scripts/deploy-apps.sh
