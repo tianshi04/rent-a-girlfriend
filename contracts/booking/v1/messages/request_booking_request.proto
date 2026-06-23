@@ -10,6 +10,4 @@ message RequestBookingRequest {
   string companion_id = 1;
   string scenario_id = 2;
   google.protobuf.Timestamp start_time = 3;
-  int64 price = 4; 
-  int64 duration_minutes = 5; 
 }
