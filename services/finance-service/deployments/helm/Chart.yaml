@@ -1,0 +1,7 @@
+apiVersion: v2
+name: finance-service
+description: "Helm chart for the Finance Service deployment and Istio resources"
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+icon: "https://example.com/finance-service-icon.png"

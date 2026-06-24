@@ -1,0 +1,72 @@
+replicaCount: 3
+
+image:
+  repository: ghcr.io/tianshi04/rent-a-girlfriend/notification-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  ports:
+    http: 8080
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+config:
+  SERVER_PORT: "8080"
+  SHUTDOWN_TIMEOUT: "30s"
+  DB_HOST: "postgres-postgresql.postgres.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_NAME: "shared_dev_db"
+  DB_USERNAME: "postgres"
+  DB_OPTIONS: "?sslmode=disable"
+  REDIS_HOST: "redis-master.redis.svc.cluster.local"
+  REDIS_PORT: "6379"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-headless.kafka.svc.cluster.local:9092"
+  SMTP_HOST: "sandbox.smtp.mailtrap.io"
+  SMTP_PORT: "2525"
+  FIREBASE_CONFIG_PATH: "notification-service-d166c-firebase-adminsdk-fbsvc-4b6bc988c1.json"
+  TEMPLATES_PATH: "classpath:templates.yaml"
+
+existingSecret: ""
+
+secrets:
+  DB_PASSWORD: "mysecretpassword"
+  SMTP_USERNAME: ""
+  SMTP_PASSWORD: ""
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+gateway:
+  enabled: false
+  hostname: "notification.example.com"
+  tls:
+    certificateName: "notification-service-tls"
+
+httpRoute:
+  enabled: true
+  parentRefs: []
+  hosts: []
+  paths:
+    - /v1/notifications
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+
+tolerations: []
+nodeSelector: {}
+affinity: {}
+extraEnv: []
+extraVolumeMounts: []
+extraVolumes: []

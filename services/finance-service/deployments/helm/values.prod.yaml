@@ -1,0 +1,14 @@
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+config:
+  APP_ENV: "production"
+
+hpa:
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 75

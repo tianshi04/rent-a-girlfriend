@@ -1,0 +1,85 @@
+replicaCount: 3
+
+image:
+  repository: ghcr.io/tianshi04/rent-a-girlfriend/finance-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  ports:
+    http: 8080
+    grpc: 50051
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+config:
+  SERVER_PORT: "8080"
+  GRPC_PORT: "50051"
+  APP_ENV: "production"
+  DB_HOST: "postgres-postgresql.postgres.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_NAME: "shared_dev_db"
+  DB_SSLMODE: "disable"
+  KAFKA_BROKERS: "kafka-headless.kafka.svc.cluster.local:9092"
+  KAFKA_TOPIC_FINANCE: "finance.events"
+  KAFKA_TOPIC_IDENTITY: "identity.events"
+  KAFKA_TOPIC_BOOKING: "booking.events"
+  KAFKA_GROUP_ID: "finance-service-group"
+  OUTBOX_POLLING_INTERVAL_MS: "500"
+  OUTBOX_BATCH_SIZE: "50"
+  DB_CLEANUP_INTERVAL_MINUTES: "30"
+  OUTBOX_RETENTION_DAYS: "1"
+  VNPAY_TMN_CODE: "DEMO2019"
+  VNPAY_URL: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+  VNPAY_RETURN_URL: "http://localhost:3000/payment-status"
+
+existingSecret: ""
+
+secrets:
+  DB_USER: "postgres"
+  DB_PASSWORD: "mysecretpassword"
+  VNPAY_HASH_SECRET: "SHA512SECRETKEYEXAMPLE"
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+gateway:
+  enabled: false
+  hostname: "finance.example.com"
+  tls:
+    certificateName: "finance-service-tls"
+
+httpRoute:
+  enabled: true
+  parentRefs: []
+  hosts: []
+  paths:
+    - /api/v1/finance
+
+grpcRoute:
+  enabled: true
+  parentRefs: []
+  hosts: []
+  services:
+    - "finance.v1.FinanceService"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+
+tolerations: []
+nodeSelector: {}
+affinity: {}
+extraEnv: []
+extraVolumeMounts: []
+extraVolumes: []

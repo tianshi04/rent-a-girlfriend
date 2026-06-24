@@ -43,4 +43,46 @@ helm upgrade --install identity-service services/identity-service/deployments/he
   --set secrets.REDIS_URL="redis://redis-master.redis.svc.cluster.local:6379" \
   -n identity-service
 
+# Deploy Dispute Service
+echo "Deploying dispute-service..."
+helm upgrade --install dispute-service services/dispute-service/deployments/helm \
+  -f services/dispute-service/deployments/helm/values.dev.yaml \
+  -f infra/k8s/envs/dev/dispute-values.dev.yaml \
+  --set config.KAFKA_BROKERS="kafka-headless.kafka.svc.cluster.local:9092" \
+  --set config.DB_HOST="postgres-postgresql.postgres.svc.cluster.local" \
+  --set config.DB_PORT="5432" \
+  --set config.DB_NAME="shared_dev_db" \
+  --set secrets.DB_USER="postgres" \
+  --set secrets.DB_PASSWORD="mysecretpassword" \
+  --set config.USE_MOCKS="false" \
+  -n dispute-service
+
+# Deploy Finance Service
+echo "Deploying finance-service..."
+helm upgrade --install finance-service services/finance-service/deployments/helm \
+  -f services/finance-service/deployments/helm/values.dev.yaml \
+  -f infra/k8s/envs/dev/finance-values.dev.yaml \
+  --set config.KAFKA_BROKERS="kafka-headless.kafka.svc.cluster.local:9092" \
+  --set config.DB_HOST="postgres-postgresql.postgres.svc.cluster.local" \
+  --set config.DB_PORT="5432" \
+  --set config.DB_NAME="shared_dev_db" \
+  --set secrets.DB_USER="postgres" \
+  --set secrets.DB_PASSWORD="mysecretpassword" \
+  -n finance-service
+
+# Deploy Notification Service
+echo "Deploying notification-service..."
+helm upgrade --install notification-service services/notification-service/deployments/helm \
+  -f services/notification-service/deployments/helm/values.dev.yaml \
+  -f infra/k8s/envs/dev/notification-values.dev.yaml \
+  --set config.KAFKA_BOOTSTRAP_SERVERS="kafka-headless.kafka.svc.cluster.local:9092" \
+  --set config.DB_HOST="postgres-postgresql.postgres.svc.cluster.local" \
+  --set config.DB_PORT="5432" \
+  --set config.DB_NAME="shared_dev_db" \
+  --set config.DB_USERNAME="postgres" \
+  --set secrets.DB_PASSWORD="mysecretpassword" \
+  --set config.REDIS_HOST="redis-master.redis.svc.cluster.local" \
+  --set config.REDIS_PORT="6379" \
+  -n notification-service
+
 echo "Services deployed successfully!"
