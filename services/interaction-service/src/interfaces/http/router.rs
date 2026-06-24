@@ -220,12 +220,15 @@ async fn submit_review_handler(
 async fn get_user_rooms_handler(
     State(state): State<AppState>,
     headers: HeaderMap,
+    Query(query): Query<PaginationQuery>,
 ) -> Result<Response, Response> {
     let user_id = get_user_id(&headers)?;
+    let limit = query.limit.unwrap_or(20);
+    let offset = query.offset.unwrap_or(0);
 
     let rooms = state
         .chat_cases
-        .get_user_rooms(&user_id)
+        .get_user_rooms(&user_id, limit, offset)
         .await
         .map_err(|e| ApiError(e).into_response())?;
 
@@ -471,9 +474,13 @@ mod tests {
 
         mock_chat_repo
             .expect_find_rooms_by_user_id()
-            .with(mockall::predicate::eq("client-123"))
+            .with(
+                mockall::predicate::eq("client-123"),
+                mockall::predicate::eq(20_i64),
+                mockall::predicate::eq(0_i64),
+            )
             .times(1)
-            .returning(move |_| Ok(vec![room.clone()]));
+            .returning(move |_, _, _| Ok(vec![room.clone()]));
 
         let chat_cases = Arc::new(ChatUseCases::new(
             Arc::new(mock_chat_repo),

@@ -156,8 +156,15 @@ impl ChatUseCases {
         Ok(messages)
     }
 
-    pub async fn get_user_rooms(&self, user_id: &str) -> Result<Vec<ChatRoom>, DomainError> {
-        self.repo.find_rooms_by_user_id(user_id).await
+    pub async fn get_user_rooms(
+        &self,
+        user_id: &str,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<ChatRoom>, DomainError> {
+        self.repo
+            .find_rooms_by_user_id(user_id, limit, offset)
+            .await
     }
 
     pub async fn report_creation_failure(&self, booking_id: &str) -> Result<(), DomainError> {
@@ -423,12 +430,16 @@ mod tests {
 
         mock_repo
             .expect_find_rooms_by_user_id()
-            .with(mockall::predicate::eq("client-789"))
+            .with(
+                mockall::predicate::eq("client-789"),
+                mockall::predicate::eq(20_i64),
+                mockall::predicate::eq(0_i64),
+            )
             .times(1)
-            .returning(move |_| Ok(rooms_list.clone()));
+            .returning(move |_, _, _| Ok(rooms_list.clone()));
 
         let use_cases = ChatUseCases::new(Arc::new(mock_repo), Arc::new(mock_processed_repo));
-        let res = use_cases.get_user_rooms("client-789").await;
+        let res = use_cases.get_user_rooms("client-789", 20, 0).await;
         assert!(res.is_ok());
         let returned_rooms = res.unwrap();
         assert_eq!(returned_rooms.len(), 1);

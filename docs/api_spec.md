@@ -680,6 +680,9 @@ Dịch vụ quản lý chat room và hệ thống đánh giá (Review).
 #### `GET /interaction/rooms`
 * **Authentication:** Bearer JWT
 * **Mô tả:** Lấy danh sách toàn bộ phòng chat (cả đang hoạt động và đã khóa) liên quan tới người dùng hiện tại (Client hoặc Companion).
+* **Query Parameters:**
+  * `limit` (mặc định 20): Số lượng phòng chat tối đa trả về.
+  * `offset` (mặc định 0): Bỏ qua số bản ghi đầu tiên để phân trang.
 * **Phản hồi thành công (200 OK):**
   ```json
   [

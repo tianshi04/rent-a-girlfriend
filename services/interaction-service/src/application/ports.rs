@@ -21,7 +21,12 @@ pub trait ChatRoomRepository: Send + Sync {
         now: chrono::DateTime<chrono::Utc>,
         limit: i64,
     ) -> Result<Vec<String>, DomainError>;
-    async fn find_rooms_by_user_id(&self, user_id: &str) -> Result<Vec<ChatRoom>, DomainError>;
+    async fn find_rooms_by_user_id(
+        &self,
+        user_id: &str,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<ChatRoom>, DomainError>;
     async fn report_creation_failure(&self, booking_id: &str) -> Result<(), DomainError>;
 }
 

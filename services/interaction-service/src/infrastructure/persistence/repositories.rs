@@ -371,16 +371,24 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         Ok(())
     }
 
-    async fn find_rooms_by_user_id(&self, user_id: &str) -> Result<Vec<ChatRoom>, DomainError> {
+    async fn find_rooms_by_user_id(
+        &self,
+        user_id: &str,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<ChatRoom>, DomainError> {
         let rows = sqlx::query(
             r#"
             SELECT room_id, booking_id, client_id, companion_id, status, lock_at, created_at, updated_at
             FROM chat_rooms
             WHERE client_id = $1 OR companion_id = $1
             ORDER BY created_at DESC
+            LIMIT $2 OFFSET $3
             "#,
         )
         .bind(user_id)
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
