@@ -1,0 +1,20 @@
+# Production environment overrides.
+replicaCount: 3
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+config:
+  GIN_MODE: "release"
+  ENABLE_TEST_ROUTES: "false"

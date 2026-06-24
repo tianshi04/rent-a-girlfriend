@@ -5,6 +5,10 @@ resources:
   - kafka-namespace.yaml
   - kafka-service-mapping.yaml
   - global-gateway.yaml
+  - booking-namespace.yaml
+  - booking-waypoint.yaml
+  - identity-namespace.yaml
+  - identity-waypoint.yaml
   - interaction-namespace.yaml
   - interaction-waypoint.yaml
   - profile-namespace.yaml

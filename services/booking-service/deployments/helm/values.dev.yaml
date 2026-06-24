@@ -1,0 +1,17 @@
+# Development environment overrides.
+replicaCount: 1
+
+config:
+  GIN_MODE: "debug"
+  KAFKA_BROKERS: "localhost:9092"
+
+hpa:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

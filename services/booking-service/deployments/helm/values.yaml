@@ -1,0 +1,76 @@
+replicaCount: 3
+
+image:
+  repository: ghcr.io/tianshi04/rent-a-girlfriend/booking-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  ports:
+    http: 8080
+    grpc: 50051
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+config:
+  SERVER_PORT: "8080"
+  GRPC_PORT: "50051"
+  GIN_MODE: "release"
+  KAFKA_BROKERS: "kafka-headless.kafka.svc.cluster.local:9092"
+  KAFKA_TOPIC_BOOKING: "booking.events"
+  KAFKA_TOPIC_FINANCE: "finance.events"
+  KAFKA_TOPIC_INTERACTION: "interaction.events"
+  KAFKA_TOPIC_DISPUTE: "dispute.events"
+  OUTBOX_POLLING_INTERVAL_MS: "500"
+  OUTBOX_BATCH_SIZE: "50"
+
+# If existingSecret is specified, the Helm chart will not create a Secret resource
+# and will instead reference the existing Secret name provided here.
+existingSecret: ""
+
+secrets:
+  DATABASE_URL: ""
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+gateway:
+  enabled: false
+  hostname: "booking.com"
+  tls:
+    certificateName: "booking-service-tls"
+
+httpRoute:
+  enabled: true
+  parentRefs: []
+  hosts: []
+  paths:
+    - /api/v1/bookings
+
+grpcRoute:
+  enabled: true
+  parentRefs: []
+  hosts: []
+  services:
+    - "booking.v1.BookingService"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+
+tolerations: []
+nodeSelector: {}
+affinity: {}
+extraEnv: []
+extraVolumeMounts: []
+extraVolumes: []

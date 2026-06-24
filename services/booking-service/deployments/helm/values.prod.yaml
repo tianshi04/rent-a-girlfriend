@@ -1,0 +1,20 @@
+# Production environment overrides.
+replicaCount: 3
+
+config:
+  GIN_MODE: "release"
+  KAFKA_BROKERS: "kafka-headless.kafka.svc.cluster.local:9092"
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi

@@ -1,0 +1,15 @@
+# Patterns to ignore when building packages.
+.DS_Store
+# Common vcs dirs
+.git/
+.gitignore
+.gitmodules
+# Common backup files
+*.swp
+*.bak
+*.tmp
+*~
+# Various build and dependency packages
+# Default server ports and local config
+.env
+.env.*

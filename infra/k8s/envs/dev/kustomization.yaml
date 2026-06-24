@@ -6,6 +6,7 @@ resources:
   - global-gateway-config.yaml
   - postgres-namespace.yaml
   - minio-namespace.yaml
+  - redis-namespace.yaml
   - kafka-cluster.yaml
 
 helmCharts:
@@ -27,6 +28,12 @@ helmCharts:
     releaseName: minio
     namespace: minio
     valuesFile: minio-values.dev.yaml
+  - name: redis
+    repo: https://charts.bitnami.com/bitnami
+    version: 18.1.5
+    releaseName: redis
+    namespace: redis
+    valuesFile: redis-values.dev.yaml
 
 patches:
   - target:
