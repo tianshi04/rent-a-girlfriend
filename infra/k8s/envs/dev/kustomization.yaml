@@ -7,7 +7,6 @@ resources:
   - postgres-namespace.yaml
   - minio-namespace.yaml
   - redis-namespace.yaml
-  - kafka-cluster.yaml
 
 helmCharts:
   - name: strimzi-kafka-operator

@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
   - ../../base
-  - kafka-cluster.yaml
 
 helmCharts:
   - name: strimzi-kafka-operator
