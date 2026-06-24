@@ -1,0 +1,2317 @@
+openapi: 3.0.3
+info:
+  title: Rent-a-Girlfriend Platform API Specification
+  description: |
+    Tài liệu đặc tả toàn bộ hệ thống REST APIs (API Gateway) của hệ thống **Rent-a-Girlfriend**.
+    
+    ### Quy chuẩn chung:
+    1. **Base URL:** Các dịch vụ thông thường chạy qua API Gateway tại `http://localhost:8080/api/v1`. Riêng các cổng của Notification Service chạy qua `/v1/notifications` (ví dụ: `/v1/notifications/stream`, `/v1/notifications`).
+    2. **Định dạng dữ liệu:** Tất cả JSON payload gửi đi và nhận về bắt buộc sử dụng định dạng **`camelCase`**.
+    3. **Phản hồi thành công (Naked JSON):** Dữ liệu tài nguyên được trả trực tiếp ở Root Level của payload (không bọc qua vỏ `data` hay `success`).
+    4. **Phản hồi thất bại (gRPC Status Model):** Các lỗi (HTTP 400, 401, 403, 404, 409, 500) trả về cấu trúc lỗi tiêu chuẩn gồm `code` (mã số gRPC), `message` và mảng `details`.
+    5. **Authentication:** Đính kèm JWT token qua Header `Authorization: Bearer <JWT_TOKEN>`. Việc giải mã và kiểm tra quyền được thực hiện tập trung bởi Istio Waypoint Proxy, sau đó inject các headers `user-id`, `user-role`, `user-status`, `user-email` vào các microservices nội bộ.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local API Gateway Environment
+paths:
+  # =========================================================================
+  # IDENTITY & AUTHENTICATION SERVICE
+  # =========================================================================
+  /api/v1/auth/google/init:
+    get:
+      summary: Khởi tạo đăng nhập Google
+      description: Trả về đường dẫn (URL) để chuyển hướng người dùng sang trang xác thực Google OAuth2.
+      tags:
+        - Identity & Auth
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitGoogleAuthResponse'
+        '500':
+          description: Lỗi máy chủ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/google/callback:
+    get:
+      summary: Xử lý Google Callback
+      description: Nhận mã Authorization Code từ Google để tiến hành cấp phát Access Token & Refresh Token.
+      tags:
+        - Identity & Auth
+      parameters:
+        - name: code
+          in: query
+          required: true
+          description: Mã Authorization Code do Google cấp
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          description: Chuỗi kiểm tra bảo mật CSRF
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Xác thực thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: Code không hợp lệ hoặc hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Lỗi hệ thống khi kết nối Google API
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/refresh:
+    post:
+      summary: Làm mới Access Token (Token Rotation)
+      description: Gửi Refresh Token cũ để lấy cặp Access Token mới và Refresh Token mới.
+      tags:
+        - Identity & Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  example: "ref_rot_abc123xyz..."
+      responses:
+        '200':
+          description: Làm mới token thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Refresh Token hết hạn hoặc đã bị thu hồi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/logout:
+    post:
+      summary: Đăng xuất người dùng
+      description: Thu hồi và vô hiệu hóa Refresh Token hiện tại.
+      tags:
+        - Identity & Auth
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  example: "ref_rot_abc123xyz..."
+      responses:
+        '200':
+          description: Đăng xuất thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          description: Access Token không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/upgrade-requests:
+    post:
+      summary: Yêu cầu nâng cấp lên Companion
+      description: Người dùng với role CLIENT gửi yêu cầu nâng cấp tài khoản thành Companion.
+      tags:
+        - Identity & Auth
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  example: "Hãy để tôi đóng vai một người bạn gái hoàn hảo..."
+      responses:
+        '200':
+          description: Yêu cầu được ghi nhận thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Chưa đăng nhập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Sai vai trò hoặc tài khoản đã bị khóa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/upgrade-requests:
+    get:
+      summary: Lấy danh sách yêu cầu nâng cấp (Admin)
+      description: Trả về danh sách các yêu cầu nâng cấp Companion đang ở trạng thái PENDING.
+      tags:
+        - Identity & Auth (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Lọc theo trạng thái yêu cầu (UPGRADE_STATUS_PENDING, UPGRADE_STATUS_APPROVED, UPGRADE_STATUS_REJECTED)
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - total
+                  - page
+                  - pageSize
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UpgradeRequestItem'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  pageSize:
+                    type: integer
+        '403':
+          description: Yêu cầu quyền ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/upgrade-requests/{id}/approve:
+    post:
+      summary: Duyệt nâng cấp tài khoản (Admin)
+      description: Chấp thuận yêu cầu nâng cấp, hệ thống tự động đổi role của user sang COMPANION.
+      tags:
+        - Identity & Auth (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID của yêu cầu nâng cấp
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Duyệt thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Yêu cầu nâng cấp không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/upgrade-requests/{id}/reject:
+    post:
+      summary: Từ chối yêu cầu nâng cấp (Admin)
+      description: Từ chối yêu cầu nâng cấp kèm lý do.
+      tags:
+        - Identity & Auth (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID của yêu cầu nâng cấp
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  example: "Ảnh đại diện chưa phù hợp với chuẩn mực."
+      responses:
+        '200':
+          description: Từ chối thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Yêu cầu nâng cấp không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/accounts/{id}:
+    get:
+      summary: Lấy chi tiết tài khoản bất kỳ (Admin)
+      description: Trả về thông tin quản trị của một tài khoản cụ thể.
+      tags:
+        - Identity & Auth (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID người dùng
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountAdminDetail'
+        '404':
+          description: Không tìm thấy tài khoản
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/accounts/{id}/lock:
+    post:
+      summary: Khóa tài khoản người dùng (Admin)
+      description: Vô hiệu hóa tài khoản tạm thời hoặc vĩnh viễn do vi phạm quy chế.
+      tags:
+        - Identity & Auth (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID người dùng cần khóa
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  example: "Hành vi gian lận thanh toán hoặc vi phạm nhiều cuộc hẹn."
+      responses:
+        '200':
+          description: Khóa thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /api/v1/admin/accounts/{id}/unlock:
+    post:
+      summary: Mở khóa tài khoản (Admin)
+      description: Kích hoạt lại trạng thái hoạt động bình thường cho tài khoản bị khóa.
+      tags:
+        - Identity & Auth (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID người dùng
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Mở khóa thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  # =========================================================================
+  # PROFILE & CATALOGUE SERVICE
+  # =========================================================================
+  /api/v1/companions:
+    get:
+      summary: Tìm kiếm và lọc danh sách Companion
+      description: Public API tìm kiếm và phân trang Companion đã được duyệt (APPROVED).
+      tags:
+        - Profile & Catalogue
+      parameters:
+        - name: name
+          in: query
+          required: false
+          description: Lọc theo tên (partial match)
+          schema:
+            type: string
+        - name: city
+          in: query
+          required: false
+          description: Thành phố hoạt động (ví dụ Hanoi, HCM, Danang)
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          required: false
+          description: Giá kịch bản thấp nhất
+          schema:
+            type: integer
+        - name: maxPrice
+          in: query
+          required: false
+          description: Giá kịch bản cao nhất
+          schema:
+            type: integer
+        - name: page
+          in: query
+          required: false
+          description: Số trang hiện tại (mặc định 1)
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          description: Số bản ghi mỗi trang (mặc định 10, tối đa 50)
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - total
+                  - page
+                  - pageSize
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CompanionSummary'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  pageSize:
+                    type: integer
+
+  /api/v1/companions/{companion_id}:
+    get:
+      summary: Xem chi tiết hồ sơ Companion (Magazine View)
+      description: Public API lấy chi tiết profile Companion, album ảnh, giọng nói giới thiệu và các kịch bản.
+      tags:
+        - Profile & Catalogue
+      parameters:
+        - name: companion_id
+          in: path
+          required: true
+          description: ID của Companion
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanionDetail'
+        '404':
+          description: Không tìm thấy Companion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/profile/me:
+    get:
+      summary: Lấy hồ sơ cá nhân Companion
+      description: API dành riêng cho Companion để xem chi tiết thông tin hồ sơ của chính mình.
+      tags:
+        - Profile & Catalogue
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanionOwnProfile'
+        '401':
+          description: Chưa xác thực
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/profile/me/media/presigned-urls:
+    post:
+      summary: Xin link upload file media (Presigned URL)
+      description: |
+        Tạo presigned URL để client upload trực tiếp ảnh hoặc file âm thanh giới thiệu lên Cloud Storage.
+        
+        **Ràng buộc nghiệp vụ:**
+        - Ảnh (IMAGE): Tối đa 2MB [INV-P05].
+        - Âm thanh (VOICE): Tối đa 5MB, độ dài không quá 30 giây [INV-P04].
+      tags:
+        - Profile & Catalogue
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresignedUrlRequest'
+      responses:
+        '200':
+          description: Trả về link upload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresignedUrlResponse'
+        '400':
+          description: Vượt quá giới hạn kích thước/thời lượng cho phép
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/profile/me/scenarios:
+    post:
+      summary: Tạo kịch bản hẹn hò mới
+      description: |
+        Companion tự thiết kế kịch bản và giá dịch vụ của mình.
+        
+        **Ràng buộc nghiệp vụ:**
+        - `price` phải lớn hơn 0 [INV-P01].
+        - `durationMinutes` thuộc mốc [60, 120, 180] [INV-P02].
+        - Tối đa 5 kịch bản hoạt động song song [INV-P03].
+      tags:
+        - Profile & Catalogue
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateScenarioRequest'
+      responses:
+        '201':
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateScenarioResponse'
+        '400':
+          description: Vi phạm các ràng buộc nghiệp vụ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/profile/me/scenarios/{scenario_id}:
+    put:
+      summary: Cập nhật kịch bản
+      description: Thay đổi nội dung, giá tiền, thời lượng hoặc ẩn/hiện kịch bản (ACTIVE/INACTIVE).
+      tags:
+        - Profile & Catalogue
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: scenario_id
+          in: path
+          required: true
+          description: ID kịch bản cần sửa
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateScenarioRequest'
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Sai dữ liệu đầu vào hoặc vi phạm ràng buộc
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Xóa kịch bản
+      description: Xóa hoặc vô hiệu hóa kịch bản hiện tại.
+      tags:
+        - Profile & Catalogue
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: scenario_id
+          in: path
+          required: true
+          description: ID kịch bản cần xóa
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Xóa thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # =========================================================================
+  # BOOKING SERVICE
+  # =========================================================================
+  /api/v1/bookings:
+    post:
+      summary: Tạo lịch hẹn mới (Đặt lịch)
+      description: |
+        Client bắt đầu yêu cầu đặt lịch với Companion dựa trên Scenario được chọn.
+        Hệ thống sẽ gọi gRPC sang Finance Service để thực hiện **FreezeCoin** (Đóng băng tiền đặt cọc).
+        
+        **Ràng buộc nghiệp vụ:**
+        - `startTime` phải cách thời điểm tạo lịch tối thiểu 2 giờ [INV-B01].
+        - Client không được có 2 cuộc hẹn bị chồng chéo thời gian (overlap) [INV-B06].
+      tags:
+        - Booking Engine
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - companionId
+                - scenarioId
+                - startTime
+              properties:
+                companionId:
+                  type: string
+                  example: "cmp_chizuru_123"
+                scenarioId:
+                  type: string
+                  example: "scn_cinema_01"
+                startTime:
+                  type: string
+                  format: date-time
+                  example: "2026-06-20T19:00:00Z"
+      responses:
+        '200':
+          description: Đặt lịch thành công, đang chờ phản hồi từ Companion (status: PENDING)
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - bookingId
+                  - status
+                  - message
+                properties:
+                  bookingId:
+                    type: string
+                    example: "bk_cinema_888"
+                  status:
+                    type: string
+                    example: "BOOKING_STATUS_PENDING_RESERVING"
+                  message:
+                    type: string
+                    example: "Booking request created successfully"
+        '400':
+          description: Số dư khả dụng không đủ hoặc sai mốc thời gian đặt trước
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Danh sách lịch sử cuộc hẹn
+      description: Lấy danh sách toàn bộ các lịch hẹn đã tham gia của bản thân (Client hoặc Companion).
+      tags:
+        - Booking Engine
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Lọc theo trạng thái cuộc hẹn (BOOKING_STATUS_PENDING_RESERVING, BOOKING_STATUS_PENDING, BOOKING_STATUS_ACCEPTED, BOOKING_STATUS_COMPLETED, BOOKING_STATUS_CANCELLED, BOOKING_STATUS_DISPUTED, BOOKING_STATUS_RESOLVED)
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - bookings
+                properties:
+                  bookings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BookingDetail'
+                  nextPageToken:
+                    type: string
+                    example: "eyJwYWdlIjoyfQ=="
+
+  /api/v1/bookings/{booking_id}:
+    get:
+      summary: Lấy chi tiết lịch hẹn
+      description: Lấy chi tiết trạng thái, thông số kịch bản của lịch hẹn. (Lưu ý: ID phòng chat tương ứng chính là booking_id).
+      tags:
+        - Booking Engine
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingDetail'
+        '404':
+          description: Không tìm thấy cuộc hẹn
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/bookings/{booking_id}/accept:
+    post:
+      summary: Đồng ý nhận cuộc hẹn (Companion)
+      description: |
+        Companion duyệt cuộc hẹn. Dòng tiền cọc được chuyển sang dạng ký quỹ (Escrow) và phòng Chat Room được kích hoạt.
+        
+        **Ràng buộc nghiệp vụ:**
+        - Hành động đồng ý phải diễn ra trong vòng 12h từ khi đặt lịch và trước giờ hẹn (`startTime`) ít nhất 1 giờ.
+        - Companion không được trùng lịch (overlap) với các cuộc hẹn ACCEPTED khác [INV-B07].
+      tags:
+        - Booking Engine
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Phê duyệt thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - bookingId
+                  - status
+                  - message
+                properties:
+                  bookingId:
+                    type: string
+                  status:
+                    type: string
+                    example: "BOOKING_STATUS_ACCEPTED"
+                  message:
+                    type: string
+                    example: "Booking accepted and escrow holds processed"
+
+  /api/v1/bookings/{booking_id}/reject:
+    post:
+      summary: Từ chối cuộc hẹn (Companion)
+      description: Companion từ chối cuộc hẹn. Hệ thống sẽ tự động Unfreeze hoàn trả 100% tiền cọc cho Client.
+      tags:
+        - Booking Engine
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Từ chối thành công, tiền cọc được hoàn trả
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - bookingId
+                  - status
+                  - message
+                properties:
+                  bookingId:
+                    type: string
+                  status:
+                    type: string
+                    example: "BOOKING_STATUS_CANCELLED"
+                  message:
+                    type: string
+                    example: "Booking rejected successfully"
+
+  /api/v1/bookings/{booking_id}/cancel:
+    post:
+      summary: Hủy lịch hẹn
+      description: |
+        Client hoặc Companion thực hiện hủy cuộc hẹn đã chấp nhận.
+        
+        **Chính sách phạt nạp & hoàn cọc:**
+        - **Hủy sớm (> 24 giờ trước giờ hẹn):** Hoàn cọc 100% về ví Client (hủy bởi bất kỳ ai).
+        - **Hủy muộn (<= 24 giờ):**
+          - Nếu Client hủy muộn: Mất 100% tiền cọc chuyển thành đền bù cho Companion.
+          - Nếu Companion hủy muộn: Client được hoàn 100% tiền cọc, Companion bị ghi nhận 1 lỗi vi phạm.
+      tags:
+        - Booking Engine
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Hủy thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - bookingId
+                  - status
+                  - message
+                properties:
+                  bookingId:
+                    type: string
+                  status:
+                    type: string
+                    example: "BOOKING_STATUS_CANCELLED"
+                  message:
+                    type: string
+                    example: "Booking cancelled successfully"
+
+  /api/v1/bookings/{booking_id}/complete:
+    post:
+      summary: Hoàn thành cuộc hẹn
+      description: |
+        Đánh dấu hoàn thành cuộc hẹn.
+        *Lưu ý:* Thao tác này thường được kích hoạt tự động bởi System Scheduler sau giờ kết thúc cuộc hẹn 12 tiếng nếu không xảy ra Dispute để giải phóng tiền Escrow sang ví Companion (Payout).
+      tags:
+        - Booking Engine
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - bookingId
+                  - status
+                  - message
+                properties:
+                  bookingId:
+                    type: string
+                  status:
+                    type: string
+                    example: "BOOKING_STATUS_COMPLETED"
+                  message:
+                    type: string
+                    example: "Booking completed successfully"
+
+  # =========================================================================
+  # FINANCE & WALLET SERVICE
+  # =========================================================================
+  /api/v1/finance/wallet:
+    get:
+      summary: Truy vấn số dư ví
+      description: Lấy số dư khả dụng và số dư đóng băng của ví người dùng.
+      tags:
+        - Finance & Wallet
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: ID của người dùng cần xem số dư
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletResponse'
+
+  /api/v1/finance/topup:
+    post:
+      summary: Nạp tiền vào ví qua VNPay
+      description: Tạo đơn nạp tiền quy đổi tỉ giá (1 Kano-Coin = 1000 VNĐ) và sinh link redirect checkout cổng VNPay Sandbox.
+      tags:
+        - Finance & Wallet
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - amount
+              properties:
+                userId:
+                  type: string
+                  example: "550e8400-e29b-41d4-a716-446655440000"
+                amount:
+                  type: integer
+                  description: Số kano-coin muốn mua (ví dụ 100 coin tương ứng 100,000 VND)
+                  minimum: 10
+                  example: 100
+      responses:
+        '201':
+          description: Tạo thành công link thanh toán
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - paymentUrl
+                properties:
+                  paymentUrl:
+                    type: string
+                    example: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=10000000..."
+
+  /api/v1/finance/vnpay-ipn:
+    get:
+      summary: VNPay Webhook (IPN)
+      description: Đầu nhận phản hồi kết quả thanh toán ẩn (server-to-server) từ VNPay để thực thi đối soát chữ ký bảo mật và cập nhật số dư.
+      tags:
+        - Finance & Wallet
+      responses:
+        '200':
+          description: VNPay mong đợi phản hồi dạng JSON đặc biệt này để xác nhận hoàn tất giao dịch
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - RspCode
+                  - Message
+                properties:
+                  RspCode:
+                    type: string
+                    example: "00"
+                  Message:
+                    type: string
+                    example: "Confirm success"
+
+  /api/v1/finance/vnpay-return:
+    get:
+      summary: Trang kết quả thanh toán VNPay
+      description: Người dùng được redirect về đây từ VNPay sau khi kết thúc thanh toán. Trả về giao diện HTML cao cấp hiển thái trạng thái giao dịch.
+      tags:
+        - Finance & Wallet
+      responses:
+        '200':
+          description: Trả về trực tiếp HTML hiển thị giao diện kết quả thanh toán.
+          content:
+            text/html:
+              schema:
+                type: string
+
+  # =========================================================================
+  # INTERACTION & CHAT ROOM SERVICE
+  # =========================================================================
+  /api/v1/interaction/rooms/{room_id}/messages:
+    post:
+      summary: Gửi tin nhắn chat
+      description: Gửi tin nhắn text vào phòng chat của cuộc hẹn (Chỉ hoạt động khi chat room trạng thái ACTIVE).
+      tags:
+        - Interaction & Chat
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          description: ID của phòng chat (tương ứng booking_id)
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  example: "Chào bạn, mình hẹn gặp nhau đúng giờ nhé!"
+      responses:
+        '201':
+          description: Gửi thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessageDetail'
+        '403':
+          description: Chat room bị khóa hoặc user không thuộc cuộc hẹn
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Xem lịch sử tin nhắn phòng chat
+      description: Lấy danh sách lịch sử tin nhắn đã gửi trong phòng chat, hỗ trợ phân trang.
+      tags:
+        - Interaction & Chat
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          description: ID của phòng chat (tương ứng booking_id)
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatMessageDetail'
+
+  /api/v1/interaction/reviews:
+    post:
+      summary: Gửi đánh giá sau cuộc hẹn (Client)
+      description: |
+        Client gửi đánh giá sao và bình luận về chất lượng dịch vụ của Companion sau khi cuộc hẹn đã kết thúc.
+        
+        **Ràng buộc nghiệp vụ:**
+        - `rating` nằm trong khoảng [1, 5] [INV-I05].
+        - Chỉ được review 1 lần duy nhất trên từng cuộc hẹn, không cho phép chỉnh sửa hay xóa [INV-I04].
+        - Chỉ có thể review từ mốc `endTime` của cuộc hẹn trở đi.
+      tags:
+        - Interaction & Chat
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - bookingId
+                - clientId
+                - companionId
+                - rating
+                - comment
+              properties:
+                bookingId:
+                  type: string
+                  example: "bk_cinema_888"
+                clientId:
+                  type: string
+                  example: "cli_kazuya_001"
+                companionId:
+                  type: string
+                  example: "cmp_chizuru_123"
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 5
+                comment:
+                  type: string
+                  example: "Dịch vụ rất tuyệt vời! Hẹn gặp lại."
+      responses:
+        '201':
+          description: Đánh giá thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - reviewId
+                  - status
+                  - message
+                properties:
+                  reviewId:
+                    type: string
+                  status:
+                    type: string
+                    example: "SUBMITTED"
+                  message:
+                    type: string
+                    example: "Review submitted successfully."
+        '400':
+          description: Vi phạm quy định đánh giá (sai giờ, sai trạng thái booking...)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Cuộc hẹn này đã được đánh giá trước đó rồi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/interaction/reviews/companion/{companion_id}:
+    get:
+      summary: Lấy danh sách đánh giá của Companion
+      description: API công khai để lấy danh sách toàn bộ các đánh giá/phản hồi của Companion để hiển thị lên profile.
+      tags:
+        - Interaction & Chat
+      parameters:
+        - name: companion_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewDetail'
+
+  # =========================================================================
+  # DISPUTE & REPORT SERVICE
+  # =========================================================================
+  /api/v1/disputes:
+    post:
+      summary: Khiếu nại cuộc hẹn
+      description: |
+        Khởi tạo khiếu nại (báo cáo vi phạm, Companion no-show...).
+        Hệ thống ngay lập tức đóng băng Escrow trong Finance Service để tạm ngưng cơ chế Payout tự động và chuyển cho Admin phân xử.
+      tags:
+        - Dispute & Report
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - bookingId
+                - accusedId
+                - reason
+              properties:
+                bookingId:
+                  type: string
+                  example: "bk_cinema_888"
+                accusedId:
+                  type: string
+                  example: "cmp_chizuru_123"
+                reason:
+                  type: string
+                  description: Nguyên nhân khiếu nại (ví dụ NO_SHOW, HARASSMENT...)
+                  example: "NO_SHOW"
+                evidences:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - evidenceType
+                      - content
+                    properties:
+                      evidenceType:
+                        type: string
+                        example: "IMAGE"
+                      content:
+                        type: string
+                        description: URL ảnh/tệp bằng chứng đã upload
+                        example: "https://storage.rent-a-gf.com/evidence/no_show_proof.png"
+      responses:
+        '201':
+          description: Ghi nhận khiếu nại thành công, đang chờ Admin duyệt phân xử
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - disputeId
+                properties:
+                  disputeId:
+                    type: string
+                    example: "dis_abc999"
+
+    get:
+      summary: Danh sách vụ tranh chấp (Admin)
+      description: Admin lấy danh sách các tranh chấp chưa xử lý hoặc đã xử lý để phân xử dòng tiền.
+      tags:
+        - Dispute & Report (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Lọc trạng thái (OPEN, RESOLVING, RESOLVED)
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - disputes
+                  - total
+                  - page
+                  - pageSize
+                properties:
+                  disputes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DisputeDetail'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  pageSize:
+                    type: integer
+
+  /api/v1/disputes/{dispute_id}:
+    get:
+      summary: Chi tiết vụ tranh chấp (Admin)
+      description: Xem thông tin đầy đủ, danh sách bằng chứng và trạng thái giải quyết của một tranh chấp cụ thể.
+      tags:
+        - Dispute & Report (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: dispute_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisputeDetail'
+        '404':
+          description: Tranh chấp không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/disputes/{dispute_id}/saga:
+    get:
+      summary: Trạng thái Saga xử lý tranh chấp (Admin)
+      description: Lấy trạng thái của Saga tiến trình hoàn tiền hoặc giải ngân liên quan đến tranh chấp này.
+      tags:
+        - Dispute & Report (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: dispute_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SagaStateDetail'
+                  - type: 'null'
+        '404':
+          description: Tranh chấp không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/disputes/{dispute_id}/resolve:
+    post:
+      summary: Phán quyết xử lý tranh chấp (Admin)
+      description: |
+        Admin đưa ra phán quyết phân xử dòng tiền ký quỹ.
+        
+        **Lựa chọn resolution:**
+        - `REFUND_CLIENT`: Hoàn lại 100% tiền cọc cho Client.
+        - `PAYOUT_COMPANION`: Giải ngân 100% tiền cho Companion.
+        - `REJECT_DISPUTE`: Từ chối khiếu nại (Dòng tiền quay lại trạng thái hoàn thành mặc định).
+      tags:
+        - Dispute & Report (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: dispute_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resolution
+                - notes
+              properties:
+                resolution:
+                  type: string
+                  enum: [REFUND_CLIENT, PAYOUT_COMPANION, REJECT_DISPUTE]
+                  example: "REFUND_CLIENT"
+                notes:
+                  type: string
+                  example: "Companion xác nhận không tới điểm hẹn, hoàn tiền cho khách hàng."
+      responses:
+        '200':
+          description: Giải quyết tranh chấp thành công, SAGA phân xử tài chính đã kích hoạt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # =========================================================================
+  # REALTIME NOTIFICATIONS (SSE & REST INBOX)
+  # =========================================================================
+  /v1/notifications/stream:
+    get:
+      summary: Đăng ký nhận thông báo thời gian thực (SSE Stream)
+      description: |
+        Duy trì kết nối một chiều Server-Sent Events để đẩy các thông báo real-time của hệ thống tới người dùng.
+        
+        **Quy chuẩn kết nối:**
+        - Sử dụng header `Accept: text/event-stream`.
+        - Kết nối duy trì heartbeat `ping` mỗi 15 giây để chống idle timeout [INV-N05].
+        - Tự động đóng và dọn dẹp kết nối sau 30 phút idle [INV-N04].
+      tags:
+        - Realtime Notifications
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Bắt tay thành công. Server bắt đầu stream các event chunks.
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: "text/event-stream"
+            Cache-Control:
+              schema:
+                type: string
+                example: "no-cache"
+            Connection:
+              schema:
+                type: string
+                example: "keep-alive"
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Luồng dữ liệu chứa các chunk SSE dạng `event: notification` và `data: {...JSON...}`
+
+  /v1/notifications:
+    get:
+      summary: Tải danh sách thông báo phân trang cursor-based
+      description: Trả về hộp thư thông báo (Inbox) của người dùng hiện tại, hỗ trợ phân trang cursor để tối ưu tải động.
+      tags:
+        - Realtime Notifications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          description: Chuỗi Cursor lấy từ lần gọi trước để lấy trang tiếp theo (mã hóa Base64)
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Số lượng bản ghi tối đa (mặc định 20, tối đa 100)
+          schema:
+            type: integer
+            default: 20
+        - name: unreadOnly
+          in: query
+          required: false
+          description: Chỉ lấy thông báo chưa đọc (mặc định false)
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FetchInboxResponse'
+
+  /v1/notifications/{id}/read:
+    patch:
+      summary: Đánh dấu một thông báo là đã đọc
+      description: Cập nhật trạng thái một thông báo cụ thể sang READ.
+      tags:
+        - Realtime Notifications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID của thông báo cần đánh dấu
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Thành công (Không trả về body)
+
+  /v1/notifications/read-all:
+    patch:
+      summary: Đánh dấu toàn bộ thông báo chưa đọc là đã đọc
+      description: Cập nhật hàng loạt tất cả thông báo UNREAD của người dùng hiện tại thành READ.
+      tags:
+        - Realtime Notifications
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkAllReadResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Nhập mã Access Token JWT của bạn để thực hiện xác thực các API yêu cầu quyền.
+
+  schemas:
+    # -------------------------------------------------------------
+    # COMMON SCHEMAS
+    # -------------------------------------------------------------
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+        - details
+      properties:
+        code:
+          type: integer
+          description: Mã lỗi nội bộ tương ứng với gRPC status code (ví dụ 3 = INVALID_ARGUMENT, 5 = NOT_FOUND, 16 = UNAUTHENTICATED).
+          example: 3
+        message:
+          type: string
+          description: Thông báo chi tiết lỗi bằng tiếng Việt dễ hiểu.
+          example: "Thời gian bắt đầu cuộc hẹn phải lớn hơn thời gian hiện tại ít nhất 2 giờ."
+        details:
+          type: array
+          description: Chi tiết các trường hoặc điều kiện dữ liệu vi phạm.
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "startTime"
+              description:
+                type: string
+                example: "Thời gian không hợp lệ [INV-B01]"
+          example: []
+
+    MessageResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: "Thực hiện thao tác thành công"
+
+    SuccessResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          example: true
+
+    # -------------------------------------------------------------
+    # IDENTITY SERVICE SCHEMAS
+    # -------------------------------------------------------------
+    InitGoogleAuthResponse:
+      type: object
+      required:
+        - authUrl
+      properties:
+        authUrl:
+          type: string
+          example: "https://accounts.google.com/o/oauth2/v2/auth?client_id=123&redirect_uri=..."
+
+    TokenResponse:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - expiresIn
+      properties:
+        accessToken:
+          type: string
+          description: JWT Access Token dùng để đính kèm vào Header gọi các API bảo mật.
+          example: "eyJhbGciOiJSUzI1NiIs..."
+        refreshToken:
+          type: string
+          description: Token bảo mật thời hạn lâu hơn dùng để đổi Access Token mới.
+          example: "ref_rot_abc123xyz..."
+        expiresIn:
+          type: integer
+          description: Thời gian hết hạn của Access Token (giây).
+          example: 3600
+
+    UpgradeRequestItem:
+      type: object
+      required:
+        - id
+        - userId
+        - status
+        - reason
+        - rejectReason
+        - reviewedBy
+        - reviewedAt
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: "req_up_123"
+        userId:
+          type: string
+          example: "usr_kazuya_001"
+        status:
+          type: string
+          example: "UPGRADE_STATUS_PENDING"
+        reason:
+          type: string
+          example: "Hãy để tôi đóng vai một người bạn gái hoàn hảo..."
+        rejectReason:
+          type: string
+          example: "Lý do từ chối nếu có"
+        reviewedBy:
+          type: string
+          nullable: true
+          example: "adm_staff_007"
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-06-20T10:00:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-06-20T10:00:00Z"
+
+    AccountAdminDetail:
+      type: object
+      required:
+        - id
+        - email
+        - role
+        - status
+        - violationCount
+      properties:
+        id:
+          type: string
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        email:
+          type: string
+          example: "user@example.com"
+        role:
+          type: string
+          example: "ACCOUNT_ROLE_COMPANION"
+        status:
+          type: string
+          example: "ACCOUNT_STATUS_ACTIVE"
+        violationCount:
+          type: integer
+          example: 0
+
+    # -------------------------------------------------------------
+    # PROFILE SERVICE SCHEMAS
+    # -------------------------------------------------------------
+    CompanionSummary:
+      type: object
+      required:
+        - companionId
+        - displayName
+        - avatarUrl
+        - averageRating
+        - city
+        - startingPrice
+      properties:
+        companionId:
+          type: string
+          example: "cmp_chizuru_123"
+        displayName:
+          type: string
+          example: "Chizuru Ichinose"
+        avatarUrl:
+          type: string
+          example: "https://storage.rent-a-gf.com/avatars/chizuru.png"
+        averageRating:
+          type: number
+          format: float
+          example: 4.9
+        city:
+          type: string
+          example: "HCM"
+        startingPrice:
+          type: integer
+          description: Giá Kano-Coin nhỏ nhất trong các kịch bản của Companion
+          example: 300
+
+    CompanionDetail:
+      type: object
+      required:
+        - companionId
+        - displayName
+        - introText
+        - avatarUrl
+        - albumUrls
+        - voiceIntroUrl
+        - availableCities
+        - averageRating
+        - totalReviews
+        - status
+        - scenarios
+      properties:
+        companionId:
+          type: string
+          example: "cmp_chizuru_123"
+        displayName:
+          type: string
+          example: "Chizuru Ichinose"
+        introText:
+          type: string
+          example: "Hãy để tôi đóng vai một người bạn gái hoàn hảo trong buổi hẹn hò của bạn."
+        avatarUrl:
+          type: string
+          example: "https://storage.rent-a-gf.com/avatars/chizuru.png"
+        albumUrls:
+          type: array
+          items:
+            type: string
+          example: ["https://storage.rent-a-gf.com/albums/chizuru_1.png"]
+        voiceIntroUrl:
+          type: string
+          example: "https://storage.rent-a-gf.com/voice/chizuru.mp3?X-Amz-Signature=..."
+        availableCities:
+          type: array
+          items:
+            type: string
+          example: ["HCM", "Danang"]
+        averageRating:
+          type: number
+          format: float
+          example: 4.9
+        totalReviews:
+          type: integer
+          example: 150
+        status:
+          type: string
+          example: "APPROVED"
+        scenarios:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScenarioDetail'
+
+    CompanionOwnProfile:
+      type: object
+      required:
+        - companionId
+        - displayName
+        - introText
+        - avatarUrl
+        - albumUrls
+        - voiceIntroUrl
+        - availableCities
+        - averageRating
+        - totalReviews
+        - status
+        - scenarios
+      properties:
+        companionId:
+          type: string
+          example: "cmp_chizuru_123"
+        displayName:
+          type: string
+          example: "Chizuru Ichinose"
+        introText:
+          type: string
+          example: "Hãy để tôi đóng vai một người bạn gái hoàn hảo trong buổi hẹn hò của bạn."
+        avatarUrl:
+          type: string
+          example: "https://storage.rent-a-gf.com/avatars/chizuru.png"
+        albumUrls:
+          type: array
+          items:
+            type: string
+          example: []
+        voiceIntroUrl:
+          type: string
+          example: "https://storage.rent-a-gf.com/voice/chizuru.mp3?X-Amz-Signature=..."
+        availableCities:
+          type: array
+          items:
+            type: string
+          example: ["HCM", "Danang"]
+        averageRating:
+          type: number
+          format: float
+          example: 4.9
+        totalReviews:
+          type: integer
+          example: 150
+        status:
+          type: string
+          example: "APPROVED"
+        scenarios:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScenarioDetail'
+
+    ScenarioDetail:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - price
+        - duration
+        - status
+      properties:
+        id:
+          type: string
+          example: "scn_cinema_01"
+        title:
+          type: string
+          example: "Hẹn hò xem phim lãng mạn"
+        description:
+          type: string
+          example: "Cùng đi xem phim, chia sẻ bắp rang bơ..."
+        price:
+          type: integer
+          description: Đơn vị Kano-Coin
+          example: 300
+        duration:
+          type: integer
+          example: 120
+        status:
+          type: string
+          example: "ACTIVE"
+
+    PresignedUrlRequest:
+      type: object
+      required:
+        - assetType
+        - sizeBytes
+        - contentType
+      properties:
+        assetType:
+          type: string
+          enum: [IMAGE, VOICE]
+          example: "VOICE"
+        sizeBytes:
+          type: integer
+          description: Kích thước tệp tin tính bằng Byte.
+          example: 3200000
+        durationSeconds:
+          type: integer
+          description: Cần thiết nếu assetType là VOICE.
+          example: 24
+        contentType:
+          type: string
+          description: Định dạng MIME type.
+          example: "audio/mp3"
+
+    PresignedUrlResponse:
+      type: object
+      required:
+        - uploadUrl
+        - fileUrl
+      properties:
+        uploadUrl:
+          type: string
+          description: Đường dẫn S3/Cloud Storage ký sẵn để PUT tệp lên trực tiếp.
+          example: "https://storage.rent-a-gf.com/voice/chizuru.mp3?X-Amz-Signature=..."
+        fileUrl:
+          type: string
+          description: Đường dẫn lưu trữ tĩnh cuối cùng của tệp tin.
+          example: "https://storage.rent-a-gf.com/voice/chizuru.mp3"
+
+    CreateScenarioRequest:
+      type: object
+      required:
+        - title
+        - description
+        - price
+        - durationMinutes
+      properties:
+        title:
+          type: string
+          example: "Hẹn hò rạp chiếu phim"
+        description:
+          type: string
+          example: "Cùng đi xem phim và đi dạo trò chuyện..."
+        price:
+          type: integer
+          example: 300
+        durationMinutes:
+          type: integer
+          description: Mốc thời gian (60, 120, 180)
+          example: 120
+
+    CreateScenarioResponse:
+      type: object
+      required:
+        - scenarioId
+      properties:
+        scenarioId:
+          type: string
+          example: "scn_cinema_01"
+
+    UpdateScenarioRequest:
+      type: object
+      required:
+        - title
+        - description
+        - price
+        - durationMinutes
+        - status
+      properties:
+        title:
+          type: string
+          example: "Hẹn hò rạp chiếu phim v2"
+        description:
+          type: string
+          example: "Cập nhật mô tả kịch bản..."
+        price:
+          type: integer
+          example: 350
+        durationMinutes:
+          type: integer
+          example: 120
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE]
+          example: "ACTIVE"
+
+    BookingDetail:
+      type: object
+      required:
+        - bookingId
+        - clientId
+        - companionId
+        - price
+        - durationMinutes
+        - startTime
+        - endTime
+        - status
+        - createdAt
+      properties:
+        bookingId:
+          type: string
+          example: "bk_cinema_888"
+        clientId:
+          type: string
+          example: "cli_kazuya_001"
+        companionId:
+          type: string
+          example: "cmp_chizuru_123"
+        price:
+          type: integer
+          description: Price in Kano-Coin
+          example: 300
+        durationMinutes:
+          type: integer
+          description: Duration in minutes
+          example: 120
+        startTime:
+          type: string
+          format: date-time
+          example: "2026-06-20T19:00:00Z"
+        endTime:
+          type: string
+          format: date-time
+          example: "2026-06-20T21:00:00Z"
+        status:
+          type: string
+          example: "BOOKING_STATUS_PENDING"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-06-20T17:00:00Z"
+
+    # -------------------------------------------------------------
+    # FINANCE SERVICE SCHEMAS
+    # -------------------------------------------------------------
+    WalletResponse:
+      type: object
+      required:
+        - walletId
+        - userId
+        - availableBalance
+        - frozenBalance
+      properties:
+        walletId:
+          type: string
+          example: "wall_kazuya_001"
+        userId:
+          type: string
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        availableBalance:
+          type: integer
+          description: Số dư khả dụng có thể tiêu (Kano-Coin)
+          example: 520
+        frozenBalance:
+          type: integer
+          description: Số dư bị đóng băng cho lịch hẹn PENDING/ACCEPTED
+          example: 300
+
+    # -------------------------------------------------------------
+    # INTERACTION SERVICE SCHEMAS
+    # -------------------------------------------------------------
+    ChatMessageDetail:
+      type: object
+      required:
+        - messageId
+        - roomId
+        - senderId
+        - content
+        - createdAt
+      properties:
+        messageId:
+          type: string
+          example: "msg_001"
+        roomId:
+          type: string
+          example: "chat_room_888"
+        senderId:
+          type: string
+          example: "cli_kazuya_001"
+        content:
+          type: string
+          example: "Chào bạn, mình hẹn gặp nhau đúng giờ nhé!"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-06-18T11:00:00Z"
+
+    ReviewDetail:
+      type: object
+      required:
+        - reviewId
+        - bookingId
+        - clientId
+        - companionId
+        - rating
+        - comment
+        - createdAt
+        - updatedAt
+      properties:
+        reviewId:
+          type: string
+          example: "rev_777"
+        bookingId:
+          type: string
+          example: "bk_cinema_888"
+        clientId:
+          type: string
+          example: "cli_kazuya_001"
+        companionId:
+          type: string
+          example: "cmp_chizuru_123"
+        rating:
+          type: integer
+          example: 5
+        comment:
+          type: string
+          example: "Dịch vụ rất tuyệt vời!"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-06-20T21:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-06-20T21:30:00Z"
+
+    # -------------------------------------------------------------
+    # DISPUTE SERVICE SCHEMAS
+    # -------------------------------------------------------------
+    DisputeDetail:
+      type: object
+      required:
+        - disputeId
+        - bookingId
+        - reporterId
+        - accusedId
+        - reason
+        - status
+        - version
+        - evidences
+      properties:
+        disputeId:
+          type: string
+          example: "dis_abc999"
+        bookingId:
+          type: string
+          example: "bk_cinema_888"
+        reporterId:
+          type: string
+          example: "cli_kazuya_001"
+        accusedId:
+          type: string
+          example: "cmp_chizuru_123"
+        reason:
+          type: string
+          example: "NO_SHOW"
+        status:
+          type: string
+          example: "OPEN"
+        adminId:
+          type: string
+          nullable: true
+          example: "adm_staff_007"
+        resolution:
+          type: string
+          nullable: true
+          example: "REFUND_CLIENT"
+        notes:
+          type: string
+          nullable: true
+          example: "Companion xác nhận no-show, hoàn tiền cọc."
+        version:
+          type: integer
+          example: 1
+        evidences:
+          type: array
+          items:
+            type: object
+            required:
+              - evidenceId
+              - evidenceType
+              - content
+            properties:
+              evidenceId:
+                type: string
+                example: "ev_001"
+              evidenceType:
+                type: string
+                example: "IMAGE"
+              content:
+                type: string
+                example: "https://storage.rent-a-gf.com/evidence/no_show_proof.png"
+
+    SagaStateDetail:
+      type: object
+      required:
+        - sagaId
+        - disputeId
+        - bookingId
+        - sagaType
+        - currentState
+        - retryCount
+        - version
+      properties:
+        sagaId:
+          type: string
+          example: "saga_rf_abc999"
+        disputeId:
+          type: string
+          example: "dis_abc999"
+        bookingId:
+          type: string
+          example: "bk_cinema_888"
+        sagaType:
+          type: string
+          enum: [REFUND, PAYOUT]
+          example: "REFUND"
+        currentState:
+          type: string
+          example: "COMPENSATING"
+        retryCount:
+          type: integer
+          example: 0
+        lastError:
+          type: string
+          nullable: true
+          example: null
+        version:
+          type: integer
+          example: 1
+
+    # -------------------------------------------------------------
+    # NOTIFICATION SERVICE SCHEMAS
+    # -------------------------------------------------------------
+    FetchInboxResponse:
+      type: object
+      required:
+        - data
+        - paging
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/InboxNotificationDto'
+        paging:
+          $ref: '#/components/schemas/InboxPagingInfo'
+
+    InboxNotificationDto:
+      type: object
+      required:
+        - id
+        - userId
+        - eventId
+        - type
+        - priority
+        - payload
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "11111111-2222-3333-4444-555555555555"
+        userId:
+          type: string
+          format: uuid
+          example: "22222222-3333-4444-5555-666666666666"
+        eventId:
+          type: string
+          example: "evt_123"
+        type:
+          type: string
+          enum: [TRANSACTIONAL, MARKETING]
+          example: "TRANSACTIONAL"
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+          example: "HIGH"
+        payload:
+          type: object
+          description: Thân payload JSON động của thông báo
+          example:
+            title: "Yêu cầu đặt lịch mới"
+            body: "Bạn có yêu cầu hẹn hò xem phim mới từ Kazuya."
+            bookingId: "bk_cinema_888"
+        status:
+          type: string
+          enum: [UNREAD, READ]
+          example: "UNREAD"
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-06-20T17:05:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-06-20T17:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-06-20T17:00:00Z"
+
+    InboxPagingInfo:
+      type: object
+      required:
+        - nextCursor
+        - hasMore
+      properties:
+        nextCursor:
+          type: string
+          nullable: true
+          example: "YmFzZTY0LWVuY29kZWQtY3Vyc29yLXN0cmluZw=="
+        hasMore:
+          type: boolean
+          example: true
+
+    MarkAllReadResponse:
+      type: object
+      required:
+        - affectedRows
+      properties:
+        affectedRows:
+          type: integer
+          example: 5
