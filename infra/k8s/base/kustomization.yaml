@@ -13,4 +13,11 @@ resources:
   - interaction-waypoint.yaml
   - profile-namespace.yaml
   - profile-waypoint.yaml
+  - dispute-namespace.yaml
+  - dispute-waypoint.yaml
+  - finance-namespace.yaml
+  - finance-waypoint.yaml
+  - notification-namespace.yaml
+  - notification-waypoint.yaml
+
 

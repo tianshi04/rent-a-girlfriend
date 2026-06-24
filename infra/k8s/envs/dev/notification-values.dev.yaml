@@ -1,0 +1,7 @@
+# Development environment overrides for notification-service routing.
+# Managed at the infrastructure deployment level (deploy-apps).
+
+httpRoute:
+  parentRefs:
+    - name: global-gateway
+      namespace: istio-ingress

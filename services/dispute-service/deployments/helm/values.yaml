@@ -1,0 +1,83 @@
+replicaCount: 3
+
+image:
+  repository: ghcr.io/tianshi04/rent-a-girlfriend/dispute-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  ports:
+    http: 8080
+    grpc: 50051
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+config:
+  SERVER_PORT: "8080"
+  GRPC_PORT: "50051"
+  APP_ENV: "production"
+  DB_HOST: "postgres-postgresql.postgres.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_NAME: "shared_dev_db"
+  DB_SSLMODE: "disable"
+  KAFKA_BROKERS: "kafka-headless.kafka.svc.cluster.local:9092"
+  KAFKA_TOPIC_DISPUTE: "dispute.events"
+  OUTBOX_POLLING_INTERVAL_MS: "500"
+  OUTBOX_BATCH_SIZE: "50"
+  SAGA_RETRY_INTERVAL_SECONDS: "5.0"
+  USE_MOCKS: "true"
+  FINANCE_SERVICE_ADDR: "finance-service.finance-service.svc.cluster.local:50051"
+  INTERACTION_SERVICE_ADDR: "interaction-service.interaction-service.svc.cluster.local:50051"
+  DB_CLEANUP_INTERVAL_MINUTES: "30"
+  PROCESSED_EVENTS_RETENTION_DAYS: "7"
+  OUTBOX_RETENTION_DAYS: "1"
+
+existingSecret: ""
+
+secrets:
+  DB_USER: "postgres"
+  DB_PASSWORD: "mysecretpassword"
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+gateway:
+  enabled: false
+  hostname: "dispute.example.com"
+  tls:
+    certificateName: "dispute-service-tls"
+
+httpRoute:
+  enabled: true
+  parentRefs: []
+  hosts: []
+  paths:
+    - /api/v1/disputes
+
+grpcRoute:
+  enabled: true
+  parentRefs: []
+  hosts: []
+  services:
+    - "dispute.v1.DisputeService"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+
+tolerations: []
+nodeSelector: {}
+affinity: {}
+extraEnv: []
+extraVolumeMounts: []
+extraVolumes: []
