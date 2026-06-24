@@ -30,8 +30,10 @@ config:
   KAFKA_GROUP_ID: "interaction-service-group"
   OUTBOX_POLLING_INTERVAL_MS: "5000"
   OUTBOX_BATCH_SIZE: "50"
-secrets:
-  DATABASE_URL: ""
+
+# If existingSecret is specified, the Helm chart will not create a Secret resource
+# and will instead reference the existing Secret name provided here.
+existingSecret: ""
 
 hpa:
   enabled: true

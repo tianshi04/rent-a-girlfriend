@@ -1,3 +1,4 @@
+{{- $secretName := .Values.existingSecret | default (printf "%s-secrets" (include "profile-service.fullname" .)) -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,7 +23,9 @@ spec:
         app: {{ include "profile-service.fullname" . }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if and (not .Values.existingSecret) .Values.secrets }}
         checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
     spec:
       serviceAccountName: {{ include "profile-service.fullname" . }}
       securityContext:
@@ -45,7 +48,7 @@ spec:
             - configMapRef:
                 name: {{ include "profile-service.fullname" . }}-config
             - secretRef:
-                name: {{ include "profile-service.fullname" . }}-secrets
+                name: {{ $secretName }}
           volumeMounts:
             - name: config-volume
               mountPath: /etc/config
@@ -89,7 +92,7 @@ spec:
             name: {{ include "profile-service.fullname" . }}-config
         - name: secret-volume
           secret:
-            secretName: {{ include "profile-service.fullname" . }}-secrets
+            secretName: {{ $secretName }}
         {{- if .Values.extraVolumes }}
         {{- toYaml .Values.extraVolumes | nindent 8 }}
         {{- end }}
