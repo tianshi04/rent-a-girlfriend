@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'services/dispute-service/**'
+      - '!services/dispute-service/deployments/**'
       - 'contracts/**'
       - '.github/workflows/dispute-service-ci.yml'
   pull_request:
@@ -13,6 +14,7 @@ on:
       - main
     paths:
       - 'services/dispute-service/**'
+      - '!services/dispute-service/deployments/**'
       - 'contracts/**'
       - '.github/workflows/dispute-service-ci.yml'
 

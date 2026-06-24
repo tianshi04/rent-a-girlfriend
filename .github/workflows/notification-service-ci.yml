@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'services/notification-service/**'
+      - '!services/notification-service/deployments/**'
       - 'contracts/**'
       - '.github/workflows/notification-service-ci.yml'
   pull_request:
@@ -13,6 +14,7 @@ on:
       - main
     paths:
       - 'services/notification-service/**'
+      - '!services/notification-service/deployments/**'
       - 'contracts/**'
       - '.github/workflows/notification-service-ci.yml'
 
