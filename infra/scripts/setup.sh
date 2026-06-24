@@ -10,7 +10,4 @@ kind create cluster \
   --config infra/kind/cluster.yaml \
   --image kindest/node:v1.35.0
 
-echo "Connecting registry to cluster network..."
-docker network connect "kind" "local-registry" || true
-
 echo "Cluster created"

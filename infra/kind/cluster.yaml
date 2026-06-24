@@ -18,8 +18,3 @@ nodes:
         hostPort: 443
         protocol: TCP
   - role: worker
-
-containerdConfigPatches:
-  - |-
-    [plugins."io.containerd.grpc.v1.cri".registry.configs."local-registry:5000".tls]
-      insecure_skip_verify = true

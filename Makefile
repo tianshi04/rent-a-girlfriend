@@ -1,5 +1,4 @@
 setup:
-	bash infra/scripts/registry.sh
 	bash infra/scripts/setup.sh
 
 deploy:
