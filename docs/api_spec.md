@@ -541,9 +541,7 @@ Dịch vụ quản lý số dư ví, nạp tiền quy đổi kano-coin và VNPay
 
 #### `GET /finance/wallet`
 * **Authentication:** Bearer JWT
-* **Mô tả:** Lấy thông tin số dư ví hiện tại của người dùng.
-* **Query Parameters:**
-  * `userId` (Bắt buộc): ID người dùng cần kiểm tra số dư.
+* **Mô tả:** Lấy thông tin số dư ví hiện tại của chính người dùng (Hệ thống tự động trích xuất User ID từ JWT token).
 * **Phản hồi thành công (200 OK):**
   ```json
   {
@@ -556,11 +554,10 @@ Dịch vụ quản lý số dư ví, nạp tiền quy đổi kano-coin và VNPay
 
 #### `POST /finance/topup`
 * **Authentication:** Bearer JWT (Yêu cầu vai trò `CLIENT`)
-* **Mô tả:** Tạo đơn nạp tiền quy đổi (Tỷ lệ: `1 Kano-Coin = 1,000 VNĐ`). Trả về link để redirect người dùng sang cổng VNPay Sandbox.
+* **Mô tả:** Tạo đơn nạp tiền quy đổi cho chính người dùng (Tỷ lệ: `1 Kano-Coin = 1,000 VNĐ`). Trả về link để redirect người dùng sang cổng VNPay Sandbox.
 * **Request Body:**
   ```json
   {
-    "userId": "550e8400-e29b-41d4-a716-446655440000",
     "amount": 500
   }
   ```

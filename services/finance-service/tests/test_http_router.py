@@ -136,7 +136,8 @@ async def test_topup_returns_payment_url(client):
     """POST /topup with valid payload returns 201 and a payment URL."""
     response = await client.post(
         "/api/v1/finance/topup",
-        json={"userId": "user-http-1", "amount": 50},
+        json={"amount": 50},
+        headers={"user-id": "user-http-1"},
     )
     assert response.status_code == 201
     body = response.json()
@@ -148,7 +149,8 @@ async def test_topup_zero_amount_rejected(client):
     """POST /topup with amount=0 is rejected by Pydantic (gt=0 constraint)."""
     response = await client.post(
         "/api/v1/finance/topup",
-        json={"userId": "user-http-2", "amount": 0},
+        json={"amount": 0},
+        headers={"user-id": "user-http-2"},
     )
     assert response.status_code == 422  # Unprocessable Entity
 
@@ -157,7 +159,8 @@ async def test_topup_negative_amount_rejected(client):
     """POST /topup with negative amount is rejected by Pydantic."""
     response = await client.post(
         "/api/v1/finance/topup",
-        json={"userId": "user-http-3", "amount": -5},
+        json={"amount": -5},
+        headers={"user-id": "user-http-3"},
     )
     assert response.status_code == 422
 
@@ -315,7 +318,7 @@ async def test_vnpay_return_invalid_sig_renders_failed_html(client):
 async def test_get_wallet_lazy_creates_wallet(client):
     """GET /wallet for a new user auto-creates a wallet and returns balance = 0."""
     response = await client.get(
-        "/api/v1/finance/wallet", params={"userId": "user-http-wallet-1"}
+        "/api/v1/finance/wallet", headers={"user-id": "user-http-wallet-1"}
     )
     assert response.status_code == 200
     body = response.json()
@@ -345,7 +348,7 @@ async def test_get_wallet_returns_existing_wallet(
         await svc.wallet_repo.save(wallet)
         await db.commit()
 
-    response = await client.get("/api/v1/finance/wallet", params={"userId": user_id})
+    response = await client.get("/api/v1/finance/wallet", headers={"user-id": user_id})
     assert response.status_code == 200
     body = response.json()
     assert body["availableBalance"] == 75
@@ -353,6 +356,6 @@ async def test_get_wallet_returns_existing_wallet(
 
 
 async def test_get_wallet_missing_user_id_rejected(client):
-    """GET /wallet without user_id query param returns 422."""
+    """GET /wallet without user-id header returns 422."""
     response = await client.get("/api/v1/finance/wallet")
     assert response.status_code == 422
