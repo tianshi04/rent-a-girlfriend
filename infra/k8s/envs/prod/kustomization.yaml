@@ -3,6 +3,8 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - global-gateway-cert.yaml
+  - letsencrypt-issuer.yaml
 
 helmCharts:
   - name: strimzi-kafka-operator
