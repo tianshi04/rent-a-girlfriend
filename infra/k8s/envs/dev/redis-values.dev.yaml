@@ -1,0 +1,15 @@
+architecture: standalone
+auth:
+  enabled: false
+image:
+  registry: docker.io
+  repository: bitnami/redis
+  tag: latest
+master:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi

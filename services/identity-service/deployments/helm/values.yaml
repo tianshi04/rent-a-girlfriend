@@ -1,0 +1,98 @@
+replicaCount: 3
+
+image:
+  repository: ghcr.io/tianshi04/rent-a-girlfriend/identity-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  ports:
+    http: 8080
+    grpc: 50051
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+config:
+  SERVER_PORT: "8080"
+  GRPC_PORT: "50051"
+  GIN_MODE: "release"
+  KAFKA_BROKERS: "kafka-headless.kafka.svc.cluster.local:9092"
+  KAFKA_TOPIC_IDENTITY: "identity-events"
+  JWT_ISSUER: "rent-a-girlfriend-identity"
+  OUTBOX_POLLING_INTERVAL_MS: "500"
+  OUTBOX_BATCH_SIZE: "50"
+  ENABLE_TEST_ROUTES: "false"
+  JWT_ACCESS_TTL_MINUTES: "15"
+  JWT_REFRESH_TTL_DAYS: "7"
+
+# If existingSecret is specified, the Helm chart will not create a Secret resource
+# and will instead reference the existing Secret name provided here.
+existingSecret: ""
+
+secrets:
+  DB_URL: ""
+  GOOGLE_CLIENT_ID: ""
+  GOOGLE_CLIENT_SECRET: ""
+  GOOGLE_REDIRECT_URI: ""
+  REDIS_URL: ""
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+gateway:
+  enabled: false
+  hostname: "identity.example.com"
+  tls:
+    certificateName: "identity-service-tls"
+
+httpRoute:
+  enabled: true
+  parentRefs: []
+  hosts: []
+  paths:
+    - /api/v1/auth
+    - /api/v1/upgrade-requests
+    - /api/v1/accounts
+    - /api/v1/admin
+    - /.well-known/jwks.json
+
+grpcRoute:
+  enabled: true
+  parentRefs: []
+  hosts: []
+  services:
+    - "identity.v1.IdentityService"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+
+tolerations: []
+
+nodeSelector: {}
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app: identity-service
+          topologyKey: kubernetes.io/hostname
+
+extraEnv: []
+
+extraVolumeMounts: []
+
+extraVolumes: []
