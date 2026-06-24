@@ -83,7 +83,7 @@ async def run_identity_event_listener():
             try:
                 # CloudEvents structure usually wraps data inside 'data' field
                 event_data = msg.value.get("data", {})
-                user_id = event_data.get("user_id") or event_data.get("id")
+                user_id = event_data.get("userId") or event_data.get("user_id") or event_data.get("id")
 
                 if user_id:
                     logger.info(f"Onboarding wallet for user_id: {user_id}")
