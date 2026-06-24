@@ -1,0 +1,36 @@
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-spoofed-identity-headers-waypoint
+  namespace: istio-system
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: GatewayClass
+      name: istio-waypoint
+  action: DENY
+  rules:
+    - from:
+        - source:
+            notRequestPrincipals: ["*"]
+      when:
+        - key: request.headers[user-id]
+          values: ["*"]
+    - from:
+        - source:
+            notRequestPrincipals: ["*"]
+      when:
+        - key: request.headers[user-role]
+          values: ["*"]
+    - from:
+        - source:
+            notRequestPrincipals: ["*"]
+      when:
+        - key: request.headers[user-email]
+          values: ["*"]
+    - from:
+        - source:
+            notRequestPrincipals: ["*"]
+      when:
+        - key: request.headers[user-status]
+          values: ["*"]

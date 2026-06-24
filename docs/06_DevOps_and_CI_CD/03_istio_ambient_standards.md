@@ -113,11 +113,13 @@ Khai báo trong `infra/istio/request-authentication.yaml`, áp dụng toàn mesh
 - Inject các claim đã verify thành HTTP headers: `user-id`, `user-email`, `user-role`, `user-status`.
 - Request không có JWT → pass (không reject). Request có JWT sai/hết hạn → `401 Unauthorized`.
 
-### 4.3. Strip Identity Headers tại Ingress Gateway
+### 4.3. Phòng chống giả mạo Identity Headers (Anti-Spoofing)
 
-Khai báo trong `infra/istio/strip-identity-headers.yaml`.
+Khai báo trong [deny-spoofed-identity-headers.yaml](../../infra/istio/deny-spoofed-identity-headers.yaml).
 
-Sử dụng `EnvoyFilter` (namespace `istio-ingress`) nhắm vào `global-gateway` để xóa các header `user-id`, `user-email`, `user-role`, `user-status` khỏi mọi request đến từ client bên ngoài.
+Sử dụng `AuthorizationPolicy` (namespace `istio-system`) liên kết với `GatewayClass` `istio-waypoint` với hành vi `DENY`. Nếu request chứa bất kỳ identity header nào (`user-id`, `user-role`, `user-status`, `user-email`) nhưng thiếu request principal hợp lệ (không có JWT được xác thực), Waypoint Proxy sẽ lập tức chặn đứng và trả về `403 Forbidden`.
+
+Cơ chế này bảo vệ toàn diện cả từ client bên ngoài (đi qua Ingress Gateway) lẫn các kết nối nội bộ giữa các microservices (Zero-Trust).
 
 ---
 
@@ -137,11 +139,13 @@ Khi triển khai hoặc chỉnh sửa cấu hình Mesh, AI Agent và Lập trìn
     ```bash
     istioctl analyze -n <namespace>
     ```
-4.  **Xác minh EnvoyFilter strip headers đang active:**
+4.  **Xác minh AuthorizationPolicy bảo mật Waypoint:**
     ```bash
-    kubectl get envoyfilter -n istio-ingress
+    kubectl get authorizationpolicy -n istio-system
     ```
 5.  **Xác minh RequestAuthentication và PeerAuthentication:**
     ```bash
     kubectl get requestauthentication,peerauthentication -n istio-system
     ```
+
+
