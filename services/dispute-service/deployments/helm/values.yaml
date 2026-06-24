@@ -32,7 +32,7 @@ config:
   OUTBOX_POLLING_INTERVAL_MS: "500"
   OUTBOX_BATCH_SIZE: "50"
   SAGA_RETRY_INTERVAL_SECONDS: "5.0"
-  USE_MOCKS: "true"
+  USE_MOCKS: "false"
   FINANCE_SERVICE_ADDR: "finance-service.finance-service.svc.cluster.local:50051"
   INTERACTION_SERVICE_ADDR: "interaction-service.interaction-service.svc.cluster.local:50051"
   DB_CLEANUP_INTERVAL_MINUTES: "30"
