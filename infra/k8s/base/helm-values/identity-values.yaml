@@ -1,4 +1,4 @@
-# Development environment overrides for dispute-service routing.
+# Common infrastructure overrides for identity-service routing.
 # Managed at the infrastructure deployment level (deploy-apps).
 
 httpRoute:
@@ -10,5 +10,5 @@ grpcRoute:
   parentRefs:
     - group: ""
       kind: Service
-      name: dispute-service
+      name: identity-service
       port: 50051

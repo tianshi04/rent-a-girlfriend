@@ -5,7 +5,7 @@ deploy_interaction() {
   echo "Deploying interaction-service..."
   helm upgrade --install interaction-service services/interaction-service/deployments/helm \
     -f services/interaction-service/deployments/helm/values.dev.yaml \
-    -f infra/k8s/envs/dev/interaction-values.dev.yaml \
+    -f infra/k8s/base/helm-values/interaction-values.yaml \
     --set config.KAFKA_BROKERS="kafka-headless.kafka.svc.cluster.local:9092" \
     --set secrets.DATABASE_URL="postgres://postgres:mysecretpassword@postgres-postgresql.postgres.svc.cluster.local:5432/shared_dev_db?sslmode=disable" \
     --create-namespace \
@@ -16,7 +16,7 @@ deploy_profile() {
   echo "Deploying profile-service..."
   helm upgrade --install profile-service services/profile-service/deployments/helm \
     -f services/profile-service/deployments/helm/values.dev.yaml \
-    -f infra/k8s/envs/dev/profile-values.dev.yaml \
+    -f infra/k8s/base/helm-values/profile-values.yaml \
     --set secrets.DATABASE_URL="postgresql+asyncpg://postgres:mysecretpassword@postgres-postgresql.postgres.svc.cluster.local:5432/shared_dev_db" \
     --set config.KAFKA_BROKERS="kafka-headless.kafka.svc.cluster.local:9092" \
     --set config.S3_ENDPOINT_URL="http://minio.minio.svc.cluster.local:9000" \
@@ -30,7 +30,7 @@ deploy_booking() {
   echo "Deploying booking-service..."
   helm upgrade --install booking-service services/booking-service/deployments/helm \
     -f services/booking-service/deployments/helm/values.dev.yaml \
-    -f infra/k8s/envs/dev/booking-values.dev.yaml \
+    -f infra/k8s/base/helm-values/booking-values.yaml \
     --set config.KAFKA_BROKERS="kafka-headless.kafka.svc.cluster.local:9092" \
     --set secrets.DATABASE_URL="postgres://postgres:mysecretpassword@postgres-postgresql.postgres.svc.cluster.local:5432/shared_dev_db?sslmode=disable" \
     --create-namespace \
@@ -41,7 +41,7 @@ deploy_identity() {
   echo "Deploying identity-service..."
   helm upgrade --install identity-service services/identity-service/deployments/helm \
     -f services/identity-service/deployments/helm/values.dev.yaml \
-    -f infra/k8s/envs/dev/identity-values.dev.yaml \
+    -f infra/k8s/base/helm-values/identity-values.yaml \
     --set config.KAFKA_BROKERS="kafka-headless.kafka.svc.cluster.local:9092" \
     --set secrets.DB_URL="postgres://postgres:mysecretpassword@postgres-postgresql.postgres.svc.cluster.local:5432/shared_dev_db?sslmode=disable" \
     --set secrets.REDIS_URL="redis://redis-master.redis.svc.cluster.local:6379" \
@@ -53,7 +53,7 @@ deploy_dispute() {
   echo "Deploying dispute-service..."
   helm upgrade --install dispute-service services/dispute-service/deployments/helm \
     -f services/dispute-service/deployments/helm/values.dev.yaml \
-    -f infra/k8s/envs/dev/dispute-values.dev.yaml \
+    -f infra/k8s/base/helm-values/dispute-values.yaml \
     --set config.KAFKA_BROKERS="kafka-headless.kafka.svc.cluster.local:9092" \
     --set config.DB_HOST="postgres-postgresql.postgres.svc.cluster.local" \
     --set-string config.DB_PORT="5432" \
@@ -69,7 +69,7 @@ deploy_finance() {
   echo "Deploying finance-service..."
   helm upgrade --install finance-service services/finance-service/deployments/helm \
     -f services/finance-service/deployments/helm/values.dev.yaml \
-    -f infra/k8s/envs/dev/finance-values.dev.yaml \
+    -f infra/k8s/base/helm-values/finance-values.yaml \
     --set config.KAFKA_BROKERS="kafka-headless.kafka.svc.cluster.local:9092" \
     --set config.DB_HOST="postgres-postgresql.postgres.svc.cluster.local" \
     --set-string config.DB_PORT="5432" \
@@ -84,7 +84,7 @@ deploy_notification() {
   echo "Deploying notification-service..."
   helm upgrade --install notification-service services/notification-service/deployments/helm \
     -f services/notification-service/deployments/helm/values.dev.yaml \
-    -f infra/k8s/envs/dev/notification-values.dev.yaml \
+    -f infra/k8s/base/helm-values/notification-values.yaml \
     --set config.KAFKA_BOOTSTRAP_SERVERS="kafka-headless.kafka.svc.cluster.local:9092" \
     --set config.DB_HOST="postgres-postgresql.postgres.svc.cluster.local" \
     --set-string config.DB_PORT="5432" \

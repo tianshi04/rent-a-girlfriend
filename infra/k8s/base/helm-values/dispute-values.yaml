@@ -1,4 +1,4 @@
-# Development environment overrides for booking-service routing.
+# Common infrastructure overrides for dispute-service routing.
 # Managed at the infrastructure deployment level (deploy-apps).
 
 httpRoute:
@@ -10,5 +10,5 @@ grpcRoute:
   parentRefs:
     - group: ""
       kind: Service
-      name: booking-service
+      name: dispute-service
       port: 50051

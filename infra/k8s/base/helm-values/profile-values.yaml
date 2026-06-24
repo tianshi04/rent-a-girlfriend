@@ -1,4 +1,4 @@
-# Development environment overrides for profile-service routing.
+# Common infrastructure overrides for profile-service routing.
 # Managed at the infrastructure deployment level (deploy-apps).
 
 httpRoute:

@@ -1,4 +1,4 @@
-# Development environment overrides for finance-service routing.
+# Common infrastructure overrides for booking-service routing.
 # Managed at the infrastructure deployment level (deploy-apps).
 
 httpRoute:
@@ -10,5 +10,5 @@ grpcRoute:
   parentRefs:
     - group: ""
       kind: Service
-      name: finance-service
+      name: booking-service
       port: 50051

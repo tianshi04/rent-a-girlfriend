@@ -1,4 +1,4 @@
-# Development environment overrides for notification-service routing.
+# Common infrastructure overrides for notification-service routing.
 # Managed at the infrastructure deployment level (deploy-apps).
 
 httpRoute:
