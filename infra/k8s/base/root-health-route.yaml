@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-info
+  namespace: istio-ingress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cluster-info
+  template:
+    metadata:
+      labels:
+        app: cluster-info
+    spec:
+      containers:
+        - name: http-echo
+          image: hashicorp/http-echo:1.0.0
+          args:
+            - "-text={\"status\":\"ok\",\"service\":\"rent-a-girlfriend-api\",\"version\":\"v1\"}"
+            - "-status-code=200"
+          ports:
+            - containerPort: 5678
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cluster-info
+  namespace: istio-ingress
+spec:
+  selector:
+    app: cluster-info
+  ports:
+    - port: 80
+      targetPort: 5678

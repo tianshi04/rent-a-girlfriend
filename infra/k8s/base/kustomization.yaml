@@ -5,6 +5,8 @@ resources:
   - kafka-namespace.yaml
   - kafka-service-mapping.yaml
   - global-gateway.yaml
+  - root-health-route.yaml
+  - root-httproute.yaml
   - booking-namespace.yaml
   - booking-waypoint.yaml
   - identity-namespace.yaml
