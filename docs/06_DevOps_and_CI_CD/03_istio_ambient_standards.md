@@ -84,7 +84,44 @@ Namespace phải được gắn nhãn `istio.io/dataplane-mode: ambient` để z
 
 ---
 
-## 4. Tóm tắt quy trình kiểm tra (Verification)
+## 4. Chính sách bảo mật L7 (Security Policies)
+
+Tất cả tài nguyên bảo mật Istio đều được quản lý tập trung tại `infra/istio/`.
+
+### 4.1. PeerAuthentication — mTLS STRICT toàn Mesh
+
+Khai báo trong `infra/istio/peer-authentication.yaml`, áp dụng ở scope `istio-system` (toàn cluster):
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default-mtls-strict
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT
+```
+
+Mọi kết nối trong mesh phải dùng mTLS. ztunnel tự cấp X.509 certificate cho workloads trong ambient mode.
+
+### 4.2. RequestAuthentication — JWT Verification
+
+Khai báo trong `infra/istio/request-authentication.yaml`, áp dụng toàn mesh (scope `istio-system`):
+
+- Waypoint tự động verify JWT từ `identity-service` JWKS endpoint.
+- Inject các claim đã verify thành HTTP headers: `user-id`, `user-email`, `user-role`, `user-status`.
+- Request không có JWT → pass (không reject). Request có JWT sai/hết hạn → `401 Unauthorized`.
+
+### 4.3. Strip Identity Headers tại Ingress Gateway
+
+Khai báo trong `infra/istio/strip-identity-headers.yaml`.
+
+Sử dụng `EnvoyFilter` (namespace `istio-ingress`) nhắm vào `global-gateway` để xóa các header `user-id`, `user-email`, `user-role`, `user-status` khỏi mọi request đến từ client bên ngoài.
+
+---
+
+## 5. Tóm tắt quy trình kiểm tra (Verification)
 
 Khi triển khai hoặc chỉnh sửa cấu hình Mesh, AI Agent và Lập trình viên có thể sử dụng các lệnh sau để xác minh trên cụm:
 
@@ -99,4 +136,12 @@ Khi triển khai hoặc chỉnh sửa cấu hình Mesh, AI Agent và Lập trìn
 3.  **Kiểm tra tính hợp lệ của cấu hình mesh bằng istioctl:**
     ```bash
     istioctl analyze -n <namespace>
+    ```
+4.  **Xác minh EnvoyFilter strip headers đang active:**
+    ```bash
+    kubectl get envoyfilter -n istio-ingress
+    ```
+5.  **Xác minh RequestAuthentication và PeerAuthentication:**
+    ```bash
+    kubectl get requestauthentication,peerauthentication -n istio-system
     ```
