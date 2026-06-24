@@ -51,3 +51,16 @@ pub struct ReviewCommandResponse {
     pub status: String,
     pub message: String,
 }
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatRoomResponse {
+    pub room_id: String,
+    pub booking_id: String,
+    pub client_id: String,
+    pub companion_id: String,
+    pub status: String,
+    pub lock_at: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}

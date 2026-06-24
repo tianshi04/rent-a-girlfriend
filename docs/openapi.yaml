@@ -1220,6 +1220,24 @@ paths:
                 items:
                   $ref: '#/components/schemas/ReviewDetail'
 
+  /api/v1/interaction/rooms:
+    get:
+      summary: Lấy danh sách phòng chat của người dùng hiện tại
+      description: Trả về danh sách toàn bộ phòng chat (hoạt động hoặc bị khóa) liên quan tới người dùng hiện tại (Client hoặc Companion).
+      tags:
+        - Interaction & Chat
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatRoomDetail'
+
   # =========================================================================
   # DISPUTE & REPORT SERVICE
   # =========================================================================
@@ -2114,6 +2132,46 @@ components:
           type: string
           format: date-time
           example: "2026-06-20T21:30:00Z"
+
+    ChatRoomDetail:
+      type: object
+      required:
+        - roomId
+        - bookingId
+        - clientId
+        - companionId
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        roomId:
+          type: string
+          example: "chat_room_888"
+        bookingId:
+          type: string
+          example: "bk_cinema_888"
+        clientId:
+          type: string
+          example: "cli_kazuya_001"
+        companionId:
+          type: string
+          example: "cmp_chizuru_123"
+        status:
+          type: string
+          enum: [ACTIVE, LOCKED]
+          example: "ACTIVE"
+        lockAt:
+          type: string
+          format: date-time
+          example: "2026-06-18T12:00:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-06-18T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-06-18T10:00:00Z"
 
     # -------------------------------------------------------------
     # DISPUTE SERVICE SCHEMAS

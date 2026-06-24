@@ -9,7 +9,7 @@ use serde_json::json;
 use std::sync::Arc;
 
 use super::dto::{
-    ChatMessageResponse, PaginationQuery, ReviewCommandResponse, ReviewResponse,
+    ChatMessageResponse, ChatRoomResponse, PaginationQuery, ReviewCommandResponse, ReviewResponse,
     SendMessageRequest, SubmitReviewRequest,
 };
 use crate::application::chat_use_cases::ChatUseCases;
@@ -84,6 +84,7 @@ pub fn create_router(state: AppState) -> Router {
             "/api/v1/interaction/reviews/companion/{companion_id}",
             get(get_companion_reviews_handler),
         )
+        .route("/api/v1/interaction/rooms", get(get_user_rooms_handler))
         .with_state(state)
 }
 
@@ -213,6 +214,36 @@ async fn submit_review_handler(
     };
 
     Ok((StatusCode::CREATED, Json(resp)).into_response())
+}
+
+/// GET /api/v1/interaction/rooms
+async fn get_user_rooms_handler(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Response, Response> {
+    let user_id = get_user_id(&headers)?;
+
+    let rooms = state
+        .chat_cases
+        .get_user_rooms(&user_id)
+        .await
+        .map_err(|e| ApiError(e).into_response())?;
+
+    let resp: Vec<ChatRoomResponse> = rooms
+        .into_iter()
+        .map(|r| ChatRoomResponse {
+            room_id: r.room_id,
+            booking_id: r.booking_id,
+            client_id: r.client_id,
+            companion_id: r.companion_id,
+            status: r.status.as_str().to_string(),
+            lock_at: r.lock_at.map(|t| t.to_rfc3339()),
+            created_at: r.created_at.to_rfc3339(),
+            updated_at: r.updated_at.to_rfc3339(),
+        })
+        .collect();
+
+    Ok(Json(resp).into_response())
 }
 
 #[cfg(test)]
@@ -424,5 +455,87 @@ mod tests {
             .unwrap();
         let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
         assert_eq!(body["code"], 6); // AlreadyExists
+    }
+
+    #[tokio::test]
+    async fn test_get_user_rooms_api_success() {
+        let mut mock_chat_repo = MockChatRoomRepository::new();
+        let mock_event_repo = MockProcessedEventRepository::new();
+        let mock_review_repo = MockReviewRepository::new();
+
+        let room = crate::domain::chat_room::ChatRoom::create(
+            "booking-123".to_string(),
+            "client-123".to_string(),
+            "companion-456".to_string(),
+        );
+
+        mock_chat_repo
+            .expect_find_rooms_by_user_id()
+            .with(mockall::predicate::eq("client-123"))
+            .times(1)
+            .returning(move |_| Ok(vec![room.clone()]));
+
+        let chat_cases = Arc::new(ChatUseCases::new(
+            Arc::new(mock_chat_repo),
+            Arc::new(mock_event_repo),
+        ));
+        let review_cases = Arc::new(ReviewUseCases::new(Arc::new(mock_review_repo)));
+
+        let state = AppState {
+            chat_cases,
+            review_cases,
+        };
+        let app = create_router(state);
+
+        let request = Request::builder()
+            .method("GET")
+            .uri("/api/v1/interaction/rooms")
+            .header("user-id", "client-123")
+            .body(Body::empty())
+            .unwrap();
+
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body_bytes = axum::body::to_bytes(response.into_body(), 2048)
+            .await
+            .unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+
+        assert!(body.is_array());
+        let rooms_arr = body.as_array().unwrap();
+        assert_eq!(rooms_arr.len(), 1);
+        assert_eq!(rooms_arr[0]["bookingId"], "booking-123");
+        assert_eq!(rooms_arr[0]["clientId"], "client-123");
+        assert_eq!(rooms_arr[0]["companionId"], "companion-456");
+        assert_eq!(rooms_arr[0]["status"], "ACTIVE");
+    }
+
+    #[tokio::test]
+    async fn test_get_user_rooms_api_missing_auth() {
+        let mock_chat_repo = MockChatRoomRepository::new();
+        let mock_event_repo = MockProcessedEventRepository::new();
+        let mock_review_repo = MockReviewRepository::new();
+
+        let chat_cases = Arc::new(ChatUseCases::new(
+            Arc::new(mock_chat_repo),
+            Arc::new(mock_event_repo),
+        ));
+        let review_cases = Arc::new(ReviewUseCases::new(Arc::new(mock_review_repo)));
+
+        let state = AppState {
+            chat_cases,
+            review_cases,
+        };
+        let app = create_router(state);
+
+        let request = Request::builder()
+            .method("GET")
+            .uri("/api/v1/interaction/rooms")
+            .body(Body::empty())
+            .unwrap();
+
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 }

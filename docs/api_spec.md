@@ -677,6 +677,25 @@ Dịch vụ quản lý chat room và hệ thống đánh giá (Review).
   ]
   ```
 
+#### `GET /interaction/rooms`
+* **Authentication:** Bearer JWT
+* **Mô tả:** Lấy danh sách toàn bộ phòng chat (cả đang hoạt động và đã khóa) liên quan tới người dùng hiện tại (Client hoặc Companion).
+* **Phản hồi thành công (200 OK):**
+  ```json
+  [
+    {
+      "roomId": "chat_room_888",
+      "bookingId": "bk_cinema_888",
+      "clientId": "cli_kazuya_001",
+      "companionId": "cmp_chizuru_123",
+      "status": "ACTIVE",
+      "lockAt": "2026-06-18T12:00:00Z",
+      "createdAt": "2026-06-18T10:00:00Z",
+      "updatedAt": "2026-06-18T10:00:00Z"
+    }
+  ]
+  ```
+
 ---
 
 ### 2.6. DISPUTE & REPORT SERVICE
