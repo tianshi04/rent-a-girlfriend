@@ -7,8 +7,8 @@ Quản lý hồ sơ Companion, xây dựng và quản lý thương hiệu cá nh
 
 ## 2. AGGREGATES & ENTITIES
 ### Aggregate Root 1: `CompanionProfile`
-Chứa thông tin hiển thị của Companion.
-*   **State:** Thông tin cá nhân, thành phố hoạt động, định danh người dùng.
+Chứa thông tin hồ sơ người dùng (áp dụng cho cả Client và Companion).
+*   **State:** `UserId`/`CompanionId`, `DisplayName`, `Bio` (tiểu sử, thay thế cho introText), `Role` (CLIENT, COMPANION), `Status` (mặc định APPROVED), `AvailableCities`, `AvatarUrl`.
 
 ### Aggregate Root 2: `Scenario` (Kịch bản dịch vụ)
 Mô tả thông tin gói dịch vụ mà Companion cung cấp, đảm bảo tính hợp lệ của giá cả và thời lượng.
@@ -34,6 +34,9 @@ Quản lý file upload (đặc biệt là Voice Intro), kiểm soát dung lượ
 ## 5. THIẾT KẾ COMMAND & EVENT
 | Lệnh (Command) | Dữ liệu đầu vào (Payload) | Sự kiện phát ra (Event Payload) |
 | :--- | :--- | :--- |
+| `CreateProfile` | `userId`, `displayName`, `availableCities`, `bio`, `role` | `ProfileCreated` { companionId, userId, displayName, availableCities } |
+| `UpdateProfile` | `companionId`, `displayName`, `availableCities`, `bio`, `avatarUrl` | `ProfileUpdated` { companionId, displayName, bio, availableCities } |
+| `UpgradeProfileRole` | `userId` | - |
 | `CreateScenario` | `companionId`, `title`, `price`, `duration` | `ScenarioCreated` { scenarioId, companionId, price } |
 | `UploadVoiceIntro` | `companionId`, `fileUrl`, `duration`, `size` | `VoiceIntroUploaded` / `VoiceIntroRejected` { reason } |
 
@@ -46,6 +49,7 @@ Quản lý file upload (đặc biệt là Voice Intro), kiểm soát dung lượ
     {
       "companionId": "cmp_123",
       "displayName": "Chizuru Mizuhara",
+      "bio": "Hãy để tôi đóng vai một người bạn gái hoàn hảo...",
       "avatarUrl": "https://...",
       "averageRating": 4.9,
       "totalReviews": 150,

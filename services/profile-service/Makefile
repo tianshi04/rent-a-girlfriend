@@ -1,4 +1,4 @@
-.PHONY: run test sync generate-proto
+.PHONY: run test sync generate-proto generate-openapi
 
 # Run FastAPI & gRPC server locally using uv
 run:
@@ -18,3 +18,7 @@ generate-proto:
 # Run all tests sequentially
 test:
 	PYTHONPATH=$$(pwd)/gen uv run pytest -v
+
+# Generate OpenAPI JSON specification
+generate-openapi:
+	PYTHONPATH=$$(pwd)/gen uv run python scripts/generate_openapi.py

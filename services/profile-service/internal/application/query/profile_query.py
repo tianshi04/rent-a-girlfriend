@@ -41,7 +41,7 @@ class ProfileQueryService:
         if not profile:
             raise ProfileNotFoundError(companion_id)
 
-        if public and profile.status != "APPROVED":
+        if public and (profile.status != "APPROVED" or profile.role != "COMPANION"):
             raise ProfileNotAvailableError(companion_id)
 
         # Get scenarios
@@ -71,7 +71,8 @@ class ProfileQueryService:
             "companionId": profile.companion_id,
             "displayName": profile.display_name,
             "avatarUrl": profile.avatar_url.url if profile.avatar_url else None,
-            "introText": profile.intro_text,
+            "bio": profile.bio,
+            "role": profile.role,
             "availableCities": [str(city) for city in profile.available_cities],
             "voiceIntroUrl": voice_url,
             "albumUrls": album_urls,

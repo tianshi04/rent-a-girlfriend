@@ -61,7 +61,8 @@ class ProfileServiceServicer(profile_service_pb2_grpc.ProfileServiceServicer):
                     companion_id=user_id,  # companion_id is the user_id (1-to-1 profile mapped)
                     user_id=user_id,
                     display_name=request.display_name,
-                    intro_text=request.intro_text,
+                    bio=request.bio,
+                    role=auth_info.get("user_role") or "CLIENT",
                     available_cities=list(request.available_cities),
                 )
                 await session.commit()
@@ -85,7 +86,7 @@ class ProfileServiceServicer(profile_service_pb2_grpc.ProfileServiceServicer):
                 await profile_cmd.update_profile(
                     companion_id=companion_id,
                     display_name=request.display_name,
-                    intro_text=request.intro_text,
+                    bio=request.bio,
                     available_cities=list(request.available_cities),
                     avatar_url=request.avatar_url,
                 )

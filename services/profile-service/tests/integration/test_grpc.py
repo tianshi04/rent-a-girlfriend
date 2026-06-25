@@ -25,7 +25,7 @@ async def test_grpc_create_profile_success(grpc_servicer, db_session, integratio
     request = CreateProfileRequest(
         user_id="companion_user_456",
         display_name="Asami Mami",
-        intro_text="Cute and lovely rental girlfriend",
+        bio="Cute and lovely rental girlfriend",
         available_cities=["Hanoi", "HCM"],
     )
 
@@ -39,7 +39,7 @@ async def test_grpc_create_profile_success(grpc_servicer, db_session, integratio
     profile = await profile_repo.find_by_id("companion_user_456")
     assert profile is not None
     assert profile.display_name == "Asami Mami"
-    assert profile.status == "PENDING"  # Starts as pending for manual admin approval
+    assert profile.status == "APPROVED"  # Starts as approved
 
 
 async def test_grpc_admin_approve_profile(grpc_servicer, db_session, integration_deps):
@@ -51,7 +51,7 @@ async def test_grpc_admin_approve_profile(grpc_servicer, db_session, integration
             companion_id="companion_user_456",
             user_id="companion_user_456",
             display_name="Asami Mami",
-            intro_text="Cute rental girlfriend",
+            bio="Cute rental girlfriend",
             available_cities=["Hanoi"],
         )
         await db_session.commit()

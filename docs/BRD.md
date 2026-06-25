@@ -72,8 +72,8 @@ Hệ thống tập trung vào các cơ chế bảo vệ cơ bản cho giao dịc
 
 | Mã | Yêu cầu | Actor | Mô tả |
 |:---:|:---|:---:|:---|
-| FR-01 | Xác thực & Phân quyền | Tất cả | Đăng nhập bằng Google OAuth; phân biệt 3 role: Client, Companion, Admin. Sau khi đăng nhập lần đầu, người dùng chọn role Client hoặc Companion. Admin được gán tay trong DB. |
-| FR-02 | Quản lý Profile Companion | Companion | CRUD thông tin cá nhân; upload 1 ảnh đại diện + tối đa 4 ảnh album (tổng cộng 5 ảnh, định dạng JPG/PNG, tối đa 2MB/ảnh); upload Voice Intro (MP3, tối đa 30s, 5MB); tạo Scenario (bao gồm tên, mô tả, thời lượng, phí dịch vụ và địa điểm công cộng - dạng free-text); chọn Thành phố hoạt động. |
+| FR-01 | Xác thực & Phân quyền & Onboarding | Tất cả | Đăng nhập bằng Google OAuth; phân biệt 3 role: Client, Companion, Admin. Sau khi đăng nhập lần đầu, người dùng bắt buộc phải tạo hồ sơ thông tin cơ bản (mặc định có vai trò Client). Client có thể gửi yêu cầu nâng cấp lên Companion, yêu cầu này cần Admin phê duyệt thủ công. |
+| FR-02 | Quản lý Profile Companion | Companion | CRUD thông tin cá nhân; upload 1 ảnh đại diện + tối đa 4 ảnh album (tổng cộng 5 ảnh, định dạng JPG/PNG, tối đa 2MB/ảnh); upload Voice Intro (MP3, tối đa 30s, 5MB); tạo Scenario; chọn Thành phố hoạt động. Sau khi nâng cấp, Companion được tự do chỉnh sửa hồ sơ mà không cần kiểm duyệt hồ sơ lại. |
 | FR-03 | Theo dõi Lịch hẹn | Companion | Xem lịch các cuộc hẹn (Pending, Accepted) để tiện theo dõi và quyết định nhận/từ chối các request mới dựa trên lịch trình cá nhân. |
 | FR-04 | Tìm kiếm Companion | Client | Tìm kiếm theo tên Companion, Thành phố, khoảng giá, địa điểm. Chỉ tìm kiếm và hiển thị các Companion đang có trạng thái **Approved**; kết quả hiển thị dạng card với ảnh đại diện, tên, Thành phố, giá của Scenario nổi bật. |
 | FR-04b | Xem Profile Companion (Magazine View) | Client | Xem profile chi tiết dạng magazine: thông tin cá nhân, album ảnh, Voice Intro (nghe trực tiếp), danh sách Scenario, Thành phố, đánh giá sao trung bình, review gần nhất. |

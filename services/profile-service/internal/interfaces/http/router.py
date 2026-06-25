@@ -105,17 +105,17 @@ class SuccessResponse(BaseModel):
 class CreateProfileRequestBody(BaseModel):
     displayName: str = Field(
         ...,
-        description="Display name for companion profile",
+        description="Display name for profile",
         json_schema_extra={"example": "Kano Chizuru"},
     )
-    introText: str = Field(
-        ...,
-        description="Introduction text for companion profile",
+    bio: Optional[str] = Field(
+        None,
+        description="Biography/Introduction text",
         json_schema_extra={"example": "Perfect rental girlfriend"},
     )
     availableCities: list[str] = Field(
         ...,
-        description="List of cities where companion is active",
+        description="List of cities where active",
         json_schema_extra={"example": ["Hanoi", "HCM"]},
     )
 
@@ -123,17 +123,17 @@ class CreateProfileRequestBody(BaseModel):
 class UpdateProfileRequestBody(BaseModel):
     displayName: str = Field(
         ...,
-        description="Display name for companion profile",
+        description="Display name for profile",
         json_schema_extra={"example": "Kano Chizuru"},
     )
-    introText: str = Field(
-        ...,
-        description="Introduction text for companion profile",
+    bio: Optional[str] = Field(
+        None,
+        description="Biography/Introduction text",
         json_schema_extra={"example": "Perfect rental girlfriend"},
     )
     availableCities: list[str] = Field(
         ...,
-        description="List of cities where companion is active",
+        description="List of cities where active",
         json_schema_extra={"example": ["Hanoi", "HCM"]},
     )
     avatarUrl: Optional[str] = Field(
@@ -276,7 +276,8 @@ async def create_my_profile(
             companion_id=auth_info.user_id,
             user_id=auth_info.user_id,
             display_name=payload.displayName,
-            intro_text=payload.introText,
+            bio=payload.bio or "",
+            role=auth_info.user_role or "CLIENT",
             available_cities=payload.availableCities,
         )
         await db.commit()
@@ -304,7 +305,7 @@ async def update_my_profile(
         await profile_cmd.update_profile(
             companion_id=auth_info.user_id,
             display_name=payload.displayName,
-            intro_text=payload.introText,
+            bio=payload.bio or "",
             available_cities=payload.availableCities,
             avatar_url=payload.avatarUrl,
         )
@@ -328,6 +329,11 @@ async def request_presigned_url(
     auth_info: AuthInfo = Depends(get_auth_info),
     media_cmd: MediaCommandService = Depends(get_media_cmd),
 ):
+    if auth_info.user_role != "COMPANION":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only companions can manage media assets / scenarios",
+        )
     try:
         presign_data = await media_cmd.request_presigned_url(
             companion_id=auth_info.user_id,
@@ -359,6 +365,11 @@ async def create_scenario(
     scenario_cmd: ScenarioCommandService = Depends(get_scenario_cmd),
     db: AsyncSession = Depends(get_db_session),
 ):
+    if auth_info.user_role != "COMPANION":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only companions can manage media assets / scenarios",
+        )
     try:
         scenario_id = await scenario_cmd.create_scenario(
             companion_id=auth_info.user_id,
@@ -389,6 +400,11 @@ async def update_scenario(
     scenario_cmd: ScenarioCommandService = Depends(get_scenario_cmd),
     db: AsyncSession = Depends(get_db_session),
 ):
+    if auth_info.user_role != "COMPANION":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only companions can manage media assets / scenarios",
+        )
     try:
         await scenario_cmd.update_scenario(
             scenario_id=scenario_id,
@@ -420,6 +436,11 @@ async def delete_scenario(
     scenario_cmd: ScenarioCommandService = Depends(get_scenario_cmd),
     db: AsyncSession = Depends(get_db_session),
 ):
+    if auth_info.user_role != "COMPANION":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only companions can manage media assets / scenarios",
+        )
     try:
         await scenario_cmd.delete_scenario(
             scenario_id=scenario_id, companion_id=auth_info.user_id

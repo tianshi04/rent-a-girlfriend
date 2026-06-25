@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'profile/v1/events/profile_created.proto\x12\nprofile.v1\"j\n\x0eProfileCreated\x12\x14\n\x0c\x63ompanion_id\x18\x01 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x02 \x01(\t\x12\x12\n\nintro_text\x18\x03 \x01(\t\x12\x18\n\x10\x61vailable_cities\x18\x04 \x03(\tB@Z>github.com/rent-a-girlfriend/contracts/proto/profile;profilev1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'profile/v1/events/profile_created.proto\x12\nprofile.v1\"c\n\x0eProfileCreated\x12\x14\n\x0c\x63ompanion_id\x18\x01 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x02 \x01(\t\x12\x0b\n\x03\x62io\x18\x03 \x01(\t\x12\x18\n\x10\x61vailable_cities\x18\x04 \x03(\tB@Z>github.com/rent-a-girlfriend/contracts/proto/profile;profilev1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,5 +33,5 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'Z>github.com/rent-a-girlfriend/contracts/proto/profile;profilev1'
   _globals['_PROFILECREATED']._serialized_start=55
-  _globals['_PROFILECREATED']._serialized_end=161
+  _globals['_PROFILECREATED']._serialized_end=154
 # @@protoc_insertion_point(module_scope)

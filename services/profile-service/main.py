@@ -1,8 +1,15 @@
 import asyncio
 import logging
 import sys
+import os
 import grpc
 import uvicorn
+
+# Dynamically add gen directory to sys.path
+root_dir = os.path.abspath(os.path.dirname(__file__))
+gen_dir = os.path.join(root_dir, "gen")
+if gen_dir not in sys.path:
+    sys.path.insert(0, gen_dir)
 
 from internal.bootstrap import (
     settings,
@@ -14,6 +21,7 @@ from internal.bootstrap import (
 )
 from gen.profile.v1.service import profile_service_pb2_grpc
 from internal.interfaces.grpc.servicer import ProfileServiceServicer
+from internal.interfaces.kafka.identity_listener import IdentityEventListener
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,6 +48,13 @@ async def main():
         await db_cleanup_worker.start()
     except Exception as e:
         logger.warning(f"DB Cleanup Worker failed to start: {e}.")
+
+    # Start Identity Event Listener
+    identity_listener = IdentityEventListener()
+    try:
+        await identity_listener.start()
+    except Exception as e:
+        logger.warning(f"Identity Event Listener failed to start: {e}")
 
     # gRPC Server Setup
     grpc_server = grpc.aio.server()
@@ -126,6 +141,13 @@ async def main():
             await outbox_worker.stop()
         except Exception as e:
             logger.error(f"Error stopping Outbox Worker: {e}")
+
+        # Stop Identity Event Listener
+        logger.info("Stopping Identity Event Listener...")
+        try:
+            await identity_listener.stop()
+        except Exception as e:
+            logger.error(f"Error stopping Identity Event Listener: {e}")
 
         # 4. Stop DB Cleanup Worker
         logger.info("Stopping DB Cleanup Worker...")

@@ -19,7 +19,7 @@ class ProfileCreated(DomainEvent):
 class ProfileUpdated(DomainEvent):
     companion_id: str
     display_name: str
-    intro_text: str
+    bio: str
     available_cities: List[str]
 
 
