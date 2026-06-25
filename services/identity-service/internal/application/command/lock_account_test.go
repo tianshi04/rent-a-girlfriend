@@ -16,7 +16,7 @@ func TestLockAccountHandler_Handle(t *testing.T) {
 	handler := NewLockAccountHandler(repo, tokenSvc, pub)
 
 	email, _ := vo.NewEmail("test@example.com")
-	acc := aggregate.NewUserAccount(email, "google-1", time.Now())
+	acc := aggregate.NewUserAccount(email, "google-1", "Test User", time.Now())
 	repo.accounts[acc.ID().String()] = acc
 
 	cmd := LockAccountCommand{

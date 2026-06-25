@@ -12,7 +12,9 @@ import "google/protobuf/timestamp.proto";
 message UserRegisteredPayload {
   string user_id   = 1;
   string email     = 2;
-  string role      = 3;
-  string google_id = 4;
-  google.protobuf.Timestamp timestamp = 5;
+  string name      = 3;
+  string role      = 4;
+  string google_id = 5;
+  google.protobuf.Timestamp timestamp = 6;
+  
 }

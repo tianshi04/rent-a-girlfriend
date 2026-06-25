@@ -3,9 +3,11 @@ package persistence
 import (
 	"context"
 	"encoding/json"
+	"reflect"
 	"time"
 
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/encoding/protojson"
 	"gorm.io/gorm"
 
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/event"
@@ -22,7 +24,15 @@ func NewOutboxPublisher(db *gorm.DB) *OutboxPublisher {
 
 // Publish writes the domain event to the outbox table within the current transaction.
 func (p *OutboxPublisher) Publish(ctx context.Context, evt event.DomainEvent) error {
-	payload, err := json.Marshal(evt)
+	var payload []byte
+	var err error
+
+	protoMsg := evt.ToProto()
+	if protoMsg != nil && !reflect.ValueOf(protoMsg).IsNil() {
+		payload, err = protojson.Marshal(protoMsg)
+	} else {
+		payload, err = json.Marshal(evt)
+	}
 	if err != nil {
 		return err
 	}

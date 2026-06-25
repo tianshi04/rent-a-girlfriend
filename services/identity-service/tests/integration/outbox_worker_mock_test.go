@@ -11,7 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
+	identityv1 "github.com/rent-a-girlfriend/identity-service/gen/proto"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/messaging"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/persistence"
@@ -100,11 +102,14 @@ func TestKafkaOutbox_WithMockBroker(t *testing.T) {
 	// Publish event qua outbox
 	testUserID := "e2e-user-" + uuid.New().String()
 	testEvent := event.UserRegistered{
-		UserID:    testUserID,
-		Email:     "e2e-mock@test.com",
-		Role:      "CLIENT",
-		GoogleID:  "google-" + uuid.New().String(),
-		Timestamp: time.Now().UTC().Truncate(time.Second),
+		UserRegisteredPayload: &identityv1.UserRegisteredPayload{
+			UserId:    testUserID,
+			Email:     "e2e-mock@test.com",
+			Role:      "CLIENT",
+			GoogleId:  "google-" + uuid.New().String(),
+			Timestamp: timestamppb.New(time.Now().UTC().Truncate(time.Second)),
+			Name:      "E2E Mock User",
+		},
 	}
 	err := outboxPublisher.Publish(ctx, testEvent)
 	require.NoError(t, err)

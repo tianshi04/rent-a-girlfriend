@@ -19,7 +19,7 @@ func TestRecordViolationHandler_Handle(t *testing.T) {
 	handler := NewRecordViolationHandler(repo, policySvc, pub)
 
 	email, _ := vo.NewEmail("user@example.com")
-	acc := aggregate.NewUserAccount(email, "g1", time.Now())
+	acc := aggregate.NewUserAccount(email, "g1", "Test User", time.Now())
 	repo.accounts[acc.ID().String()] = acc
 
 	cmd := RecordViolationCommand{
