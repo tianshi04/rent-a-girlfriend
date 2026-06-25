@@ -75,8 +75,6 @@ financeProtos=(
 
 profileProtos=(
     "profile/v1/service/profile_service.proto"
-    "profile/v1/messages/create_profile_request.proto"
-    "profile/v1/messages/update_profile_request.proto"
     "profile/v1/messages/approve_profile_request.proto"
     "profile/v1/messages/reject_profile_request.proto"
     "profile/v1/messages/profile_command_response.proto"
@@ -180,5 +178,19 @@ protoc \
     --grpc-gateway_opt=module="$module" \
     --grpc-gateway_opt=logtostderr=true \
     "$contracts/booking/v1/service/booking_service.proto"
+
+# 3. Sinh OpenAPI v2 specification
+protoc \
+    -I "$contracts" \
+    -I "$googleapis" \
+    --openapiv2_out="$serviceRoot" \
+    --openapiv2_opt=logtostderr=true \
+    --openapiv2_opt=allow_merge=true \
+    --openapiv2_opt=merge_file_name=openapi \
+    "$contracts/booking/v1/service/booking_service.proto"
+
+if [ -f "$serviceRoot/openapi.swagger.json" ]; then
+    mv "$serviceRoot/openapi.swagger.json" "$serviceRoot/openapi.json"
+fi
 
 echo "==> [gen_proto] Done! All files generated successfully inside gen/proto/"
