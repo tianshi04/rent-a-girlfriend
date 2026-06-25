@@ -223,6 +223,25 @@ async def get_companion_detail(
         )
 
 
+@router.get("/profiles/{target_user_id}", tags=["Catalogue Query"])
+async def get_client_profile(
+    target_user_id: str,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    query_service: ProfileQueryService = Depends(get_query_service),
+):
+    try:
+        detail = await query_service.get_client_profile(target_user_id)
+        return detail
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
 @router.get("/profile/me", tags=["Profile Management Query"])
 async def get_my_profile(
     auth_info: AuthInfo = Depends(get_auth_info),

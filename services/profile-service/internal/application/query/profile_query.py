@@ -109,6 +109,30 @@ class ProfileQueryService:
             ],
         }
 
+    async def get_client_profile(self, client_id: str) -> Dict[str, Any]:
+        """Return a public-safe view of a client profile.
+
+        Only exposes non-sensitive fields (displayName, bio, avatarUrl, role).
+        Raises ProfileNotAvailableError if the target user is not a CLIENT role.
+        """
+        user_profile = await self.user_profile_repo.find_by_id(client_id)
+        if not user_profile:
+            raise ProfileNotFoundError(client_id)
+
+        if user_profile.role != "CLIENT":
+            # Companions have their own public catalogue endpoint
+            raise ProfileNotAvailableError(client_id)
+
+        return {
+            "clientId": client_id,
+            "displayName": user_profile.display_name,
+            "avatarUrl": user_profile.avatar_url.url
+            if user_profile.avatar_url
+            else None,
+            "bio": user_profile.bio,
+            "role": user_profile.role,
+        }
+
     async def get_scenario_snapshot(self, scenario_id: str) -> Dict[str, Any]:
         scenario = await self.scenario_repo.find_by_id(scenario_id)
         if not scenario:
