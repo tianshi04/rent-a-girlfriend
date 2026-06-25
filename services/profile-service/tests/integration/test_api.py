@@ -286,3 +286,55 @@ async def test_admin_endpoints_forbidden_for_non_admin(client):
     )
     assert response.status_code == 403
     assert response.json()["message"] == "Admin only operation"
+
+
+async def test_create_and_update_my_profile_success(
+    client, integration_deps, db_session
+):
+    # We will use a new user ID that doesn't have a profile yet
+    new_user_id = "user_companion_456"
+    headers = {"user-id": new_user_id, "user-role": "COMPANION"}
+
+    # 1. Create Profile
+    payload_create = {
+        "displayName": "Mizuhara Chizuru",
+        "introText": "I am a professional companion.",
+        "availableCities": ["Tokyo", "Kyoto"],
+    }
+    response = await client.post(
+        "/profile/me",
+        json=payload_create,
+        headers=headers,
+    )
+    assert response.status_code == 201
+    assert response.json()["companionId"] == new_user_id
+
+    # Verify in DB
+    profile_repo = integration_deps["profile_repo"]
+    profile = await profile_repo.find_by_id(new_user_id)
+    assert profile is not None
+    assert profile.display_name == "Mizuhara Chizuru"
+    assert profile.status == "PENDING"
+
+    # 2. Update Profile
+    payload_update = {
+        "displayName": "Mizuhara Chizuru Updated",
+        "introText": "Updated bio.",
+        "availableCities": ["Tokyo", "Kyoto", "Osaka"],
+        "avatarUrl": "https://s3.rentgf.com/avatars/chizuru.jpg",
+    }
+    response = await client.put(
+        "/profile/me",
+        json=payload_update,
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json() == {"success": True}
+
+    # Verify update in DB
+    updated_profile = await profile_repo.find_by_id(new_user_id)
+    assert updated_profile.display_name == "Mizuhara Chizuru Updated"
+    assert updated_profile.intro_text == "Updated bio."
+    assert (
+        str(updated_profile.avatar_url) == "https://s3.rentgf.com/avatars/chizuru.jpg"
+    )

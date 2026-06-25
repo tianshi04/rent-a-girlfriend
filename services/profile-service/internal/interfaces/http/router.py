@@ -102,6 +102,51 @@ class SuccessResponse(BaseModel):
     success: bool
 
 
+class CreateProfileRequestBody(BaseModel):
+    displayName: str = Field(
+        ...,
+        description="Display name for companion profile",
+        json_schema_extra={"example": "Kano Chizuru"},
+    )
+    introText: str = Field(
+        ...,
+        description="Introduction text for companion profile",
+        json_schema_extra={"example": "Perfect rental girlfriend"},
+    )
+    availableCities: list[str] = Field(
+        ...,
+        description="List of cities where companion is active",
+        json_schema_extra={"example": ["Hanoi", "HCM"]},
+    )
+
+
+class UpdateProfileRequestBody(BaseModel):
+    displayName: str = Field(
+        ...,
+        description="Display name for companion profile",
+        json_schema_extra={"example": "Kano Chizuru"},
+    )
+    introText: str = Field(
+        ...,
+        description="Introduction text for companion profile",
+        json_schema_extra={"example": "Perfect rental girlfriend"},
+    )
+    availableCities: list[str] = Field(
+        ...,
+        description="List of cities where companion is active",
+        json_schema_extra={"example": ["Hanoi", "HCM"]},
+    )
+    avatarUrl: Optional[str] = Field(
+        None,
+        description="Optional avatar URL",
+        json_schema_extra={"example": "https://s3.rentgf.com/companion-avatar.jpg"},
+    )
+
+
+class CreateProfileResponse(BaseModel):
+    companionId: str
+
+
 class ApproveProfileRequestBody(BaseModel):
     adminId: Optional[str] = Field(
         None,
@@ -208,6 +253,65 @@ async def get_my_profile(
         return detail
     except DomainError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post(
+    "/profile/me",
+    response_model=CreateProfileResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Profile Management Command"],
+)
+async def create_my_profile(
+    payload: CreateProfileRequestBody,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    profile_cmd: ProfileCommandService = Depends(get_profile_cmd),
+    db: AsyncSession = Depends(get_db_session),
+):
+    try:
+        companion_id = await profile_cmd.create_profile(
+            companion_id=auth_info.user_id,
+            user_id=auth_info.user_id,
+            display_name=payload.displayName,
+            intro_text=payload.introText,
+            available_cities=payload.availableCities,
+        )
+        await db.commit()
+        return CreateProfileResponse(companionId=companion_id)
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.put(
+    "/profile/me",
+    response_model=SuccessResponse,
+    tags=["Profile Management Command"],
+)
+async def update_my_profile(
+    payload: UpdateProfileRequestBody,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    profile_cmd: ProfileCommandService = Depends(get_profile_cmd),
+    db: AsyncSession = Depends(get_db_session),
+):
+    try:
+        await profile_cmd.update_profile(
+            companion_id=auth_info.user_id,
+            display_name=payload.displayName,
+            intro_text=payload.introText,
+            available_cities=payload.availableCities,
+            avatar_url=payload.avatarUrl,
+        )
+        await db.commit()
+        return SuccessResponse(success=True)
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)

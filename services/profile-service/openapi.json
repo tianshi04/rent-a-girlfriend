@@ -257,6 +257,216 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Profile Management Command"
+        ],
+        "summary": "Create My Profile",
+        "operationId": "create_my_profile_api_v1_profile_me_post",
+        "parameters": [
+          {
+            "name": "user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User-Id"
+            }
+          },
+          {
+            "name": "user-role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User-Role"
+            }
+          },
+          {
+            "name": "user-status",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User-Status"
+            }
+          },
+          {
+            "name": "user-email",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User-Email"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProfileRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateProfileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Profile Management Command"
+        ],
+        "summary": "Update My Profile",
+        "operationId": "update_my_profile_api_v1_profile_me_put",
+        "parameters": [
+          {
+            "name": "user-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User-Id"
+            }
+          },
+          {
+            "name": "user-role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User-Role"
+            }
+          },
+          {
+            "name": "user-status",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User-Status"
+            }
+          },
+          {
+            "name": "user-email",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User-Email"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/profile/me/media/presigned-urls": {
@@ -966,6 +1176,54 @@
         "type": "object",
         "title": "ApproveProfileRequestBody"
       },
+      "CreateProfileRequestBody": {
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "title": "Displayname",
+            "description": "Display name for companion profile",
+            "example": "Kano Chizuru"
+          },
+          "introText": {
+            "type": "string",
+            "title": "Introtext",
+            "description": "Introduction text for companion profile",
+            "example": "Perfect rental girlfriend"
+          },
+          "availableCities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Availablecities",
+            "description": "List of cities where companion is active",
+            "example": [
+              "Hanoi",
+              "HCM"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "displayName",
+          "introText",
+          "availableCities"
+        ],
+        "title": "CreateProfileRequestBody"
+      },
+      "CreateProfileResponse": {
+        "properties": {
+          "companionId": {
+            "type": "string",
+            "title": "Companionid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "companionId"
+        ],
+        "title": "CreateProfileResponse"
+      },
       "CreateScenarioRequest": {
         "properties": {
           "title": {
@@ -1128,6 +1386,54 @@
           "success"
         ],
         "title": "SuccessResponse"
+      },
+      "UpdateProfileRequestBody": {
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "title": "Displayname",
+            "description": "Display name for companion profile",
+            "example": "Kano Chizuru"
+          },
+          "introText": {
+            "type": "string",
+            "title": "Introtext",
+            "description": "Introduction text for companion profile",
+            "example": "Perfect rental girlfriend"
+          },
+          "availableCities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Availablecities",
+            "description": "List of cities where companion is active",
+            "example": [
+              "Hanoi",
+              "HCM"
+            ]
+          },
+          "avatarUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatarurl",
+            "description": "Optional avatar URL",
+            "example": "https://s3.rentgf.com/companion-avatar.jpg"
+          }
+        },
+        "type": "object",
+        "required": [
+          "displayName",
+          "introText",
+          "availableCities"
+        ],
+        "title": "UpdateProfileRequestBody"
       },
       "UpdateScenarioRequest": {
         "properties": {
