@@ -2,7 +2,10 @@ from typing import List, Optional
 from internal.domain.aggregate import UserProfile, CompanionProfile
 from internal.domain.vo import Location, MediaUrl
 from internal.domain.errors import ProfileAlreadyExistsError, ProfileNotFoundError
-from internal.domain.repository import IUserProfileRepository, ICompanionProfileRepository
+from internal.domain.repository import (
+    IUserProfileRepository,
+    ICompanionProfileRepository,
+)
 from internal.application.port import IEventPublisher
 
 
@@ -97,7 +100,7 @@ class ProfileCommandService:
             else:
                 cities = [Location(city) for city in available_cities]
                 companion_profile.update(available_cities=cities)
-            
+
             await self.profile_repo.save(companion_profile)
 
             for event in companion_profile.clear_events():

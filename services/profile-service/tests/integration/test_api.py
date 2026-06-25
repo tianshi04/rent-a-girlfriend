@@ -269,7 +269,8 @@ async def test_create_and_update_my_profile_success(
     assert updated_user_profile.display_name == "Mizuhara Chizuru Updated"
     assert updated_user_profile.bio == "Updated bio."
     assert (
-        str(updated_user_profile.avatar_url) == "https://s3.rentgf.com/avatars/chizuru.jpg"
+        str(updated_user_profile.avatar_url)
+        == "https://s3.rentgf.com/avatars/chizuru.jpg"
     )
 
 
@@ -518,7 +519,6 @@ async def test_identity_listener_creates_profile(
 async def test_identity_listener_creates_profile_idempotent(
     integration_deps, db_session, monkeypatch
 ):
-    profile_repo = integration_deps["profile_repo"]
     profile_cmd = integration_deps["profile_cmd"]
 
     # Seed profile first

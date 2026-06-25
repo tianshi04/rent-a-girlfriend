@@ -105,7 +105,9 @@ def bootstrap_services(db_session: AsyncSession):
     event_publisher = DatabaseEventPublisher(db_session)
 
     # Application Commands
-    profile_cmd = ProfileCommandService(user_profile_repo, profile_repo, event_publisher)
+    profile_cmd = ProfileCommandService(
+        user_profile_repo, profile_repo, event_publisher
+    )
     scenario_cmd = ScenarioCommandService(profile_repo, scenario_repo, event_publisher)
     media_cmd = MediaCommandService(
         profile_repo, media_repo, storage_adapter, event_publisher

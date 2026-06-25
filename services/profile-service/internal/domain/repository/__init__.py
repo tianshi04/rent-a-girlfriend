@@ -1,6 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
-from internal.domain.aggregate import UserProfile, CompanionProfile, Scenario, MediaAsset
+from internal.domain.aggregate import (
+    UserProfile,
+    CompanionProfile,
+    Scenario,
+    MediaAsset,
+)
 
 
 class IUserProfileRepository(ABC):

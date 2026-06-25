@@ -1,6 +1,11 @@
 import pytest
 from internal.domain.vo import Money, Duration, Location, MediaUrl
-from internal.domain.aggregate import UserProfile, CompanionProfile, Scenario, MediaAsset
+from internal.domain.aggregate import (
+    UserProfile,
+    CompanionProfile,
+    Scenario,
+    MediaAsset,
+)
 from internal.domain.errors import (
     VoiceIntroDurationExceededError,
     VoiceIntroSizeExceededError,

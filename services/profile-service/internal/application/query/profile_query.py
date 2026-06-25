@@ -75,12 +75,18 @@ class ProfileQueryService:
             voice_url = self.storage.generate_presigned_get_url(key, expires_in=300)
 
         album_urls = [asset.file_url.url for asset in albums]
-        cities = [str(city) for city in companion_profile.available_cities] if companion_profile else []
+        cities = (
+            [str(city) for city in companion_profile.available_cities]
+            if companion_profile
+            else []
+        )
 
         return {
             "companionId": companion_id,
             "displayName": user_profile.display_name,
-            "avatarUrl": user_profile.avatar_url.url if user_profile.avatar_url else None,
+            "avatarUrl": user_profile.avatar_url.url
+            if user_profile.avatar_url
+            else None,
             "bio": user_profile.bio,
             "role": user_profile.role,
             "availableCities": cities,
@@ -144,7 +150,9 @@ class ProfileQueryService:
         for comp in companions:
             user_prof = await self.user_profile_repo.find_by_id(comp.companion_id)
             display_name = user_prof.display_name if user_prof else "Companion"
-            avatar_url = user_prof.avatar_url.url if user_prof and user_prof.avatar_url else None
+            avatar_url = (
+                user_prof.avatar_url.url if user_prof and user_prof.avatar_url else None
+            )
 
             # Find starting price (lowest active scenario price)
             scenarios = await self.scenario_repo.find_by_companion_id(comp.companion_id)

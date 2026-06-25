@@ -97,7 +97,9 @@ def integration_deps(db_session, kafka):
         f"https://mock-s3.com/{key}?expires={expires_in}"
     )
 
-    profile_cmd = ProfileCommandService(user_profile_repo, profile_repo, event_publisher)
+    profile_cmd = ProfileCommandService(
+        user_profile_repo, profile_repo, event_publisher
+    )
     scenario_cmd = ScenarioCommandService(profile_repo, scenario_repo, event_publisher)
     media_cmd = MediaCommandService(
         profile_repo, media_repo, storage_mock, event_publisher

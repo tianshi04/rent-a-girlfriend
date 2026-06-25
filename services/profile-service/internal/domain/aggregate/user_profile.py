@@ -71,7 +71,9 @@ class UserProfile:
                 companion_id=self.user_id,
                 display_name=display_name,
                 bio=bio,
-                available_cities=available_cities if available_cities is not None else [],
+                available_cities=available_cities
+                if available_cities is not None
+                else [],
             )
         )
 

@@ -2,7 +2,12 @@ import json
 from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select
-from internal.domain.aggregate import UserProfile, CompanionProfile, Scenario, MediaAsset
+from internal.domain.aggregate import (
+    UserProfile,
+    CompanionProfile,
+    Scenario,
+    MediaAsset,
+)
 from internal.domain.vo import Location, MediaUrl, Money, Duration
 from internal.domain.repository import (
     IUserProfileRepository,
@@ -85,9 +90,13 @@ class CompanionProfileRepository(ICompanionProfileRepository):
         limit: int,
     ) -> Tuple[List[CompanionProfile], int]:
         # Perform query joining user_profiles to filter by name and role
-        query = select(CompanionProfileModel).join(UserProfileModel).filter(
-            CompanionProfileModel.status == "APPROVED",
-            UserProfileModel.role == "COMPANION",
+        query = (
+            select(CompanionProfileModel)
+            .join(UserProfileModel)
+            .filter(
+                CompanionProfileModel.status == "APPROVED",
+                UserProfileModel.role == "COMPANION",
+            )
         )
 
         if name:
