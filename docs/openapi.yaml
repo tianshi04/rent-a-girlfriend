@@ -562,6 +562,41 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v1/profiles/{target_user_id}:
+    get:
+      summary: Xem hồ sơ công khai của Client khác
+      description: API lấy chi tiết profile công khai của một Client. Chỉ trả về thông tin cơ bản không nhạy cảm.
+      tags:
+        - Profile & Catalogue
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: target_user_id
+          in: path
+          required: true
+          description: ID của Client cần xem hồ sơ
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientProfileResponse'
+        '401':
+          description: Chưa xác thực
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Không tìm thấy profile hoặc user không phải là CLIENT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/profile/me:
     get:
       summary: Lấy hồ sơ cá nhân (Client/Companion)
@@ -687,6 +722,91 @@ paths:
                 $ref: '#/components/schemas/PresignedUrlResponse'
         '400':
           description: Vượt quá giới hạn kích thước/thời lượng cho phép
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+  /api/v1/profile/me/media:
+    get:
+      summary: Lấy danh sách media của tôi (Voice Intro & Album Images)
+      description: |
+        Lấy toàn bộ danh sách các tệp media đã đăng ký của Companion hiện tại.
+      tags:
+        - Profile & Catalogue
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MediaAssetResponse'
+        '403':
+          description: Không có quyền (Chỉ dành cho Companion)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Đăng ký tệp media mới (Voice Intro hoặc Album Image)
+      description: |
+        Đăng ký file sau khi đã upload trực tiếp lên Storage.
+        Đối với VOICE: Nếu đã tồn tại Voice Intro cũ, hệ thống sẽ tự động thay thế/ghi đè.
+      tags:
+        - Profile & Catalogue
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterMediaRequest'
+      responses:
+        '201':
+          description: Đăng ký thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterMediaResponse'
+        '400':
+          description: Lỗi dữ liệu hoặc vi phạm các ràng buộc nghiệp vụ (giới hạn album, v.v.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/profile/me/media/{assetId}:
+    delete:
+      summary: Xóa tệp media
+      description: |
+        Xóa một tệp media (Voice Intro hoặc ảnh Album) đã đăng ký theo ID.
+      tags:
+        - Profile & Catalogue
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          description: ID của tệp media cần xóa
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Xóa thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Không tìm thấy tệp media hoặc không thuộc về Companion hiện tại
           content:
             application/json:
               schema:
@@ -1456,7 +1576,7 @@ paths:
                       content:
                         type: string
                         description: URL ảnh/tệp bằng chứng đã upload
-                        example: "https://storage.rent-a-gf.com/evidence/no_show_proof.png"
+                        example: "https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/evidence/no_show_proof.png"
       responses:
         '201':
           description: Ghi nhận khiếu nại thành công, đang chờ Admin duyệt phân xử
@@ -1920,7 +2040,7 @@ components:
           example: "Chizuru Ichinose"
         avatarUrl:
           type: string
-          example: "https://storage.rent-a-gf.com/avatars/chizuru.png"
+          example: "https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/avatars/chizuru.png"
         averageRating:
           type: number
           format: float
@@ -1964,17 +2084,17 @@ components:
         avatarUrl:
           type: string
           nullable: true
-          example: "https://storage.rent-a-gf.com/avatars/chizuru.png"
+          example: "https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/avatars/chizuru.png"
         albumUrls:
           type: array
           items:
             type: string
-          example: ["https://storage.rent-a-gf.com/albums/chizuru_1.png"]
+          example: ["https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/albums/chizuru_1.png"]
         voiceIntroUrl:
           type: string
           nullable: true
           description: Presigned GET URL (hết hạn sau 5 phút), null nếu chưa upload
-          example: "https://storage.rent-a-gf.com/voice/chizuru.mp3?X-Amz-Signature=..."
+          example: "https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/voice/chizuru.mp3?X-Amz-Signature=..."
         availableCities:
           type: array
           items:
@@ -2034,7 +2154,7 @@ components:
         avatarUrl:
           type: string
           nullable: true
-          example: "https://storage.rent-a-gf.com/avatars/chizuru.png"
+          example: "https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/avatars/chizuru.png"
         albumUrls:
           type: array
           items:
@@ -2044,7 +2164,7 @@ components:
           type: string
           nullable: true
           description: Presigned GET URL (hết hạn sau 5 phút), null nếu chưa upload
-          example: "https://storage.rent-a-gf.com/voice/chizuru.mp3?X-Amz-Signature=..."
+          example: "https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/voice/chizuru.mp3?X-Amz-Signature=..."
         availableCities:
           type: array
           description: Danh sách thành phố hoạt động. Rỗng nếu user là CLIENT.
@@ -2068,6 +2188,34 @@ components:
           items:
             $ref: '#/components/schemas/ScenarioDetail'
 
+    ClientProfileResponse:
+      type: object
+      description: Hồ sơ công khai của một Client.
+      required:
+        - clientId
+        - displayName
+        - role
+      properties:
+        clientId:
+          type: string
+          description: ID tài khoản của Client
+          example: "usr_client_999"
+        displayName:
+          type: string
+          example: "Kazuya Kinoshita"
+        avatarUrl:
+          type: string
+          nullable: true
+          example: "https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/avatars/kazuya.png"
+        bio:
+          type: string
+          nullable: true
+          description: Giới thiệu bản thân
+          example: "Tôi chỉ là một sinh viên đại học bình thường."
+        role:
+          type: string
+          enum: [CLIENT]
+          example: "CLIENT"
 
     UpdateProfileRequest:
       type: object
@@ -2097,7 +2245,7 @@ components:
           type: string
           nullable: true
           description: URL ảnh đại diện sau khi upload lên S3 (lấy từ presigned URL flow)
-          example: "https://storage.rent-a-gf.com/avatars/chizuru.png"
+          example: "https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/avatars/chizuru.png"
 
     PatchProfileRequest:
       type: object
@@ -2126,7 +2274,7 @@ components:
           type: string
           nullable: true
           description: URL ảnh đại diện sau khi upload lên S3 (lấy từ presigned URL flow)
-          example: "https://storage.rent-a-gf.com/avatars/chizuru.png"
+          example: "https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/avatars/chizuru.png"
 
     ScenarioDetail:
       type: object
@@ -2191,11 +2339,77 @@ components:
         uploadUrl:
           type: string
           description: Đường dẫn S3/Cloud Storage ký sẵn để PUT tệp lên trực tiếp.
-          example: "https://storage.rent-a-gf.com/voice/chizuru.mp3?X-Amz-Signature=..."
+          example: "https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/voice/chizuru.mp3?X-Amz-Signature=..."
         fileUrl:
           type: string
-          description: Đường dẫn lưu trữ tĩnh cuối cùng của tệp tin.
-          example: "https://storage.rent-a-gf.com/voice/chizuru.mp3"
+          description: Đường dẫn lưu trữ tĩnh cuối cùng của tệp tin (base URL từ biến môi trường `STORAGE_PUBLIC_URL`).
+          example: "https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/voice/chizuru.mp3"
+
+    RegisterMediaRequest:
+      type: object
+      required:
+        - assetType
+        - fileUrl
+      properties:
+        assetType:
+          type: string
+          enum: [IMAGE, VOICE]
+          example: "IMAGE"
+        fileUrl:
+          type: string
+          description: Đường dẫn lưu trữ tĩnh cuối cùng của tệp tin nhận từ presigned URL response.
+          example: "https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/companions/1/albums/xyz.png"
+
+    RegisterMediaResponse:
+      type: object
+      required:
+        - assetId
+        - status
+        - message
+      properties:
+        assetId:
+          type: string
+          example: "uuid-string-here"
+        status:
+          type: string
+          example: "APPROVED"
+        message:
+          type: string
+          example: "Album image registered successfully"
+
+    MediaAssetResponse:
+      type: object
+      required:
+        - assetId
+        - companionId
+        - fileUrl
+        - assetType
+        - sizeBytes
+        - status
+      properties:
+        assetId:
+          type: string
+          example: "uuid-string-here"
+        companionId:
+          type: string
+          example: "companion-id-here"
+        fileUrl:
+          type: string
+          example: "https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/companions/1/albums/xyz.png"
+        assetType:
+          type: string
+          enum: [ALBUM, VOICE_INTRO]
+          example: "ALBUM"
+        sizeBytes:
+          type: integer
+          example: 1048576
+        durationSeconds:
+          type: integer
+          nullable: true
+          example: null
+        status:
+          type: string
+          example: "APPROVED"
 
     CreateScenarioRequest:
       type: object
@@ -2558,7 +2772,7 @@ components:
                 example: "IMAGE"
               content:
                 type: string
-                example: "https://storage.rent-a-gf.com/evidence/no_show_proof.png"
+                example: "https://mcuoaizrolhegsvdckna.supabase.co/storage/v1/object/public/profile-service/evidence/no_show_proof.png"
 
     SagaStateDetail:
       type: object
