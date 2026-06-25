@@ -85,6 +85,14 @@ func (m *MockUserAccountRepository) FindByGoogleID(ctx context.Context, googleID
 	return nil, args.Error(1)
 }
 
+func (m *MockUserAccountRepository) FindAll(ctx context.Context, page int, pageSize int) ([]*aggregate.UserAccount, int64, error) {
+	args := m.Called(ctx, page, pageSize)
+	if args.Get(0) != nil {
+		return args.Get(0).([]*aggregate.UserAccount), args.Get(1).(int64), args.Error(2)
+	}
+	return nil, 0, args.Error(2)
+}
+
 type MockTokenService struct {
 	mock.Mock
 }

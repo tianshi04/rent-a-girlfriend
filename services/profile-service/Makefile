@@ -18,3 +18,8 @@ generate-proto:
 # Run all tests sequentially
 test:
 	PYTHONPATH=$$(pwd)/gen uv run pytest -v
+
+# Run the remote seeding script for Kitty via REST API
+seed-remote:
+	uv run python scripts/seed_remote_kitty.py
+

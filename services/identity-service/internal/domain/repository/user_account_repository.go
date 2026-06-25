@@ -24,4 +24,7 @@ type UserAccountRepository interface {
 
 	// FindByGoogleID retrieves a UserAccount by Google OAuth ID.
 	FindByGoogleID(ctx context.Context, googleID string) (*aggregate.UserAccount, error)
+
+	// FindAll retrieves user accounts with pagination.
+	FindAll(ctx context.Context, page int, pageSize int) ([]*aggregate.UserAccount, int64, error)
 }

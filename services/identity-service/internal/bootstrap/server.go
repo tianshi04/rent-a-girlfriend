@@ -112,6 +112,7 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 	getAccountHandler := query.NewGetAccountHandler(accountRepo)
 	getJWKSHandler := query.NewGetJWKSHandler(keyProvider)
 	listUpgradeReqsHandler := query.NewListUpgradeRequestsHandler(upgradeRepo)
+	listAccountsHandler := query.NewListAccountsHandler(accountRepo)
 
 	// --- Interfaces (gRPC Handlers) ---
 	grpcHandler := grpchandler.NewIdentityGRPCHandler(
@@ -122,6 +123,7 @@ func NewServer(db *gorm.DB, cfg *Config) *Server {
 		rejectUpgradeHandler,
 		requestUpgradeHandler,
 		listUpgradeReqsHandler,
+		listAccountsHandler,
 		initGoogleAuthHandler,
 		loginGoogleHandler,
 		refreshTokenHandler,

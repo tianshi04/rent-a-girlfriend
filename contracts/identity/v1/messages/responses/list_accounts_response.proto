@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package identity.v1;
+
+option go_package = "github.com/rent-a-girlfriend/identity-service/gen/proto;identityv1";
+
+import "identity/v1/messages/responses/account_response.proto";
+
+// ListAccountsResponse — danh sách tài khoản người dùng có phân trang.
+message ListAccountsResponse {
+  repeated AccountResponse data      = 1;
+  int64                    total     = 2;
+  int32                    page      = 3;
+  int32                    page_size = 4;
+}

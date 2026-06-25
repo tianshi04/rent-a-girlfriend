@@ -24,6 +24,7 @@ type IdentityGRPCHandler struct {
 	rejectUpgrade   *command.RejectUpgradeHandler
 	requestUpgrade  *command.RequestCompanionUpgradeHandler
 	listUpgradeReqs *query.ListUpgradeRequestsHandler
+	listAccounts    *query.ListAccountsHandler
 	// Auth handlers
 	initGoogleAuth *command.InitGoogleAuthHandler
 	loginGoogle    *command.LoginGoogleHandler
@@ -39,6 +40,7 @@ func NewIdentityGRPCHandler(
 	rejectUpgrade *command.RejectUpgradeHandler,
 	requestUpgrade *command.RequestCompanionUpgradeHandler,
 	listUpgradeReqs *query.ListUpgradeRequestsHandler,
+	listAccounts *query.ListAccountsHandler,
 	initGoogleAuth *command.InitGoogleAuthHandler,
 	loginGoogle *command.LoginGoogleHandler,
 	refreshToken *command.RefreshTokenHandler,
@@ -52,6 +54,7 @@ func NewIdentityGRPCHandler(
 		rejectUpgrade:   rejectUpgrade,
 		requestUpgrade:  requestUpgrade,
 		listUpgradeReqs: listUpgradeReqs,
+		listAccounts:    listAccounts,
 		initGoogleAuth:  initGoogleAuth,
 		loginGoogle:     loginGoogle,
 		refreshToken:    refreshToken,
@@ -72,6 +75,35 @@ func (h *IdentityGRPCHandler) GetAccount(ctx context.Context, req *identityv1.Ge
 		Status:         mapAccountStatus(account.Status()),
 		ViolationCount: int32(account.ViolationCount()),
 		CreatedAt:      timestamppb.New(account.CreatedAt()),
+	}, nil
+}
+
+func (h *IdentityGRPCHandler) ListAccounts(ctx context.Context, req *identityv1.ListAccountsRequest) (*identityv1.ListAccountsResponse, error) {
+	accounts, total, err := h.listAccounts.Handle(ctx, query.ListAccountsQuery{
+		Page:     int(req.Page),
+		PageSize: int(req.PageSize),
+	})
+	if err != nil {
+		return nil, mapDomainError(err)
+	}
+
+	data := make([]*identityv1.AccountResponse, 0, len(accounts))
+	for _, acc := range accounts {
+		data = append(data, &identityv1.AccountResponse{
+			Id:             acc.ID().String(),
+			Email:          acc.Email().String(),
+			Role:           mapRole(acc.Role()),
+			Status:         mapAccountStatus(acc.Status()),
+			ViolationCount: int32(acc.ViolationCount()),
+			CreatedAt:      timestamppb.New(acc.CreatedAt()),
+		})
+	}
+
+	return &identityv1.ListAccountsResponse{
+		Data:     data,
+		Total:    total,
+		Page:     req.Page,
+		PageSize: req.PageSize,
 	}, nil
 }
 

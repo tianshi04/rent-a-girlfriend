@@ -53,6 +53,7 @@ func AdminInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServ
 		"/identity.v1.IdentityService/RejectUpgrade":       true,
 		"/identity.v1.IdentityService/ListUpgradeRequests": true,
 		"/identity.v1.IdentityService/GetAccount":          true,
+		"/identity.v1.IdentityService/ListAccounts":        true,
 	}
 
 	if adminMethods[info.FullMethod] {
