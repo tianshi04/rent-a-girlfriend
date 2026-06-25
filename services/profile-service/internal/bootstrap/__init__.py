@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     S3_ACCESS_KEY_ID: str = "minio_admin"
     S3_SECRET_ACCESS_KEY: str = "minio_secure_password"
     S3_BUCKET_NAME: str = "rentgf-media"
+    STORAGE_PUBLIC_URL: str = "https://storage.rentgf.com"
 
     KAFKA_BROKERS: str = "localhost:9092"
     KAFKA_TOPIC_PROFILE: str = "profile.events"
@@ -109,7 +110,11 @@ def bootstrap_services(db_session: AsyncSession):
     profile_cmd = ProfileCommandService(profile_repo, event_publisher)
     scenario_cmd = ScenarioCommandService(profile_repo, scenario_repo, event_publisher)
     media_cmd = MediaCommandService(
-        profile_repo, media_repo, storage_adapter, event_publisher
+        profile_repo,
+        media_repo,
+        storage_adapter,
+        event_publisher,
+        settings.STORAGE_PUBLIC_URL,
     )
 
     # Application Queries

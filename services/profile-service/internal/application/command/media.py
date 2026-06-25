@@ -24,11 +24,13 @@ class MediaCommandService:
         media_repo: IMediaAssetRepository,
         storage_port: IStoragePort,
         event_publisher: IEventPublisher,
+        storage_public_url: str = "https://storage.rentgf.com",
     ):
         self.profile_repo = profile_repo
         self.media_repo = media_repo
         self.storage_port = storage_port
         self.event_publisher = event_publisher
+        self.storage_public_url = storage_public_url
         self.validation_service = MediaValidationService(media_repo)
 
     async def request_presigned_url(
@@ -139,7 +141,7 @@ class MediaCommandService:
     def _resolve_file_url(self, key: str) -> str:
         # In a real storage_port, it can format based on config.
         # Here we just resolve a predictable URL structure.
-        return f"https://storage.rentgf.com/{key}"
+        return f"{self.storage_public_url.rstrip('/')}/{key}"
 
     def _double_check_s3_metadata(self, file_url: str, declared_size: int):
         try:
