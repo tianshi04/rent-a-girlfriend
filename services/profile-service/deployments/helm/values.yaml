@@ -57,6 +57,8 @@ httpRoute:
   paths:
     - /api/v1/companions
     - /api/v1/profile
+    - /api/v1/profiles
+
 
 grpcRoute:
   enabled: true
