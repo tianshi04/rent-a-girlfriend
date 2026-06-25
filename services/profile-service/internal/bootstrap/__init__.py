@@ -137,6 +137,10 @@ async def get_media_cmd(services=Depends(get_services)) -> MediaCommandService:
     return services[2]
 
 
+async def get_profile_cmd(services=Depends(get_services)) -> ProfileCommandService:
+    return services[0]
+
+
 # --- Outbox & Cleanup Workers Setup ---
 db_cleanup_worker = DbCleanupWorker(
     session_factory=SessionLocal,

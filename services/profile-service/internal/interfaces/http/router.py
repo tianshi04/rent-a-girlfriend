@@ -1,7 +1,11 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from pydantic import BaseModel, Field, model_validator
-from internal.application.command import MediaCommandService, ScenarioCommandService
+from internal.application.command import (
+    ProfileCommandService,
+    MediaCommandService,
+    ScenarioCommandService,
+)
 from internal.application.query import ProfileQueryService
 from internal.domain.errors import DomainError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +17,7 @@ from internal.bootstrap import (  # noqa: E402
     get_media_cmd,
     get_scenario_cmd,
     get_db_session,
+    get_profile_cmd,
 )
 
 # --- Input/Output Schemas ---
@@ -95,6 +100,29 @@ class CreateScenarioResponse(BaseModel):
 
 class SuccessResponse(BaseModel):
     success: bool
+
+
+class ApproveProfileRequestBody(BaseModel):
+    adminId: Optional[str] = Field(
+        None,
+        alias="adminId",
+        description="Admin user ID approving the profile. If omitted, uses authenticating user's ID.",
+        json_schema_extra={"example": "admin_user_123"},
+    )
+
+
+class RejectProfileRequestBody(BaseModel):
+    adminId: Optional[str] = Field(
+        None,
+        alias="adminId",
+        description="Admin user ID rejecting the profile. If omitted, uses authenticating user's ID.",
+        json_schema_extra={"example": "admin_user_123"},
+    )
+    reason: str = Field(
+        ...,
+        description="Reason for rejecting the companion profile",
+        json_schema_extra={"example": "Inappropriate voice intro"},
+    )
 
 
 class AuthInfo(BaseModel):
@@ -291,6 +319,68 @@ async def delete_scenario(
     try:
         await scenario_cmd.delete_scenario(
             scenario_id=scenario_id, companion_id=auth_info.user_id
+        )
+        await db.commit()
+        return SuccessResponse(success=True)
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post(
+    "/admin/companions/{companion_id}/approve",
+    response_model=SuccessResponse,
+    tags=["Admin Operations"],
+)
+async def approve_companion_profile(
+    companion_id: str,
+    payload: ApproveProfileRequestBody,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    profile_cmd: ProfileCommandService = Depends(get_profile_cmd),
+    db: AsyncSession = Depends(get_db_session),
+):
+    if auth_info.user_role != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin only operation",
+        )
+    try:
+        admin_id = payload.adminId or auth_info.user_id
+        await profile_cmd.approve_profile(companion_id=companion_id, admin_id=admin_id)
+        await db.commit()
+        return SuccessResponse(success=True)
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post(
+    "/admin/companions/{companion_id}/reject",
+    response_model=SuccessResponse,
+    tags=["Admin Operations"],
+)
+async def reject_companion_profile(
+    companion_id: str,
+    payload: RejectProfileRequestBody,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    profile_cmd: ProfileCommandService = Depends(get_profile_cmd),
+    db: AsyncSession = Depends(get_db_session),
+):
+    if auth_info.user_role != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin only operation",
+        )
+    try:
+        admin_id = payload.adminId or auth_info.user_id
+        await profile_cmd.reject_profile(
+            companion_id=companion_id, admin_id=admin_id, reason=payload.reason
         )
         await db.commit()
         return SuccessResponse(success=True)
