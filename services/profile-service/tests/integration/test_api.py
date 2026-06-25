@@ -223,19 +223,17 @@ async def test_create_and_update_my_profile_success(
     new_user_id = "user_companion_456"
     headers = {"user-id": new_user_id, "user-role": "COMPANION"}
 
-    # 1. Create Profile
-    payload_create = {
-        "displayName": "Mizuhara Chizuru",
-        "bio": "I am a professional companion.",
-        "availableCities": ["Tokyo", "Kyoto"],
-    }
-    response = await client.post(
-        "/profile/me",
-        json=payload_create,
-        headers=headers,
+    # 1. Seed profile directly via command (simulates Kafka identity.user-registered.v1 listener)
+    profile_cmd = integration_deps["profile_cmd"]
+    await profile_cmd.create_profile(
+        companion_id=new_user_id,
+        user_id=new_user_id,
+        display_name="Mizuhara Chizuru",
+        bio="I am a professional companion.",
+        role="COMPANION",
+        available_cities=["Tokyo", "Kyoto"],
     )
-    assert response.status_code == 201
-    assert response.json()["companionId"] == new_user_id
+    await db_session.commit()
 
     # Verify in DB
     user_profile_repo = integration_deps["user_profile_repo"]
@@ -249,7 +247,7 @@ async def test_create_and_update_my_profile_success(
     assert profile is not None
     assert profile.status == "APPROVED"
 
-    # 2. Update Profile
+    # 2. Update Profile via REST (PUT — full replace)
     payload_update = {
         "displayName": "Mizuhara Chizuru Updated",
         "bio": "Updated bio.",
@@ -274,19 +272,25 @@ async def test_create_and_update_my_profile_success(
     )
 
 
-async def test_client_profile_creation_without_bio(client, integration_deps):
+async def test_client_profile_creation_without_bio(
+    client, integration_deps, db_session
+):
     new_user_id = "user_client_789"
     headers = {"user-id": new_user_id, "user-role": "CLIENT"}
 
-    # 1. Create client profile (bio omitted)
-    payload = {
-        "displayName": "Standard Client",
-        "availableCities": ["Hanoi"],
-    }
-    response = await client.post("/profile/me", json=payload, headers=headers)
-    assert response.status_code == 201
+    # Seed profile directly via command (simulates Kafka identity.user-registered.v1 listener)
+    profile_cmd = integration_deps["profile_cmd"]
+    await profile_cmd.create_profile(
+        companion_id=new_user_id,
+        user_id=new_user_id,
+        display_name="Standard Client",
+        bio="",
+        role="CLIENT",
+        available_cities=[],
+    )
+    await db_session.commit()
 
-    # 2. Query profile
+    # Query profile via REST
     response = await client.get("/profile/me", headers=headers)
     assert response.status_code == 200
     data = response.json()
