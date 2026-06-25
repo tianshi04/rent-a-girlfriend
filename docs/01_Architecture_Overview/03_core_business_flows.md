@@ -9,9 +9,10 @@ Tài liệu này mô tả các luồng hành trình người dùng (User Journey
 ### Flow 1: Onboarding & Cập nhật Profile
 Luồng này xử lý quá trình người dùng mới tham gia và nâng cấp thành Companion.
 - **Xác thực:** Người dùng đăng nhập lần đầu qua **Google OAuth** (Identity Context).
-- **Onboarding:** Người dùng gửi yêu cầu nâng cấp thành Companion. Hệ thống áp dụng chính sách yêu cầu Admin kiểm duyệt thủ công.
-- **Duyệt/Từ chối:** Admin xét duyệt yêu cầu.
-- **Cập nhật Profile:** Sau khi được duyệt, Companion cập nhật Profile, tạo danh mục dịch vụ (Scenario) và upload hình ảnh/Voice Intro.
+- **Khởi tạo Profile:** Người dùng mới bắt buộc phải tạo hồ sơ thông tin cơ bản (displayName, availableCities, và bio tùy chọn) để tiếp tục, mặc định được gán vai trò **Client** với trạng thái hồ sơ **APPROVED**.
+- **Yêu cầu nâng cấp (Onboarding):** Client có thể gửi yêu cầu xin nâng cấp tài khoản lên **Companion** (Identity Context). Hệ thống yêu cầu Admin kiểm duyệt thủ công yêu cầu nâng cấp này.
+- **Duyệt/Từ chối:** Admin xét duyệt yêu cầu. Khi được duyệt, hệ thống phát sự kiện nâng cấp vai trò để đồng bộ và cập nhật tự động vai trò của hồ sơ thành **Companion** (Profile Context).
+- **Cập nhật Profile:** Sau khi nâng cấp thành Companion, Companion có toàn quyền cập nhật Profile (bao gồm bio), tạo các gói dịch vụ (Scenario) và upload Media/Voice Intro một cách tự do mà không cần qua bước kiểm duyệt hồ sơ thủ công nào khác.
   - *Policy (Voice Intro):* Hệ thống tự động kiểm tra định dạng file (MP3, ≤30s, ≤5MB). Nếu không hợp lệ sẽ tự động từ chối. File được lưu trữ ở External Storage (S3/Cloudinary).
 
 ### Flow 2: Nạp tiền vào Ví

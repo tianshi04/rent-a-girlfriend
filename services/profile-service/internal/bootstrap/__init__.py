@@ -39,6 +39,8 @@ class Settings(BaseSettings):
 
     KAFKA_BROKERS: str = "localhost:9092"
     KAFKA_TOPIC_PROFILE: str = "profile.events"
+    KAFKA_TOPIC_IDENTITY: str = "identity.events"
+    KAFKA_GROUP_ID: str = "profile-service-identity-handler"
 
     OUTBOX_POLLING_INTERVAL_MS: int = 500
     OUTBOX_BATCH_SIZE: int = 50

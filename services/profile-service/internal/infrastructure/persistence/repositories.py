@@ -25,7 +25,8 @@ class CompanionProfileRepository(ICompanionProfileRepository):
             companion_id=profile.companion_id,
             user_id=profile.user_id,
             display_name=profile.display_name,
-            intro_text=profile.intro_text,
+            bio=profile.bio,
+            role=profile.role,
             status=profile.status,
             available_cities=json.dumps(
                 [str(city) for city in profile.available_cities]
@@ -62,7 +63,8 @@ class CompanionProfileRepository(ICompanionProfileRepository):
     ) -> Tuple[List[CompanionProfile], int]:
         # Perform query joining scenarios to filter minimum price
         query = select(CompanionProfileModel).filter(
-            CompanionProfileModel.status == "APPROVED"
+            CompanionProfileModel.status == "APPROVED",
+            CompanionProfileModel.role == "COMPANION",
         )
 
         if name:
@@ -109,9 +111,10 @@ class CompanionProfileRepository(ICompanionProfileRepository):
             companion_id=model.companion_id,
             user_id=model.user_id,
             display_name=model.display_name,
-            intro_text=model.intro_text,
+            bio=model.bio or "",
             status=model.status,
             available_cities=cities,
+            role=model.role,
             avatar_url=avatar,
         )
         return profile

@@ -75,8 +75,6 @@ financeProtos=(
 
 profileProtos=(
     "profile/v1/service/profile_service.proto"
-    "profile/v1/messages/create_profile_request.proto"
-    "profile/v1/messages/update_profile_request.proto"
     "profile/v1/messages/approve_profile_request.proto"
     "profile/v1/messages/reject_profile_request.proto"
     "profile/v1/messages/profile_command_response.proto"

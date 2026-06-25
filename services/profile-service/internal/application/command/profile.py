@@ -20,10 +20,11 @@ class ProfileCommandService:
         companion_id: str,
         user_id: str,
         display_name: str,
-        intro_text: str,
         available_cities: List[str],
+        bio: str = "",
+        role: str = "CLIENT",
     ) -> str:
-        # Check if user already onboarding companion
+        # Check if user already onboarding
         existing = await self.profile_repo.find_by_user_id(user_id)
         if existing:
             raise ProfileAlreadyExistsError(user_id)
@@ -33,7 +34,8 @@ class ProfileCommandService:
             companion_id=companion_id,
             user_id=user_id,
             display_name=display_name,
-            intro_text=intro_text,
+            bio=bio,
+            role=role,
             available_cities=cities,
         )
 
@@ -48,9 +50,9 @@ class ProfileCommandService:
         self,
         companion_id: str,
         display_name: str,
-        intro_text: str,
         available_cities: List[str],
         avatar_url: Optional[str],
+        bio: str = "",
     ) -> None:
         profile = await self.profile_repo.find_by_id(companion_id)
         if not profile:
@@ -61,11 +63,22 @@ class ProfileCommandService:
 
         profile.update(
             display_name=display_name,
-            intro_text=intro_text,
+            bio=bio,
             available_cities=cities,
             avatar_url=media_avatar,
         )
 
+        await self.profile_repo.save(profile)
+
+        for event in profile.clear_events():
+            self.event_publisher.publish(event)
+
+    async def upgrade_profile_role(self, user_id: str) -> None:
+        profile = await self.profile_repo.find_by_user_id(user_id)
+        if not profile:
+            raise ProfileNotFoundError(user_id)
+
+        profile.upgrade_to_companion()
         await self.profile_repo.save(profile)
 
         for event in profile.clear_events():

@@ -5,7 +5,6 @@ from internal.domain.errors import (
     VoiceIntroDurationExceededError,
     VoiceIntroSizeExceededError,
     AlbumImageSizeExceededError,
-    InvalidProfileStatusTransitionError,
 )
 
 # --- Value Objects Testing ---
@@ -70,12 +69,15 @@ def test_companion_profile_creation():
         companion_id="companion_1",
         user_id="user_123",
         display_name="Kano Chizuru",
-        intro_text="Rental Girlfriend of your dreams",
+        bio="Rental Girlfriend of your dreams",
         available_cities=[Location("Hanoi"), Location("HCM")],
+        role="CLIENT",
     )
 
     assert profile.companion_id == "companion_1"
-    assert profile.status == "PENDING"
+    assert profile.status == "APPROVED"
+    assert profile.role == "CLIENT"
+    assert profile.bio == "Rental Girlfriend of your dreams"
 
     # Check domain event
     events = profile.clear_events()
@@ -89,20 +91,31 @@ def test_companion_profile_status_transitions():
         companion_id="companion_1",
         user_id="user_123",
         display_name="Kano Chizuru",
-        intro_text="Rental Girlfriend of your dreams",
+        bio="Rental Girlfriend of your dreams",
         available_cities=[Location("Hanoi")],
     )
 
-    # Approve PENDING
+    # Status is APPROVED by default now
+    assert profile.status == "APPROVED"
     profile.approve("admin_id_9")
     assert profile.status == "APPROVED"
 
-    # Attempt to approve APPROVED -> should raise error
-    with pytest.raises(InvalidProfileStatusTransitionError):
-        profile.approve("admin_id_9")
+    profile.reject("admin_id_9", "Inappropriate")
+    assert profile.status == "REJECTED"
 
-    with pytest.raises(InvalidProfileStatusTransitionError):
-        profile.reject("admin_id_9", "Duplicate")
+
+def test_companion_profile_role_upgrade():
+    profile = CompanionProfile.create(
+        companion_id="companion_1",
+        user_id="user_123",
+        display_name="Kano Chizuru",
+        available_cities=[Location("Hanoi")],
+        role="CLIENT",
+    )
+    assert profile.role == "CLIENT"
+    profile.upgrade_to_companion()
+    assert profile.role == "COMPANION"
+    assert profile.status == "APPROVED"
 
 
 # --- Scenario Aggregate Testing ---
