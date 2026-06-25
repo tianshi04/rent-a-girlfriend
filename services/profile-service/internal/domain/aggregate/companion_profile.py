@@ -1,6 +1,5 @@
 from typing import List, Optional
 from internal.domain.vo import Location, MediaUrl
-from internal.domain.errors import InvalidProfileStatusTransitionError
 from internal.domain.events import (
     DomainEvent,
     ProfileCreated,
@@ -16,17 +15,19 @@ class CompanionProfile:
         companion_id: str,
         user_id: str,
         display_name: str,
-        intro_text: str,
+        bio: str,
         status: str,
         available_cities: List[Location],
+        role: str = "CLIENT",
         avatar_url: Optional[MediaUrl] = None,
     ):
         self.companion_id = companion_id
         self.user_id = user_id
         self.display_name = display_name
-        self.intro_text = intro_text
-        self.status = status  # PENDING, APPROVED, REJECTED
+        self.bio = bio
+        self.status = status  # APPROVED
         self.available_cities = available_cities
+        self.role = role
         self.avatar_url = avatar_url
         self.events: List[DomainEvent] = []
 
@@ -44,16 +45,18 @@ class CompanionProfile:
         companion_id: str,
         user_id: str,
         display_name: str,
-        intro_text: str,
         available_cities: List[Location],
+        bio: str = "",
+        role: str = "CLIENT",
     ) -> "CompanionProfile":
         profile = cls(
             companion_id=companion_id,
             user_id=user_id,
             display_name=display_name,
-            intro_text=intro_text,
-            status="PENDING",  # Starts as PENDING for manual admin approval
+            bio=bio,
+            status="APPROVED",  # Profiles are approved by default
             available_cities=available_cities,
+            role=role,
         )
 
         profile.add_event(
@@ -69,12 +72,12 @@ class CompanionProfile:
     def update(
         self,
         display_name: str,
-        intro_text: str,
+        bio: str,
         available_cities: List[Location],
         avatar_url: Optional[MediaUrl],
     ):
         self.display_name = display_name
-        self.intro_text = intro_text
+        self.bio = bio
         self.available_cities = available_cities
         self.avatar_url = avatar_url
 
@@ -82,24 +85,26 @@ class CompanionProfile:
             ProfileUpdated(
                 companion_id=self.companion_id,
                 display_name=display_name,
-                intro_text=intro_text,
+                bio=bio,
                 available_cities=[str(city) for city in available_cities],
             )
         )
 
-    def approve(self, admin_id: str):
-        if self.status != "PENDING":
-            raise InvalidProfileStatusTransitionError(self.status, "APPROVED")
+    def upgrade_to_companion(self):
+        self.role = "COMPANION"
+        self.status = (
+            "APPROVED"  # No admin approval needed for companion profiles anymore
+        )
 
+    def approve(self, admin_id: str):
+        # Kept for backward compatibility but made no-op since status is always APPROVED
         self.status = "APPROVED"
         self.add_event(
             ProfileApproved(companion_id=self.companion_id, approved_by=admin_id)
         )
 
     def reject(self, admin_id: str, reason: str):
-        if self.status != "PENDING":
-            raise InvalidProfileStatusTransitionError(self.status, "REJECTED")
-
+        # Kept for backward compatibility
         self.status = "REJECTED"
         self.add_event(
             ProfileRejected(

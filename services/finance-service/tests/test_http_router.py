@@ -136,7 +136,8 @@ async def test_topup_returns_payment_url(client):
     """POST /topup with valid payload returns 201 and a payment URL."""
     response = await client.post(
         "/api/v1/finance/topup",
-        json={"userId": "user-http-1", "amount": 50},
+        json={"amount": 50},
+        headers={"user-id": "user-http-1"},
     )
     assert response.status_code == 201
     body = response.json()
@@ -148,7 +149,8 @@ async def test_topup_zero_amount_rejected(client):
     """POST /topup with amount=0 is rejected by Pydantic (gt=0 constraint)."""
     response = await client.post(
         "/api/v1/finance/topup",
-        json={"userId": "user-http-2", "amount": 0},
+        json={"amount": 0},
+        headers={"user-id": "user-http-2"},
     )
     assert response.status_code == 422  # Unprocessable Entity
 
@@ -157,7 +159,8 @@ async def test_topup_negative_amount_rejected(client):
     """POST /topup with negative amount is rejected by Pydantic."""
     response = await client.post(
         "/api/v1/finance/topup",
-        json={"userId": "user-http-3", "amount": -5},
+        json={"amount": -5},
+        headers={"user-id": "user-http-3"},
     )
     assert response.status_code == 422
 
@@ -315,7 +318,7 @@ async def test_vnpay_return_invalid_sig_renders_failed_html(client):
 async def test_get_wallet_lazy_creates_wallet(client):
     """GET /wallet for a new user auto-creates a wallet and returns balance = 0."""
     response = await client.get(
-        "/api/v1/finance/wallet", params={"userId": "user-http-wallet-1"}
+        "/api/v1/finance/wallet", headers={"user-id": "user-http-wallet-1"}
     )
     assert response.status_code == 200
     body = response.json()
@@ -345,7 +348,7 @@ async def test_get_wallet_returns_existing_wallet(
         await svc.wallet_repo.save(wallet)
         await db.commit()
 
-    response = await client.get("/api/v1/finance/wallet", params={"userId": user_id})
+    response = await client.get("/api/v1/finance/wallet", headers={"user-id": user_id})
     assert response.status_code == 200
     body = response.json()
     assert body["availableBalance"] == 75
@@ -353,6 +356,92 @@ async def test_get_wallet_returns_existing_wallet(
 
 
 async def test_get_wallet_missing_user_id_rejected(client):
-    """GET /wallet without user_id query param returns 422."""
+    """GET /wallet without user-id header returns 422."""
     response = await client.get("/api/v1/finance/wallet")
+    assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/finance/transactions
+# ---------------------------------------------------------------------------
+
+
+async def test_get_transaction_history_empty(client):
+    """GET /transactions for a user with no history returns 200 with empty list."""
+    response = await client.get(
+        "/api/v1/finance/transactions", headers={"user-id": "user-txn-empty-1"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["transactions"] == []
+    assert body["page"] == 1
+    assert body["pageSize"] == 10
+    assert body["total"] == 0
+
+
+async def test_get_transaction_history_paginated(
+    client, TestSessionLocal, mock_publisher, vnpay_adapter
+):
+    """GET /transactions returns correct paginated transaction items sorted by created_at DESC."""
+    user_id = "user-txn-paginated-1"
+    from internal.domain.aggregate.transaction import Transaction
+    from internal.domain.vo import TransactionType
+    from datetime import datetime, timedelta
+
+    # Pre-seed transactions in DB
+    async with TestSessionLocal() as db:
+        repo = TransactionRepository(db)
+        # Create 15 transactions with distinct created_at times
+        base_time = datetime.utcnow()
+        for i in range(15):
+            txn = Transaction.create(
+                transaction_id=f"txn-id-{i}",
+                user_id=user_id,
+                amount=Money(10 + i),
+                type=TransactionType.TOPUP
+                if i % 2 == 0
+                else TransactionType.BOOKING_RESERVATION,
+                status="SUCCESS" if i % 3 != 0 else "FAILED",
+                reference_id=f"ref-id-{i}",
+                created_at=base_time + timedelta(minutes=i),
+            )
+            await repo.save(txn)
+        await db.commit()
+
+    # Query page 1, size 10
+    response = await client.get(
+        "/api/v1/finance/transactions",
+        params={"page": 1, "pageSize": 10},
+        headers={"user-id": user_id},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["page"] == 1
+    assert body["pageSize"] == 10
+    assert body["total"] == 15
+    assert len(body["transactions"]) == 10
+
+    # Ensure DESC sorting (newest first, which is the 14th item)
+    assert body["transactions"][0]["transactionId"] == "txn-id-14"
+    assert body["transactions"][9]["transactionId"] == "txn-id-5"
+
+    # Query page 2, size 10
+    response2 = await client.get(
+        "/api/v1/finance/transactions",
+        params={"page": 2, "pageSize": 10},
+        headers={"user-id": user_id},
+    )
+    assert response2.status_code == 200
+    body2 = response2.json()
+    assert body2["page"] == 2
+    assert body2["pageSize"] == 10
+    assert body2["total"] == 15
+    assert len(body2["transactions"]) == 5
+    assert body2["transactions"][0]["transactionId"] == "txn-id-4"
+    assert body2["transactions"][4]["transactionId"] == "txn-id-0"
+
+
+async def test_get_transaction_history_missing_user_id(client):
+    """GET /transactions without user-id header returns 422."""
+    response = await client.get("/api/v1/finance/transactions")
     assert response.status_code == 422

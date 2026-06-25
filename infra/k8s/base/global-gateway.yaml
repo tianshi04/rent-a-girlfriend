@@ -19,3 +19,13 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: https
+      port: 443
+      protocol: HTTPS
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: global-gateway-cert

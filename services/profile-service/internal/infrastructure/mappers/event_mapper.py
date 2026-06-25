@@ -23,7 +23,7 @@ class EventMapper:
             return profile_created_pb2.ProfileCreated(
                 companion_id=domain_event.companion_id,
                 display_name=domain_event.display_name,
-                intro_text=getattr(domain_event, "intro_text", ""),
+                bio=getattr(domain_event, "bio", ""),
                 available_cities=domain_event.available_cities,
             )
 
@@ -31,7 +31,7 @@ class EventMapper:
             return profile_updated_pb2.ProfileUpdated(
                 companion_id=domain_event.companion_id,
                 display_name=domain_event.display_name,
-                intro_text=domain_event.intro_text,
+                bio=domain_event.bio,
                 available_cities=domain_event.available_cities,
                 avatar_url=getattr(domain_event, "avatar_url", ""),
             )

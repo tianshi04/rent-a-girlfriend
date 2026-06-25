@@ -22,7 +22,12 @@ from internal.application.command import (
     MediaCommandService,
 )
 from internal.application.query import ProfileQueryService
-from internal.bootstrap import get_query_service, get_media_cmd, get_scenario_cmd
+from internal.bootstrap import (
+    get_query_service,
+    get_media_cmd,
+    get_scenario_cmd,
+    get_profile_cmd,
+)
 
 
 @pytest.fixture(scope="session")
@@ -102,6 +107,7 @@ def integration_deps(db_session, kafka):
     app.dependency_overrides[get_query_service] = lambda: query_service
     app.dependency_overrides[get_media_cmd] = lambda: media_cmd
     app.dependency_overrides[get_scenario_cmd] = lambda: scenario_cmd
+    app.dependency_overrides[get_profile_cmd] = lambda: profile_cmd
 
     return {
         "profile_cmd": profile_cmd,

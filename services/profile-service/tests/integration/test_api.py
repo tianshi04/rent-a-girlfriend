@@ -31,8 +31,9 @@ async def seed_test_data(integration_deps, db_session):
             companion_id="user_companion_123",
             user_id="user_companion_123",
             display_name="Kano Chizuru",
-            intro_text="Perfect rental girlfriend",
+            bio="Perfect rental girlfriend",
             available_cities=["Hanoi"],
+            role="COMPANION",
         )
         await db_session.commit()
 
@@ -215,3 +216,287 @@ async def test_delete_scenario(client, integration_deps, db_session):
     )
     assert response.status_code == 200
     assert response.json() == {"success": True}
+
+
+async def test_approve_profile_success(client, integration_deps, db_session):
+    # Reset profile to PENDING to ensure clean test state (previous tests approve it)
+    profile_repo = integration_deps["profile_repo"]
+    profile = await profile_repo.find_by_id("user_companion_123")
+    profile.status = "PENDING"
+    await profile_repo.save(profile)
+    await db_session.commit()
+
+    headers = {"user-id": "admin_user_99", "user-role": "ADMIN"}
+    payload = {"adminId": "admin_user_99"}
+    response = await client.post(
+        "/admin/companions/user_companion_123/approve",
+        json=payload,
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json() == {"success": True}
+
+    # Verify state in DB
+    updated_profile = await profile_repo.find_by_id("user_companion_123")
+    assert updated_profile.status == "APPROVED"
+
+
+async def test_reject_profile_success(client, integration_deps, db_session):
+    # Reset profile to PENDING for testing rejection
+    profile_repo = integration_deps["profile_repo"]
+    profile = await profile_repo.find_by_id("user_companion_123")
+    profile.status = "PENDING"
+    await profile_repo.save(profile)
+    await db_session.commit()
+
+    headers = {"user-id": "admin_user_99", "user-role": "ADMIN"}
+    payload = {
+        "adminId": "admin_user_99",
+        "reason": "Voice intro violates platform guidelines",
+    }
+    response = await client.post(
+        "/admin/companions/user_companion_123/reject",
+        json=payload,
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json() == {"success": True}
+
+    # Verify state in DB
+    updated_profile = await profile_repo.find_by_id("user_companion_123")
+    assert updated_profile.status == "REJECTED"
+
+
+async def test_admin_endpoints_forbidden_for_non_admin(client):
+    headers = {"user-id": "user_companion_123", "user-role": "COMPANION"}
+
+    # Try to approve
+    response = await client.post(
+        "/admin/companions/user_companion_123/approve",
+        json={"adminId": "admin_user_99"},
+        headers=headers,
+    )
+    assert response.status_code == 403
+    assert response.json()["message"] == "Admin only operation"
+
+    # Try to reject
+    response = await client.post(
+        "/admin/companions/user_companion_123/reject",
+        json={"adminId": "admin_user_99", "reason": "No reason"},
+        headers=headers,
+    )
+    assert response.status_code == 403
+    assert response.json()["message"] == "Admin only operation"
+
+
+async def test_create_and_update_my_profile_success(
+    client, integration_deps, db_session
+):
+    # We will use a new user ID that doesn't have a profile yet
+    new_user_id = "user_companion_456"
+    headers = {"user-id": new_user_id, "user-role": "COMPANION"}
+
+    # 1. Create Profile
+    payload_create = {
+        "displayName": "Mizuhara Chizuru",
+        "bio": "I am a professional companion.",
+        "availableCities": ["Tokyo", "Kyoto"],
+    }
+    response = await client.post(
+        "/profile/me",
+        json=payload_create,
+        headers=headers,
+    )
+    assert response.status_code == 201
+    assert response.json()["companionId"] == new_user_id
+
+    # Verify in DB
+    profile_repo = integration_deps["profile_repo"]
+    profile = await profile_repo.find_by_id(new_user_id)
+    assert profile is not None
+    assert profile.display_name == "Mizuhara Chizuru"
+    assert profile.status == "APPROVED"
+
+    # 2. Update Profile
+    payload_update = {
+        "displayName": "Mizuhara Chizuru Updated",
+        "bio": "Updated bio.",
+        "availableCities": ["Tokyo", "Kyoto", "Osaka"],
+        "avatarUrl": "https://s3.rentgf.com/avatars/chizuru.jpg",
+    }
+    response = await client.put(
+        "/profile/me",
+        json=payload_update,
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json() == {"success": True}
+
+    # Verify update in DB
+    updated_profile = await profile_repo.find_by_id(new_user_id)
+    assert updated_profile.display_name == "Mizuhara Chizuru Updated"
+    assert updated_profile.bio == "Updated bio."
+    assert (
+        str(updated_profile.avatar_url) == "https://s3.rentgf.com/avatars/chizuru.jpg"
+    )
+
+
+async def test_client_profile_creation_without_bio(client, integration_deps):
+    new_user_id = "user_client_789"
+    headers = {"user-id": new_user_id, "user-role": "CLIENT"}
+
+    # 1. Create client profile (bio omitted)
+    payload = {
+        "displayName": "Standard Client",
+        "availableCities": ["Hanoi"],
+    }
+    response = await client.post("/profile/me", json=payload, headers=headers)
+    assert response.status_code == 201
+
+    # 2. Query profile
+    response = await client.get("/profile/me", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["displayName"] == "Standard Client"
+    assert data["role"] == "CLIENT"
+    assert data["bio"] == ""
+
+
+async def test_client_blocked_from_companion_apis(client):
+    headers = {"user-id": "user_client_789", "user-role": "CLIENT"}
+
+    # Try creating scenario
+    payload_scenario = {
+        "title": "Park Date",
+        "description": "Walk in the park",
+        "price": 100,
+        "durationMinutes": 60,
+    }
+    response = await client.post(
+        "/profile/me/scenarios", json=payload_scenario, headers=headers
+    )
+    assert response.status_code == 403
+
+    # Try requesting presigned url for VOICE
+    payload_url = {
+        "assetType": "VOICE",
+        "sizeBytes": 1000,
+        "durationSeconds": 10,
+        "contentType": "audio/mp3",
+    }
+    response = await client.post(
+        "/profile/me/media/presigned-urls", json=payload_url, headers=headers
+    )
+    assert response.status_code == 403
+
+
+async def test_search_companions_excludes_clients(client, integration_deps, db_session):
+    # Ensure user_companion_123 is APPROVED to avoid contamination from previous tests
+    profile_repo = integration_deps["profile_repo"]
+    profile = await profile_repo.find_by_id("user_companion_123")
+    if profile:
+        profile.status = "APPROVED"
+        await profile_repo.save(profile)
+        await db_session.commit()
+
+    # Seed a client profile
+    profile_cmd = integration_deps["profile_cmd"]
+    await profile_cmd.create_profile(
+        companion_id="user_client_only",
+        user_id="user_client_only",
+        display_name="Client User Only",
+        available_cities=["Hanoi"],
+        role="CLIENT",
+    )
+    await db_session.commit()
+
+    # Search companions
+    response = await client.get("/companions?city=Hanoi")
+    assert response.status_code == 200
+    data = response.json()["data"]
+
+    # Verify client user is not in the list (only user_companion_123)
+    client_ids_found = [c["companionId"] for c in data]
+    assert "user_client_only" not in client_ids_found
+    assert "user_companion_123" in client_ids_found
+
+
+async def test_identity_listener_upgrades_role(
+    integration_deps, db_session, monkeypatch
+):
+    # Seed a client profile
+    profile_repo = integration_deps["profile_repo"]
+    profile_cmd = integration_deps["profile_cmd"]
+    await profile_cmd.create_profile(
+        companion_id="user_to_upgrade_111",
+        user_id="user_to_upgrade_111",
+        display_name="Client To Upgrade",
+        available_cities=["Hanoi"],
+        role="CLIENT",
+    )
+    await db_session.commit()
+
+    # Mock Message and AIOKafkaConsumer
+    class MockMessage:
+        def __init__(self, value):
+            self.value = value
+
+    class MockConsumer:
+        def __init__(self, messages):
+            self.messages = messages
+
+        async def start(self):
+            pass
+
+        async def stop(self):
+            pass
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if not self.messages:
+                raise StopAsyncIteration
+            return self.messages.pop(0)
+
+    # Mock settings and import targeting main listener module or identity_listener.py
+    import internal.interfaces.kafka.identity_listener as listener_module
+
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def mock_session_local():
+        yield db_session
+
+    monkeypatch.setattr(listener_module, "SessionLocal", mock_session_local)
+
+    # Mock AIOKafkaConsumer in the listener module
+    mock_event = {
+        "specversion": "1.0",
+        "type": "identity.role-upgraded.v1",
+        "data": {
+            "userId": "user_to_upgrade_111",
+            "oldRole": "CLIENT",
+            "newRole": "COMPANION",
+        },
+    }
+    monkeypatch.setattr(
+        listener_module,
+        "AIOKafkaConsumer",
+        lambda *args, **kwargs: MockConsumer([MockMessage(mock_event)]),
+    )
+
+    # Execute listener
+    from internal.interfaces.kafka.identity_listener import IdentityEventListener
+
+    listener = IdentityEventListener()
+
+    # Execute the internal running loop directly (it will run, process the mock event, and exit)
+    await listener._run()
+
+    # Verify user upgraded in DB
+    db_session.expire_all()
+    profile = await profile_repo.find_by_id("user_to_upgrade_111")
+    assert profile is not None
+    assert profile.role == "COMPANION"
+    assert profile.status == "APPROVED"

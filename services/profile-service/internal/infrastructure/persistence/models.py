@@ -20,8 +20,9 @@ class CompanionProfileModel(Base):
     companion_id = Column(String(36), primary_key=True)
     user_id = Column(String(36), unique=True, nullable=False, index=True)
     display_name = Column(String(100), nullable=False, index=True)
-    intro_text = Column(Text, nullable=False)
-    status = Column(String(20), default="PENDING", nullable=False, index=True)
+    bio = Column(Text, nullable=True)
+    role = Column(String(20), default="CLIENT", nullable=False, index=True)
+    status = Column(String(20), default="APPROVED", nullable=False, index=True)
     available_cities = Column(Text, nullable=False)  # list of strings in JSON format
     avatar_url = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=utcnow_naive)

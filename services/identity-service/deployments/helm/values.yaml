@@ -24,7 +24,7 @@ config:
   GRPC_PORT: "50051"
   GIN_MODE: "release"
   KAFKA_BROKERS: "kafka-headless.kafka.svc.cluster.local:9092"
-  KAFKA_TOPIC_IDENTITY: "identity-events"
+  KAFKA_TOPIC_IDENTITY: "identity.events"
   JWT_ISSUER: "rent-a-girlfriend-identity"
   OUTBOX_POLLING_INTERVAL_MS: "500"
   OUTBOX_BATCH_SIZE: "50"

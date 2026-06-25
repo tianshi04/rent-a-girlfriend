@@ -21,3 +21,6 @@ htmlcov/
 .idea/
 *.swp
 *.swo
+
+# Generated proto stubs
+gen/

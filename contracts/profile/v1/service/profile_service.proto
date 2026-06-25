@@ -4,8 +4,6 @@ package profile.v1;
 
 option go_package = "github.com/rent-a-girlfriend/contracts/proto/profile;profilev1";
 
-import "profile/v1/messages/create_profile_request.proto";
-import "profile/v1/messages/update_profile_request.proto";
 import "profile/v1/messages/approve_profile_request.proto";
 import "profile/v1/messages/reject_profile_request.proto";
 import "profile/v1/messages/profile_command_response.proto";
@@ -22,9 +20,6 @@ import "profile/v1/messages/register_album_image_request.proto";
 import "profile/v1/messages/media_command_response.proto";
 
 service ProfileService {
-  // Commands (REST for Query, gRPC for Commands)
-  rpc CreateProfile(CreateProfileRequest) returns (ProfileCommandResponse);
-  rpc UpdateProfile(UpdateProfileRequest) returns (ProfileCommandResponse);
   rpc ApproveProfile(ApproveProfileRequest) returns (ProfileCommandResponse);
   rpc RejectProfile(RejectProfileRequest) returns (ProfileCommandResponse);
 

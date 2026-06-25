@@ -44,62 +44,6 @@ class ProfileServiceServicer(profile_service_pb2_grpc.ProfileServiceServicer):
 
     # --- Profile Commands ---
 
-    async def CreateProfile(self, request, context):
-        try:
-            # Extract headers injected by Istio
-            auth_info = self._extract_auth_headers(context)
-            # Use user_id from token if request is empty
-            user_id = request.user_id or auth_info.get("user_id")
-            if not user_id:
-                context.set_code(grpc.StatusCode.UNAUTHENTICATED)
-                context.set_details("User identity missing")
-                return ProfileCommandResponse()
-
-            async with self.session_factory() as session:
-                profile_cmd, _, _, _ = bootstrap_services(session)
-                companion_id = await profile_cmd.create_profile(
-                    companion_id=user_id,  # companion_id is the user_id (1-to-1 profile mapped)
-                    user_id=user_id,
-                    display_name=request.display_name,
-                    intro_text=request.intro_text,
-                    available_cities=list(request.available_cities),
-                )
-                await session.commit()
-
-            return ProfileCommandResponse(
-                companion_id=companion_id,
-                status="SUCCESS",
-                message="Companion profile created successfully",
-            )
-        except Exception as e:
-            self._handle_exception(context, e)
-            return ProfileCommandResponse(status="FAILED")
-
-    async def UpdateProfile(self, request, context):
-        try:
-            auth_info = self._extract_auth_headers(context)
-            companion_id = request.companion_id or auth_info.get("user_id")
-
-            async with self.session_factory() as session:
-                profile_cmd, _, _, _ = bootstrap_services(session)
-                await profile_cmd.update_profile(
-                    companion_id=companion_id,
-                    display_name=request.display_name,
-                    intro_text=request.intro_text,
-                    available_cities=list(request.available_cities),
-                    avatar_url=request.avatar_url,
-                )
-                await session.commit()
-
-            return ProfileCommandResponse(
-                companion_id=companion_id,
-                status="SUCCESS",
-                message="Companion profile updated successfully",
-            )
-        except Exception as e:
-            self._handle_exception(context, e)
-            return ProfileCommandResponse(status="FAILED")
-
     async def ApproveProfile(self, request, context):
         try:
             auth_info = self._extract_auth_headers(context)

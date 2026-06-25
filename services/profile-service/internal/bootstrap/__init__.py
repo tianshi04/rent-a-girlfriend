@@ -39,6 +39,8 @@ class Settings(BaseSettings):
 
     KAFKA_BROKERS: str = "localhost:9092"
     KAFKA_TOPIC_PROFILE: str = "profile.events"
+    KAFKA_TOPIC_IDENTITY: str = "identity.events"
+    KAFKA_GROUP_ID: str = "profile-service-identity-handler"
 
     OUTBOX_POLLING_INTERVAL_MS: int = 500
     OUTBOX_BATCH_SIZE: int = 50
@@ -135,6 +137,10 @@ async def get_scenario_cmd(services=Depends(get_services)) -> ScenarioCommandSer
 
 async def get_media_cmd(services=Depends(get_services)) -> MediaCommandService:
     return services[2]
+
+
+async def get_profile_cmd(services=Depends(get_services)) -> ProfileCommandService:
+    return services[0]
 
 
 # --- Outbox & Cleanup Workers Setup ---

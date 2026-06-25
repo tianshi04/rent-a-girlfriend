@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: global-gateway-cert
+  namespace: istio-ingress
+spec:
+  secretName: global-gateway-cert
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - api.moibuocmotduyen.site

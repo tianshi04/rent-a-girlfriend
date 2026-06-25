@@ -370,6 +370,47 @@ impl ChatRoomRepository for SqlxChatRoomRepository {
         self.outbox_notify.notify_one();
         Ok(())
     }
+
+    async fn find_rooms_by_user_id(
+        &self,
+        user_id: &str,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<ChatRoom>, DomainError> {
+        let rows = sqlx::query(
+            r#"
+            SELECT room_id, booking_id, client_id, companion_id, status, lock_at, created_at, updated_at
+            FROM chat_rooms
+            WHERE client_id = $1 OR companion_id = $1
+            ORDER BY created_at DESC
+            LIMIT $2 OFFSET $3
+            "#,
+        )
+        .bind(user_id)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::DatabaseError(e.to_string()))?;
+
+        let mut rooms = Vec::new();
+        for r in rows {
+            let status_str: String = r.get("status");
+            let status =
+                ChatRoomStatus::from_str(&status_str).map_err(DomainError::ChatRoomNotFound)?;
+            rooms.push(ChatRoom::new(
+                r.get("room_id"),
+                r.get("booking_id"),
+                r.get("client_id"),
+                r.get("companion_id"),
+                status,
+                r.get("lock_at"),
+                r.get("created_at"),
+                r.get("updated_at"),
+            ));
+        }
+        Ok(rooms)
+    }
 }
 
 pub struct SqlxReviewRepository {

@@ -1,0 +1,14 @@
+# Common infrastructure overrides for profile-service routing.
+# Managed at the infrastructure deployment level (deploy-apps).
+
+httpRoute:
+  parentRefs:
+    - name: global-gateway
+      namespace: istio-ingress
+
+grpcRoute:
+  parentRefs:
+    - group: ""
+      kind: Service
+      name: profile-service
+      port: 50051

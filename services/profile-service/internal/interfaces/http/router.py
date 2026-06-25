@@ -1,7 +1,11 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from pydantic import BaseModel, Field, model_validator
-from internal.application.command import MediaCommandService, ScenarioCommandService
+from internal.application.command import (
+    ProfileCommandService,
+    MediaCommandService,
+    ScenarioCommandService,
+)
 from internal.application.query import ProfileQueryService
 from internal.domain.errors import DomainError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +17,7 @@ from internal.bootstrap import (  # noqa: E402
     get_media_cmd,
     get_scenario_cmd,
     get_db_session,
+    get_profile_cmd,
 )
 
 # --- Input/Output Schemas ---
@@ -95,6 +100,74 @@ class CreateScenarioResponse(BaseModel):
 
 class SuccessResponse(BaseModel):
     success: bool
+
+
+class CreateProfileRequestBody(BaseModel):
+    displayName: str = Field(
+        ...,
+        description="Display name for profile",
+        json_schema_extra={"example": "Kano Chizuru"},
+    )
+    bio: Optional[str] = Field(
+        None,
+        description="Biography/Introduction text",
+        json_schema_extra={"example": "Perfect rental girlfriend"},
+    )
+    availableCities: list[str] = Field(
+        ...,
+        description="List of cities where active",
+        json_schema_extra={"example": ["Hanoi", "HCM"]},
+    )
+
+
+class UpdateProfileRequestBody(BaseModel):
+    displayName: str = Field(
+        ...,
+        description="Display name for profile",
+        json_schema_extra={"example": "Kano Chizuru"},
+    )
+    bio: Optional[str] = Field(
+        None,
+        description="Biography/Introduction text",
+        json_schema_extra={"example": "Perfect rental girlfriend"},
+    )
+    availableCities: list[str] = Field(
+        ...,
+        description="List of cities where active",
+        json_schema_extra={"example": ["Hanoi", "HCM"]},
+    )
+    avatarUrl: Optional[str] = Field(
+        None,
+        description="Optional avatar URL",
+        json_schema_extra={"example": "https://s3.rentgf.com/companion-avatar.jpg"},
+    )
+
+
+class CreateProfileResponse(BaseModel):
+    companionId: str
+
+
+class ApproveProfileRequestBody(BaseModel):
+    adminId: Optional[str] = Field(
+        None,
+        alias="adminId",
+        description="Admin user ID approving the profile. If omitted, uses authenticating user's ID.",
+        json_schema_extra={"example": "admin_user_123"},
+    )
+
+
+class RejectProfileRequestBody(BaseModel):
+    adminId: Optional[str] = Field(
+        None,
+        alias="adminId",
+        description="Admin user ID rejecting the profile. If omitted, uses authenticating user's ID.",
+        json_schema_extra={"example": "admin_user_123"},
+    )
+    reason: str = Field(
+        ...,
+        description="Reason for rejecting the companion profile",
+        json_schema_extra={"example": "Inappropriate voice intro"},
+    )
 
 
 class AuthInfo(BaseModel):
@@ -187,6 +260,66 @@ async def get_my_profile(
 
 
 @router.post(
+    "/profile/me",
+    response_model=CreateProfileResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Profile Management Command"],
+)
+async def create_my_profile(
+    payload: CreateProfileRequestBody,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    profile_cmd: ProfileCommandService = Depends(get_profile_cmd),
+    db: AsyncSession = Depends(get_db_session),
+):
+    try:
+        companion_id = await profile_cmd.create_profile(
+            companion_id=auth_info.user_id,
+            user_id=auth_info.user_id,
+            display_name=payload.displayName,
+            bio=payload.bio or "",
+            role=auth_info.user_role or "CLIENT",
+            available_cities=payload.availableCities,
+        )
+        await db.commit()
+        return CreateProfileResponse(companionId=companion_id)
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.put(
+    "/profile/me",
+    response_model=SuccessResponse,
+    tags=["Profile Management Command"],
+)
+async def update_my_profile(
+    payload: UpdateProfileRequestBody,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    profile_cmd: ProfileCommandService = Depends(get_profile_cmd),
+    db: AsyncSession = Depends(get_db_session),
+):
+    try:
+        await profile_cmd.update_profile(
+            companion_id=auth_info.user_id,
+            display_name=payload.displayName,
+            bio=payload.bio or "",
+            available_cities=payload.availableCities,
+            avatar_url=payload.avatarUrl,
+        )
+        await db.commit()
+        return SuccessResponse(success=True)
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post(
     "/profile/me/media/presigned-urls",
     response_model=PresignedUrlResponse,
     tags=["Media Management"],
@@ -196,6 +329,11 @@ async def request_presigned_url(
     auth_info: AuthInfo = Depends(get_auth_info),
     media_cmd: MediaCommandService = Depends(get_media_cmd),
 ):
+    if auth_info.user_role != "COMPANION":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only companions can manage media assets / scenarios",
+        )
     try:
         presign_data = await media_cmd.request_presigned_url(
             companion_id=auth_info.user_id,
@@ -227,6 +365,11 @@ async def create_scenario(
     scenario_cmd: ScenarioCommandService = Depends(get_scenario_cmd),
     db: AsyncSession = Depends(get_db_session),
 ):
+    if auth_info.user_role != "COMPANION":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only companions can manage media assets / scenarios",
+        )
     try:
         scenario_id = await scenario_cmd.create_scenario(
             companion_id=auth_info.user_id,
@@ -257,6 +400,11 @@ async def update_scenario(
     scenario_cmd: ScenarioCommandService = Depends(get_scenario_cmd),
     db: AsyncSession = Depends(get_db_session),
 ):
+    if auth_info.user_role != "COMPANION":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only companions can manage media assets / scenarios",
+        )
     try:
         await scenario_cmd.update_scenario(
             scenario_id=scenario_id,
@@ -288,9 +436,76 @@ async def delete_scenario(
     scenario_cmd: ScenarioCommandService = Depends(get_scenario_cmd),
     db: AsyncSession = Depends(get_db_session),
 ):
+    if auth_info.user_role != "COMPANION":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only companions can manage media assets / scenarios",
+        )
     try:
         await scenario_cmd.delete_scenario(
             scenario_id=scenario_id, companion_id=auth_info.user_id
+        )
+        await db.commit()
+        return SuccessResponse(success=True)
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post(
+    "/admin/companions/{companion_id}/approve",
+    response_model=SuccessResponse,
+    tags=["Admin Operations"],
+)
+async def approve_companion_profile(
+    companion_id: str,
+    payload: ApproveProfileRequestBody,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    profile_cmd: ProfileCommandService = Depends(get_profile_cmd),
+    db: AsyncSession = Depends(get_db_session),
+):
+    if auth_info.user_role != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin only operation",
+        )
+    try:
+        admin_id = payload.adminId or auth_info.user_id
+        await profile_cmd.approve_profile(companion_id=companion_id, admin_id=admin_id)
+        await db.commit()
+        return SuccessResponse(success=True)
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post(
+    "/admin/companions/{companion_id}/reject",
+    response_model=SuccessResponse,
+    tags=["Admin Operations"],
+)
+async def reject_companion_profile(
+    companion_id: str,
+    payload: RejectProfileRequestBody,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    profile_cmd: ProfileCommandService = Depends(get_profile_cmd),
+    db: AsyncSession = Depends(get_db_session),
+):
+    if auth_info.user_role != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin only operation",
+        )
+    try:
+        admin_id = payload.adminId or auth_info.user_id
+        await profile_cmd.reject_profile(
+            companion_id=companion_id, admin_id=admin_id, reason=payload.reason
         )
         await db.commit()
         return SuccessResponse(success=True)

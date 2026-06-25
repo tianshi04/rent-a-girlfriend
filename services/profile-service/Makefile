@@ -1,4 +1,4 @@
-.PHONY: run test sync generate-proto
+.PHONY: run test sync generate-proto generate-openapi
 
 # Run FastAPI & gRPC server locally using uv
 run:
@@ -19,7 +19,6 @@ generate-proto:
 test:
 	PYTHONPATH=$$(pwd)/gen uv run pytest -v
 
-# Run the remote seeding script for Kitty via REST API
-seed-remote:
-	uv run python scripts/seed_remote_kitty.py
-
+# Generate OpenAPI JSON specification
+generate-openapi:
+	PYTHONPATH=$$(pwd)/gen uv run python scripts/generate_openapi.py

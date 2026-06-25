@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic.alias_generators import to_camel
 
@@ -11,7 +11,6 @@ router = APIRouter(prefix="/api/v1/finance", tags=["Finance"])
 class TopupRequest(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
-    user_id: str = Field(..., description="The ID of the user topping up")
     amount: int = Field(
         ..., gt=0, description="Amount of Kano-Coins to buy (1 Coin = 1,000 VND)"
     )
@@ -38,6 +37,7 @@ class WalletResponse(BaseModel):
 async def initiate_topup(
     request: Request,
     payload: TopupRequest,
+    user_id: str = Header(..., alias="user-id"),
     finance_cmd: FinanceCommandService = Depends(get_finance_cmd),
 ):
     """
@@ -46,7 +46,7 @@ async def initiate_topup(
     client_ip = request.client.host if request.client else "127.0.0.1"
     try:
         payment_url = await finance_cmd.initiate_topup(
-            user_id=payload.user_id,
+            user_id=user_id,
             amount_coins=payload.amount,
             client_ip=client_ip,
         )
@@ -237,11 +237,30 @@ async def vnpay_return(
     return HTMLResponse(content=html_content, status_code=200)
 
 
+class TransactionItemModel(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    transaction_id: str
+    user_id: str
+    amount: int
+    type: str
+    status: str
+    reference_id: str
+    created_at: str
+
+
+class TransactionHistoryResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    transactions: list[TransactionItemModel]
+    page: int
+    page_size: int
+    total: int
+
+
 @router.get("/wallet", response_model=WalletResponse)
 async def get_wallet(
-    user_id: str = Query(
-        ..., alias="userId", description="The ID of the user whose wallet is requested"
-    ),
+    user_id: str = Header(..., alias="user-id"),
     finance_cmd: FinanceCommandService = Depends(get_finance_cmd),
 ):
     """
@@ -259,4 +278,51 @@ async def get_wallet(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to query wallet: {str(e)}",
+        )
+
+
+@router.get("/transactions", response_model=TransactionHistoryResponse)
+async def get_transaction_history(
+    page: int = 1,
+    page_size: int = 10,
+    user_id: str = Header(..., alias="user-id"),
+    finance_cmd: FinanceCommandService = Depends(get_finance_cmd),
+):
+    """
+    Query current user's transaction history. Uses page and page_size for pagination.
+    """
+    try:
+        txns, total = await finance_cmd.get_transaction_history(
+            user_id=user_id, page=page, page_size=page_size
+        )
+        items = []
+        for txn in txns:
+            created_str = ""
+            if txn.created_at:
+                created_str = txn.created_at.isoformat()
+                if not created_str.endswith("Z"):
+                    created_str += "Z"
+            items.append(
+                TransactionItemModel(
+                    transaction_id=txn.transaction_id,
+                    user_id=txn.user_id,
+                    amount=txn.amount.amount,
+                    type=txn.type.value
+                    if hasattr(txn.type, "value")
+                    else str(txn.type),
+                    status=txn.status,
+                    reference_id=txn.reference_id,
+                    created_at=created_str,
+                )
+            )
+        return TransactionHistoryResponse(
+            transactions=items,
+            page=page,
+            page_size=page_size,
+            total=total,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to query transaction history: {str(e)}",
         )
