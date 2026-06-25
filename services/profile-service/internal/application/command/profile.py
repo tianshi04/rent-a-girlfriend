@@ -83,27 +83,3 @@ class ProfileCommandService:
 
         for event in profile.clear_events():
             self.event_publisher.publish(event)
-
-    async def approve_profile(self, companion_id: str, admin_id: str) -> None:
-        profile = await self.profile_repo.find_by_id(companion_id)
-        if not profile:
-            raise ProfileNotFoundError(companion_id)
-
-        profile.approve(admin_id)
-        await self.profile_repo.save(profile)
-
-        for event in profile.clear_events():
-            self.event_publisher.publish(event)
-
-    async def reject_profile(
-        self, companion_id: str, admin_id: str, reason: str
-    ) -> None:
-        profile = await self.profile_repo.find_by_id(companion_id)
-        if not profile:
-            raise ProfileNotFoundError(companion_id)
-
-        profile.reject(admin_id, reason)
-        await self.profile_repo.save(profile)
-
-        for event in profile.clear_events():
-            self.event_publisher.publish(event)

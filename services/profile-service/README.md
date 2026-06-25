@@ -85,8 +85,6 @@ make run
 |-----|---------|-------------|------|
 | `CreateProfile` | `ProfileService` | Tạo hồ sơ Companion mới | Companion |
 | `UpdateProfile` | `ProfileService` | Cập nhật hồ sơ Companion | Companion |
-| `ApproveProfile` | `ProfileService` | Phê duyệt hồ sơ Companion | Admin |
-| `RejectProfile` | `ProfileService` | Từ chối hồ sơ Companion | Admin |
 | `CreateScenario` | `ProfileService` | Tạo kịch bản dịch vụ mới | Companion |
 | `UpdateScenario` | `ProfileService` | Cập nhật kịch bản dịch vụ | Companion |
 | `DeleteScenario` | `ProfileService` | Xóa kịch bản dịch vụ | Companion |
