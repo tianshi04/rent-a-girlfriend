@@ -64,7 +64,7 @@ class CompanionProfileRepository(ICompanionProfileRepository):
         # Perform query joining scenarios to filter minimum price
         query = select(CompanionProfileModel).filter(
             CompanionProfileModel.status == "APPROVED",
-            CompanionProfileModel.role == "COMPANION"
+            CompanionProfileModel.role == "COMPANION",
         )
 
         if name:

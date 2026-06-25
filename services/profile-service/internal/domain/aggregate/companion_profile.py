@@ -93,7 +93,9 @@ class CompanionProfile:
 
     def upgrade_to_companion(self):
         self.role = "COMPANION"
-        self.status = "APPROVED"  # No admin approval needed for companion profiles anymore
+        self.status = (
+            "APPROVED"  # No admin approval needed for companion profiles anymore
+        )
 
     def approve(self, admin_id: str):
         # Kept for backward compatibility but made no-op since status is always APPROVED

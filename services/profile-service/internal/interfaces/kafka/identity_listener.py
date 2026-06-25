@@ -65,7 +65,9 @@ class IdentityEventListener:
                         user_id = event_data.get("userId") or event_data.get("user_id")
 
                         if user_id:
-                            logger.info(f"Upgrading profile role to COMPANION for user: {user_id}")
+                            logger.info(
+                                f"Upgrading profile role to COMPANION for user: {user_id}"
+                            )
                             async with SessionLocal() as session:
                                 profile_cmd, _, _, _ = bootstrap_services(session)
                                 await profile_cmd.upgrade_profile_role(user_id)
@@ -74,7 +76,9 @@ class IdentityEventListener:
                                     f"Profile role upgraded successfully to COMPANION for user: {user_id}"
                                 )
                         else:
-                            logger.warning(f"No userId found in event payload: {msg.value}")
+                            logger.warning(
+                                f"No userId found in event payload: {msg.value}"
+                            )
                 except Exception as e:
                     logger.error(f"Error processing identity event: {e}", exc_info=True)
         except asyncio.CancelledError:

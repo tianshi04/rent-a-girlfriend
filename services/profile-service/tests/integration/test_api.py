@@ -372,7 +372,9 @@ async def test_client_blocked_from_companion_apis(client):
         "price": 100,
         "durationMinutes": 60,
     }
-    response = await client.post("/profile/me/scenarios", json=payload_scenario, headers=headers)
+    response = await client.post(
+        "/profile/me/scenarios", json=payload_scenario, headers=headers
+    )
     assert response.status_code == 403
 
     # Try requesting presigned url for VOICE
@@ -382,7 +384,9 @@ async def test_client_blocked_from_companion_apis(client):
         "durationSeconds": 10,
         "contentType": "audio/mp3",
     }
-    response = await client.post("/profile/me/media/presigned-urls", json=payload_url, headers=headers)
+    response = await client.post(
+        "/profile/me/media/presigned-urls", json=payload_url, headers=headers
+    )
     assert response.status_code == 403
 
 
@@ -410,14 +414,16 @@ async def test_search_companions_excludes_clients(client, integration_deps, db_s
     response = await client.get("/companions?city=Hanoi")
     assert response.status_code == 200
     data = response.json()["data"]
-    
+
     # Verify client user is not in the list (only user_companion_123)
     client_ids_found = [c["companionId"] for c in data]
     assert "user_client_only" not in client_ids_found
     assert "user_companion_123" in client_ids_found
 
 
-async def test_identity_listener_upgrades_role(integration_deps, db_session, monkeypatch):
+async def test_identity_listener_upgrades_role(
+    integration_deps, db_session, monkeypatch
+):
     # Seed a client profile
     profile_repo = integration_deps["profile_repo"]
     profile_cmd = integration_deps["profile_cmd"]
@@ -455,7 +461,7 @@ async def test_identity_listener_upgrades_role(integration_deps, db_session, mon
 
     # Mock settings and import targeting main listener module or identity_listener.py
     import internal.interfaces.kafka.identity_listener as listener_module
-    
+
     from contextlib import asynccontextmanager
 
     @asynccontextmanager
@@ -472,7 +478,7 @@ async def test_identity_listener_upgrades_role(integration_deps, db_session, mon
             "userId": "user_to_upgrade_111",
             "oldRole": "CLIENT",
             "newRole": "COMPANION",
-        }
+        },
     }
     monkeypatch.setattr(
         listener_module,
@@ -482,8 +488,9 @@ async def test_identity_listener_upgrades_role(integration_deps, db_session, mon
 
     # Execute listener
     from internal.interfaces.kafka.identity_listener import IdentityEventListener
+
     listener = IdentityEventListener()
-    
+
     # Execute the internal running loop directly (it will run, process the mock event, and exit)
     await listener._run()
 

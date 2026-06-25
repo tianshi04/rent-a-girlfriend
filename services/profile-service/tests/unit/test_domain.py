@@ -72,7 +72,7 @@ def test_companion_profile_creation():
         display_name="Kano Chizuru",
         bio="Rental Girlfriend of your dreams",
         available_cities=[Location("Hanoi"), Location("HCM")],
-        role="CLIENT"
+        role="CLIENT",
     )
 
     assert profile.companion_id == "companion_1"
@@ -111,7 +111,7 @@ def test_companion_profile_role_upgrade():
         user_id="user_123",
         display_name="Kano Chizuru",
         available_cities=[Location("Hanoi")],
-        role="CLIENT"
+        role="CLIENT",
     )
     assert profile.role == "CLIENT"
     profile.upgrade_to_companion()
