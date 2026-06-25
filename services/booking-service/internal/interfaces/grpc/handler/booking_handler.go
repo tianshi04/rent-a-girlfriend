@@ -329,14 +329,3 @@ func mapDomainError(err error) error {
 		return status.Error(codes.Internal, err.Error())
 	}
 }
-
-// excludeStatus returns a new slice with the specified status removed.
-func excludeStatus(statuses []string, exclude string) []string {
-	result := make([]string, 0, len(statuses))
-	for _, s := range statuses {
-		if s != exclude {
-			result = append(result, s)
-		}
-	}
-	return result
-}

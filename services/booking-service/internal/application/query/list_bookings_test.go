@@ -30,7 +30,7 @@ func TestListBookings_Success(t *testing.T) {
 
 	cidStr := clientID.String()
 	q := query.ListBookingsQuery{
-		ClientID: &cidStr,
+		UserID:   &cidStr,
 		Page:     1,
 		PageSize: 10,
 	}
@@ -69,7 +69,7 @@ func TestListBookings_Pagination(t *testing.T) {
 
 	cidStr := clientID.String()
 	q := query.ListBookingsQuery{
-		ClientID: &cidStr,
+		UserID:   &cidStr,
 		Page:     2,
 		PageSize: 2,
 	}

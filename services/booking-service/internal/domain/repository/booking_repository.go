@@ -39,10 +39,8 @@ type BookingRepository interface {
 
 // BookingFilters contains optional filter criteria for listing bookings.
 type BookingFilters struct {
-	ClientID    *string
-	CompanionID *string
-	UserID      *string
-	Statuses    []string
-	Page        int64
-	PageSize    int64
+	UserID   *string
+	Statuses []string
+	Page     int64
+	PageSize int64
 }
