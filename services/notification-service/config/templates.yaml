@@ -56,7 +56,20 @@ events:
         title: "Booking Rejected ❌"
         body: "Sorry, your booking request #{{bookingId}} has been rejected. Reason: {{reason}}."
 
-  booking.booking-cancelled.v1:
+  booking.booking-cancelled-early.v1:
+    type: "TRANSACTIONAL"
+    recipient_field: "_dynamic"  # Xác định bởi logic: đối phương của actorRole
+    priority: "HIGH"
+    channels: ["SSE", "FCM"]
+    template:
+      vi:
+        title: "Lịch hẹn bị hủy ⚠️"
+        body: "Lịch hẹn #{{bookingId}} đã bị hủy bởi {{actorRole}}."
+      en:
+        title: "Booking Cancelled ⚠️"
+        body: "Booking #{{bookingId}} has been cancelled by {{actorRole}}."
+
+  booking.booking-cancelled-late.v1:
     type: "TRANSACTIONAL"
     recipient_field: "_dynamic"  # Xác định bởi logic: đối phương của actorRole
     priority: "HIGH"
@@ -83,7 +96,7 @@ events:
         body: "Sorry, a technical issue occurred while accepting booking #{{bookingId}}. Your Kano-Coin has been refunded."
 
   # --- FINANCE EVENTS ---
-  finance.kano-coin-deposited.v1:
+  finance.wallet-topped-up.v1:
     type: "TRANSACTIONAL"
     recipient_field: "userId"
     priority: "MEDIUM"
@@ -117,10 +130,10 @@ events:
     template:
       vi:
         title: "Thu nhập mới 💸"
-        body: "Bạn đã nhận được thanh toán {{payoutAmount}} Kano-Coin cho booking #{{bookingId}}."
+        body: "Bạn đã nhận được thanh toán {{netAmount}} Kano-Coin cho booking #{{bookingId}}."
       en:
         title: "New Income 💸"
-        body: "You received {{payoutAmount}} Kano-Coin for booking #{{bookingId}}."
+        body: "You received {{netAmount}} Kano-Coin for booking #{{bookingId}}."
 
   # --- INTERACTION EVENTS ---
   interaction.chat-message-sent.v1:
@@ -216,7 +229,7 @@ events:
         body: "Your album image has been rejected. Reason: {{reason}}."
 
   # --- IDENTITY EVENTS ---
-  identity.upgrade-approved.v1:
+  identity.companion-upgrade-approved.v1:
     type: "TRANSACTIONAL"
     recipient_field: "userId"
     priority: "HIGH"
@@ -229,7 +242,7 @@ events:
         title: "Upgrade Approved! 🚀"
         body: "You have been upgraded to Companion. Complete your profile now!"
 
-  identity.upgrade-rejected.v1:
+  identity.companion-upgrade-rejected.v1:
     type: "TRANSACTIONAL"
     recipient_field: "userId"
     priority: "HIGH"
@@ -256,18 +269,18 @@ events:
         body: "Your account has been locked. Reason: {{reason}}."
 
   # --- DISPUTE EVENTS ---
-  dispute.report-created.v1:
+  dispute.dispute-created.v1:
     type: "TRANSACTIONAL"
-    recipient_field: "accusedId"
+    recipient_field: "reporterId"
     priority: "HIGH"
     channels: ["SSE", "FCM"]
     template:
       vi:
-        title: "Bạn bị báo cáo ⚠️"
-        body: "Bạn đã bị báo cáo vi phạm. Lý do: {{reason}}."
+        title: "Báo cáo đã ghi nhận ⚠️"
+        body: "Yêu cầu báo cáo của bạn cho lịch hẹn #{{bookingId}} đang được xử lý. Lý do: {{reason}}."
       en:
-        title: "You Have Been Reported ⚠️"
-        body: "You have been reported for a violation. Reason: {{reason}}."
+        title: "Report Received ⚠️"
+        body: "Your report for booking #{{bookingId}} is being processed. Reason: {{reason}}."
 
   dispute.dispute-resolved.v1:
     type: "TRANSACTIONAL"
