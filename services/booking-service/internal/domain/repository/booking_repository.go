@@ -41,6 +41,7 @@ type BookingRepository interface {
 type BookingFilters struct {
 	ClientID    *string
 	CompanionID *string
+	UserID      *string
 	Statuses    []string
 	Page        int64
 	PageSize    int64

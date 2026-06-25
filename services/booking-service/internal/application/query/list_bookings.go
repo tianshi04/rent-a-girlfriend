@@ -11,6 +11,7 @@ import (
 type ListBookingsQuery struct {
 	ClientID    *string
 	CompanionID *string
+	UserID      *string
 	Statuses    []string
 	Page        int64
 	PageSize    int64
@@ -44,6 +45,7 @@ func (h *ListBookingsHandler) Handle(ctx context.Context, q ListBookingsQuery) (
 	filters := repository.BookingFilters{
 		ClientID:    q.ClientID,
 		CompanionID: q.CompanionID,
+		UserID:      q.UserID,
 		Statuses:    q.Statuses,
 		Page:        q.Page,
 		PageSize:    q.PageSize,

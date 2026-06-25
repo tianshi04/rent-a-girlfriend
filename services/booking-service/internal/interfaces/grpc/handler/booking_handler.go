@@ -187,6 +187,11 @@ func (h *BookingGRPCHandler) GetBooking(ctx context.Context, req *bookingv1.GetB
 		if callerID == "" || (booking.ClientID().String() != callerID && booking.CompanionID().String() != callerID) {
 			return nil, status.Error(codes.PermissionDenied, "unauthorized to access this booking")
 		}
+		// [BIZ] Companion must never see bookings in PENDING_RESERVING state.
+		// If caller is the companion in the booking, they are rejected.
+		if booking.CompanionID().String() == callerID && booking.Status() == vo.StatusPendingReserving {
+			return nil, status.Error(codes.PermissionDenied, "unauthorized to access this booking in current state")
+		}
 	}
 
 	return mapToBookingDetailResponse(booking), nil
@@ -216,12 +221,10 @@ func (h *BookingGRPCHandler) ListBookings(ctx context.Context, req *bookingv1.Li
 		pageSize = 20
 	}
 
-	var clientIDPtr, companionIDPtr *string
+	var userIDPtr *string
 	switch actorRole {
-	case "CLIENT":
-		clientIDPtr = &actorID
-	case "COMPANION":
-		companionIDPtr = &actorID
+	case "CLIENT", "COMPANION":
+		userIDPtr = &actorID
 	case "ADMIN":
 		// Admin sees all bookings with no user filter.
 	default:
@@ -235,7 +238,6 @@ func (h *BookingGRPCHandler) ListBookings(ctx context.Context, req *bookingv1.Li
 		case "pending":
 			// Include PENDING_RESERVING so CLIENT sees the booking immediately after creation,
 			// while the coin reservation SAGA is still in-flight.
-			// Companion filter downstream will remove PENDING_RESERVING for COMPANION role.
 			statusesFilter = []string{"PENDING_RESERVING", "PENDING"}
 		case "upcoming":
 			statusesFilter = []string{"ACCEPTED"}
@@ -246,21 +248,8 @@ func (h *BookingGRPCHandler) ListBookings(ctx context.Context, req *bookingv1.Li
 		}
 	}
 
-	// [BIZ] Companion must never see bookings in PENDING_RESERVING state.
-	// This status is an internal in-flight state while the coin reservation SAGA
-	// is executing — the companion has no actionable role at this stage.
-	if actorRole == "COMPANION" {
-		if len(statusesFilter) == 0 {
-			// No view filter means "all statuses" — explicitly enumerate all visible ones.
-			statusesFilter = []string{"PENDING", "ACCEPTED", "COMPLETED", "CANCELLED", "DISPUTED", "RESOLVED"}
-		} else {
-			statusesFilter = excludeStatus(statusesFilter, "PENDING_RESERVING")
-		}
-	}
-
 	result, err := h.listBookings.Handle(ctx, query.ListBookingsQuery{
-		ClientID:    clientIDPtr,
-		CompanionID: companionIDPtr,
+		UserID:      userIDPtr,
 		Statuses:    statusesFilter,
 		Page:        page,
 		PageSize:    pageSize,
