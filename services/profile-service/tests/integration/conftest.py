@@ -10,6 +10,7 @@ os.environ["TESTING"] = "1"
 
 from internal.bootstrap import Base, app
 from internal.infrastructure.persistence import (
+    UserProfileRepository,
     CompanionProfileRepository,
     ScenarioRepository,
     MediaAssetRepository,
@@ -76,6 +77,7 @@ async def db_session(TestSessionLocal):
 
 @pytest.fixture(autouse=True)
 def integration_deps(db_session, kafka):
+    user_profile_repo = UserProfileRepository(db_session)
     profile_repo = CompanionProfileRepository(db_session)
     scenario_repo = ScenarioRepository(db_session)
     media_repo = MediaAssetRepository(db_session)
@@ -95,13 +97,13 @@ def integration_deps(db_session, kafka):
         f"https://mock-s3.com/{key}?expires={expires_in}"
     )
 
-    profile_cmd = ProfileCommandService(profile_repo, event_publisher)
+    profile_cmd = ProfileCommandService(user_profile_repo, profile_repo, event_publisher)
     scenario_cmd = ScenarioCommandService(profile_repo, scenario_repo, event_publisher)
     media_cmd = MediaCommandService(
         profile_repo, media_repo, storage_mock, event_publisher
     )
     query_service = ProfileQueryService(
-        profile_repo, scenario_repo, media_repo, storage_mock
+        user_profile_repo, profile_repo, scenario_repo, media_repo, storage_mock
     )
 
     app.dependency_overrides[get_query_service] = lambda: query_service
@@ -115,4 +117,5 @@ def integration_deps(db_session, kafka):
         "media_cmd": media_cmd,
         "query_service": query_service,
         "profile_repo": profile_repo,
+        "user_profile_repo": user_profile_repo,
     }

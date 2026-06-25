@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from internal.infrastructure.persistence import (
     Base,
+    UserProfileRepository,
     CompanionProfileRepository,
     ScenarioRepository,
     MediaAssetRepository,
@@ -95,6 +96,7 @@ storage_adapter = S3Storage(
 # Create scoped services helpers
 def bootstrap_services(db_session: AsyncSession):
     # Repositories
+    user_profile_repo = UserProfileRepository(db_session)
     profile_repo = CompanionProfileRepository(db_session)
     scenario_repo = ScenarioRepository(db_session)
     media_repo = MediaAssetRepository(db_session)
@@ -103,7 +105,7 @@ def bootstrap_services(db_session: AsyncSession):
     event_publisher = DatabaseEventPublisher(db_session)
 
     # Application Commands
-    profile_cmd = ProfileCommandService(profile_repo, event_publisher)
+    profile_cmd = ProfileCommandService(user_profile_repo, profile_repo, event_publisher)
     scenario_cmd = ScenarioCommandService(profile_repo, scenario_repo, event_publisher)
     media_cmd = MediaCommandService(
         profile_repo, media_repo, storage_adapter, event_publisher
@@ -111,7 +113,7 @@ def bootstrap_services(db_session: AsyncSession):
 
     # Application Queries
     query_service = ProfileQueryService(
-        profile_repo, scenario_repo, media_repo, storage_adapter
+        user_profile_repo, profile_repo, scenario_repo, media_repo, storage_adapter
     )
 
     return profile_cmd, scenario_cmd, media_cmd, query_service

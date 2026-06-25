@@ -14,20 +14,39 @@ def utcnow_naive():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-class CompanionProfileModel(Base):
-    __tablename__ = "companion_profiles"
+class UserProfileModel(Base):
+    __tablename__ = "user_profiles"
 
-    companion_id = Column(String(36), primary_key=True)
-    user_id = Column(String(36), unique=True, nullable=False, index=True)
+    user_id = Column(String(36), primary_key=True)
     display_name = Column(String(100), nullable=False, index=True)
+    avatar_url = Column(String(500), nullable=True)
     bio = Column(Text, nullable=True)
     role = Column(String(20), default="CLIENT", nullable=False, index=True)
-    status = Column(String(20), default="APPROVED", nullable=False, index=True)
-    available_cities = Column(Text, nullable=False)  # list of strings in JSON format
-    avatar_url = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=utcnow_naive)
     updated_at = Column(DateTime, default=utcnow_naive, onupdate=utcnow_naive)
 
+    companion_profile = relationship(
+        "CompanionProfileModel",
+        back_populates="user_profile",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+
+class CompanionProfileModel(Base):
+    __tablename__ = "companion_profiles"
+
+    companion_id = Column(
+        String(36),
+        ForeignKey("user_profiles.user_id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    status = Column(String(20), default="APPROVED", nullable=False, index=True)
+    available_cities = Column(Text, nullable=False)  # list of strings in JSON format
+    created_at = Column(DateTime, default=utcnow_naive)
+    updated_at = Column(DateTime, default=utcnow_naive, onupdate=utcnow_naive)
+
+    user_profile = relationship("UserProfileModel", back_populates="companion_profile")
     scenarios = relationship(
         "ScenarioModel", back_populates="companion", cascade="all, delete-orphan"
     )

@@ -2,18 +2,54 @@ import json
 from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select
-from internal.domain.aggregate import CompanionProfile, Scenario, MediaAsset
+from internal.domain.aggregate import UserProfile, CompanionProfile, Scenario, MediaAsset
 from internal.domain.vo import Location, MediaUrl, Money, Duration
 from internal.domain.repository import (
+    IUserProfileRepository,
     ICompanionProfileRepository,
     IScenarioRepository,
     IMediaAssetRepository,
 )
 from internal.infrastructure.persistence.models import (
+    UserProfileModel,
     CompanionProfileModel,
     ScenarioModel,
     MediaAssetModel,
 )
+
+
+class UserProfileRepository(IUserProfileRepository):
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def save(self, profile: UserProfile) -> None:
+        model = UserProfileModel(
+            user_id=profile.user_id,
+            display_name=profile.display_name,
+            bio=profile.bio,
+            role=profile.role,
+            avatar_url=profile.avatar_url.url if profile.avatar_url else None,
+        )
+        await self.session.merge(model)
+        await self.session.flush()
+
+    async def find_by_id(self, user_id: str) -> Optional[UserProfile]:
+        stmt = select(UserProfileModel).filter_by(user_id=user_id)
+        result = await self.session.execute(stmt)
+        model = result.scalars().first()
+        if not model:
+            return None
+        return self._to_domain(model)
+
+    def _to_domain(self, model: UserProfileModel) -> UserProfile:
+        avatar = MediaUrl(model.avatar_url) if model.avatar_url else None
+        return UserProfile(
+            user_id=model.user_id,
+            display_name=model.display_name,
+            bio=model.bio or "",
+            role=model.role,
+            avatar_url=avatar,
+        )
 
 
 class CompanionProfileRepository(ICompanionProfileRepository):
@@ -23,29 +59,16 @@ class CompanionProfileRepository(ICompanionProfileRepository):
     async def save(self, profile: CompanionProfile) -> None:
         model = CompanionProfileModel(
             companion_id=profile.companion_id,
-            user_id=profile.user_id,
-            display_name=profile.display_name,
-            bio=profile.bio,
-            role=profile.role,
             status=profile.status,
             available_cities=json.dumps(
                 [str(city) for city in profile.available_cities]
             ),
-            avatar_url=profile.avatar_url.url if profile.avatar_url else None,
         )
         await self.session.merge(model)
         await self.session.flush()
 
     async def find_by_id(self, companion_id: str) -> Optional[CompanionProfile]:
         stmt = select(CompanionProfileModel).filter_by(companion_id=companion_id)
-        result = await self.session.execute(stmt)
-        model = result.scalars().first()
-        if not model:
-            return None
-        return self._to_domain(model)
-
-    async def find_by_user_id(self, user_id: str) -> Optional[CompanionProfile]:
-        stmt = select(CompanionProfileModel).filter_by(user_id=user_id)
         result = await self.session.execute(stmt)
         model = result.scalars().first()
         if not model:
@@ -61,24 +84,22 @@ class CompanionProfileRepository(ICompanionProfileRepository):
         offset: int,
         limit: int,
     ) -> Tuple[List[CompanionProfile], int]:
-        # Perform query joining scenarios to filter minimum price
-        query = select(CompanionProfileModel).filter(
+        # Perform query joining user_profiles to filter by name and role
+        query = select(CompanionProfileModel).join(UserProfileModel).filter(
             CompanionProfileModel.status == "APPROVED",
-            CompanionProfileModel.role == "COMPANION",
+            UserProfileModel.role == "COMPANION",
         )
 
         if name:
-            query = query.filter(CompanionProfileModel.display_name.ilike(f"%{name}%"))
+            query = query.filter(UserProfileModel.display_name.ilike(f"%{name}%"))
 
         if city:
-            # Check city filter inside JSON array string
             query = query.filter(
                 CompanionProfileModel.available_cities.like(f'%"{city}"%')
             )
 
         # Joined price query
         if min_price is not None or max_price is not None:
-            # Filter companion profiles that have at least one active scenario in price range
             subquery = select(ScenarioModel.companion_id).filter(
                 ScenarioModel.status == "ACTIVE"
             )
@@ -105,19 +126,11 @@ class CompanionProfileRepository(ICompanionProfileRepository):
             Location(city_str)
             for city_str in json.loads(model.available_cities or "[]")
         ]
-        avatar = MediaUrl(model.avatar_url) if model.avatar_url else None
-
-        profile = CompanionProfile(
+        return CompanionProfile(
             companion_id=model.companion_id,
-            user_id=model.user_id,
-            display_name=model.display_name,
-            bio=model.bio or "",
             status=model.status,
             available_cities=cities,
-            role=model.role,
-            avatar_url=avatar,
         )
-        return profile
 
 
 class ScenarioRepository(IScenarioRepository):

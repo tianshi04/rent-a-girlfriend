@@ -1,6 +1,6 @@
 import pytest
 from internal.domain.vo import Money, Duration, Location, MediaUrl
-from internal.domain.aggregate import CompanionProfile, Scenario, MediaAsset
+from internal.domain.aggregate import UserProfile, CompanionProfile, Scenario, MediaAsset
 from internal.domain.errors import (
     VoiceIntroDurationExceededError,
     VoiceIntroSizeExceededError,
@@ -61,37 +61,43 @@ def test_media_url_invalid():
         MediaUrl("ftp://file.com")
 
 
-# --- CompanionProfile Aggregate Testing ---
+# --- UserProfile & CompanionProfile Aggregate Testing ---
 
 
-def test_companion_profile_creation():
-    profile = CompanionProfile.create(
-        companion_id="companion_1",
+def test_user_profile_creation():
+    profile = UserProfile.create(
         user_id="user_123",
         display_name="Kano Chizuru",
         bio="Rental Girlfriend of your dreams",
-        available_cities=[Location("Hanoi"), Location("HCM")],
         role="CLIENT",
     )
 
-    assert profile.companion_id == "companion_1"
-    assert profile.status == "APPROVED"
+    assert profile.user_id == "user_123"
     assert profile.role == "CLIENT"
     assert profile.bio == "Rental Girlfriend of your dreams"
 
     # Check domain event
     events = profile.clear_events()
     assert len(events) == 1
-    assert events[0].companion_id == "companion_1"
+    assert events[0].companion_id == "user_123"
     assert events[0].user_id == "user_123"
+
+
+def test_companion_profile_creation():
+    comp_profile = CompanionProfile.create(
+        companion_id="companion_1",
+        available_cities=[Location("Hanoi"), Location("HCM")],
+        status="APPROVED",
+    )
+
+    assert comp_profile.companion_id == "companion_1"
+    assert comp_profile.status == "APPROVED"
+    assert len(comp_profile.available_cities) == 2
 
 
 def test_companion_profile_status_transitions():
     profile = CompanionProfile.create(
         companion_id="companion_1",
-        user_id="user_123",
-        display_name="Kano Chizuru",
-        bio="Rental Girlfriend of your dreams",
         available_cities=[Location("Hanoi")],
     )
 
@@ -104,18 +110,15 @@ def test_companion_profile_status_transitions():
     assert profile.status == "REJECTED"
 
 
-def test_companion_profile_role_upgrade():
-    profile = CompanionProfile.create(
-        companion_id="companion_1",
+def test_user_profile_role_upgrade():
+    profile = UserProfile.create(
         user_id="user_123",
         display_name="Kano Chizuru",
-        available_cities=[Location("Hanoi")],
         role="CLIENT",
     )
     assert profile.role == "CLIENT"
     profile.upgrade_to_companion()
     assert profile.role == "COMPANION"
-    assert profile.status == "APPROVED"
 
 
 # --- Scenario Aggregate Testing ---

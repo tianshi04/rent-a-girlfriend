@@ -1,17 +1,19 @@
 from typing import List, Optional
-from internal.domain.aggregate import CompanionProfile
+from internal.domain.aggregate import UserProfile, CompanionProfile
 from internal.domain.vo import Location, MediaUrl
 from internal.domain.errors import ProfileAlreadyExistsError, ProfileNotFoundError
-from internal.domain.repository import ICompanionProfileRepository
+from internal.domain.repository import IUserProfileRepository, ICompanionProfileRepository
 from internal.application.port import IEventPublisher
 
 
 class ProfileCommandService:
     def __init__(
         self,
+        user_profile_repo: IUserProfileRepository,
         profile_repo: ICompanionProfileRepository,
         event_publisher: IEventPublisher,
     ):
+        self.user_profile_repo = user_profile_repo
         self.profile_repo = profile_repo
         self.event_publisher = event_publisher
 
@@ -25,26 +27,42 @@ class ProfileCommandService:
         role: str = "CLIENT",
     ) -> str:
         # Check if user already onboarding
-        existing = await self.profile_repo.find_by_user_id(user_id)
+        existing = await self.user_profile_repo.find_by_id(user_id)
         if existing:
             raise ProfileAlreadyExistsError(user_id)
 
-        cities = [Location(city) for city in available_cities]
-        profile = CompanionProfile.create(
-            companion_id=companion_id,
+        # Create UserProfile
+        user_profile = UserProfile.create(
             user_id=user_id,
             display_name=display_name,
             bio=bio,
             role=role,
-            available_cities=cities,
         )
+        await self.user_profile_repo.save(user_profile)
 
-        await self.profile_repo.save(profile)
+        # If role is COMPANION, also create CompanionProfile
+        if role == "COMPANION":
+            cities = [Location(city) for city in available_cities]
+            companion_profile = CompanionProfile.create(
+                companion_id=companion_id,
+                available_cities=cities,
+                status="APPROVED",
+            )
+            await self.profile_repo.save(companion_profile)
 
-        for event in profile.clear_events():
+            # Forward events from companion profile
+            for event in companion_profile.clear_events():
+                self.event_publisher.publish(event)
+
+        # Forward events from user profile (ProfileCreated)
+        # Note: if it's a COMPANION, we can populate available_cities from passed cities for backward compatibility
+        for event in user_profile.clear_events():
+            # If the event is ProfileCreated and it's a COMPANION, we fill in available_cities
+            if hasattr(event, "available_cities") and role == "COMPANION":
+                object.__setattr__(event, "available_cities", available_cities)
             self.event_publisher.publish(event)
 
-        return profile.companion_id
+        return user_id
 
     async def update_profile(
         self,
@@ -54,32 +72,60 @@ class ProfileCommandService:
         avatar_url: Optional[str],
         bio: str = "",
     ) -> None:
-        profile = await self.profile_repo.find_by_id(companion_id)
-        if not profile:
+        user_profile = await self.user_profile_repo.find_by_id(companion_id)
+        if not user_profile:
             raise ProfileNotFoundError(companion_id)
 
-        cities = [Location(city) for city in available_cities]
         media_avatar = MediaUrl(avatar_url) if avatar_url else None
-
-        profile.update(
+        user_profile.update(
             display_name=display_name,
             bio=bio,
-            available_cities=cities,
             avatar_url=media_avatar,
+            available_cities=available_cities,
         )
+        await self.user_profile_repo.save(user_profile)
 
-        await self.profile_repo.save(profile)
+        if user_profile.role == "COMPANION":
+            companion_profile = await self.profile_repo.find_by_id(companion_id)
+            if not companion_profile:
+                cities = [Location(city) for city in available_cities]
+                companion_profile = CompanionProfile.create(
+                    companion_id=companion_id,
+                    available_cities=cities,
+                    status="APPROVED",
+                )
+            else:
+                cities = [Location(city) for city in available_cities]
+                companion_profile.update(available_cities=cities)
+            
+            await self.profile_repo.save(companion_profile)
 
-        for event in profile.clear_events():
+            for event in companion_profile.clear_events():
+                self.event_publisher.publish(event)
+
+        for event in user_profile.clear_events():
             self.event_publisher.publish(event)
 
     async def upgrade_profile_role(self, user_id: str) -> None:
-        profile = await self.profile_repo.find_by_user_id(user_id)
-        if not profile:
+        user_profile = await self.user_profile_repo.find_by_id(user_id)
+        if not user_profile:
             raise ProfileNotFoundError(user_id)
 
-        profile.upgrade_to_companion()
-        await self.profile_repo.save(profile)
+        user_profile.upgrade_to_companion()
+        await self.user_profile_repo.save(user_profile)
 
-        for event in profile.clear_events():
+        # Create CompanionProfile if not exists
+        companion_profile = await self.profile_repo.find_by_id(user_id)
+        if not companion_profile:
+            companion_profile = CompanionProfile.create(
+                companion_id=user_id,
+                available_cities=[],
+                status="APPROVED",
+            )
+            await self.profile_repo.save(companion_profile)
+
+            for event in companion_profile.clear_events():
+                self.event_publisher.publish(event)
+
+        for event in user_profile.clear_events():
             self.event_publisher.publish(event)

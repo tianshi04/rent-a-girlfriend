@@ -3,6 +3,7 @@ import json
 import logging
 from aiokafka import AIOKafkaConsumer
 from internal.bootstrap import settings, SessionLocal, bootstrap_services
+from internal.domain.errors import ProfileAlreadyExistsError
 
 logger = logging.getLogger("identity_listener")
 
@@ -75,6 +76,39 @@ class IdentityEventListener:
                                 logger.info(
                                     f"Profile role upgraded successfully to COMPANION for user: {user_id}"
                                 )
+                        else:
+                            logger.warning(
+                                f"No userId found in event payload: {msg.value}"
+                            )
+                    elif event_type == "identity.user-registered.v1":
+                        event_data = msg.value.get("data", {})
+                        user_id = event_data.get("userId") or event_data.get("user_id")
+                        display_name = event_data.get("name") or "User"
+                        role = event_data.get("role") or "CLIENT"
+
+                        if user_id:
+                            logger.info(
+                                f"Creating profile for user: {user_id} with display name: {display_name} and role: {role}"
+                            )
+                            async with SessionLocal() as session:
+                                profile_cmd, _, _, _ = bootstrap_services(session)
+                                try:
+                                    await profile_cmd.create_profile(
+                                        companion_id=user_id,
+                                        user_id=user_id,
+                                        display_name=display_name,
+                                        available_cities=[],
+                                        bio="",
+                                        role=role,
+                                    )
+                                    await session.commit()
+                                    logger.info(
+                                        f"Profile created successfully for user: {user_id}"
+                                    )
+                                except ProfileAlreadyExistsError:
+                                    logger.info(
+                                        f"Profile already exists for user: {user_id}. Skipping creation (idempotent)."
+                                    )
                         else:
                             logger.warning(
                                 f"No userId found in event payload: {msg.value}"
