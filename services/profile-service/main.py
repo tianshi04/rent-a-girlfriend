@@ -11,7 +11,7 @@ gen_dir = os.path.join(root_dir, "gen")
 if gen_dir not in sys.path:
     sys.path.insert(0, gen_dir)
 
-from internal.bootstrap import (
+from internal.bootstrap import (  # noqa: E402
     settings,
     SessionLocal,
     outbox_worker,
@@ -19,9 +19,9 @@ from internal.bootstrap import (
     app,
     init_db,
 )
-from gen.profile.v1.service import profile_service_pb2_grpc
-from internal.interfaces.grpc.servicer import ProfileServiceServicer
-from internal.interfaces.kafka.identity_listener import IdentityEventListener
+from gen.profile.v1.service import profile_service_pb2_grpc  # noqa: E402
+from internal.interfaces.grpc.servicer import ProfileServiceServicer  # noqa: E402
+from internal.interfaces.kafka.identity_listener import IdentityEventListener  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,

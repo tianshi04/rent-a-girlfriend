@@ -5,7 +5,6 @@ from internal.domain.errors import (
     VoiceIntroDurationExceededError,
     VoiceIntroSizeExceededError,
     AlbumImageSizeExceededError,
-    InvalidProfileStatusTransitionError,
 )
 
 # --- Value Objects Testing ---

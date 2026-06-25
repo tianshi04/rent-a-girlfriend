@@ -1,6 +1,5 @@
 from typing import List, Optional
 from internal.domain.vo import Location, MediaUrl
-from internal.domain.errors import InvalidProfileStatusTransitionError
 from internal.domain.events import (
     DomainEvent,
     ProfileCreated,
