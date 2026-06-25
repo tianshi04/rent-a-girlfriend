@@ -37,6 +37,33 @@ class ProfileQueryService:
 
         return await self.get_companion_detail(user_id, public=False)
 
+    async def get_companion_media(self, companion_id: str) -> list[Dict[str, Any]]:
+        profile = await self.profile_repo.find_by_id(companion_id)
+        if not profile:
+            raise ProfileNotFoundError(companion_id)
+
+        voice_intros = await self.media_repo.find_by_companion_id_and_type(
+            companion_id, "VOICE_INTRO"
+        )
+        albums = await self.media_repo.find_by_companion_id_and_type(
+            companion_id, "ALBUM"
+        )
+
+        all_assets = []
+        for asset in voice_intros + albums:
+            all_assets.append(
+                {
+                    "assetId": asset.asset_id,
+                    "companionId": asset.companion_id,
+                    "fileUrl": asset.file_url.url,
+                    "assetType": asset.asset_type,
+                    "sizeBytes": asset.size_bytes,
+                    "durationSeconds": asset.duration_seconds,
+                    "status": asset.status,
+                }
+            )
+        return all_assets
+
     async def get_companion_detail(
         self, companion_id: str, public: bool = False
     ) -> Dict[str, Any]:

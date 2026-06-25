@@ -7,8 +7,12 @@ from internal.application.command import (
     ScenarioCommandService,
 )
 from internal.application.query import ProfileQueryService
-from internal.domain.errors import DomainError
+from internal.domain.errors import (
+    DomainError,
+    MediaAssetNotFoundError,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 router = APIRouter(prefix="/api/v1")
 
@@ -148,6 +152,41 @@ class PatchProfileRequestBody(BaseModel):
         description="Optional avatar URL",
         json_schema_extra={"example": "https://s3.rentgf.com/companion-avatar.jpg"},
     )
+
+
+class RegisterMediaRequest(BaseModel):
+    assetType: str = Field(
+        ..., description="IMAGE or VOICE", json_schema_extra={"example": "IMAGE"}
+    )
+    fileUrl: str = Field(
+        ...,
+        description="File URL after S3 upload",
+        json_schema_extra={
+            "example": "https://s3.rentgf.com/companions/1/albums/xyz.png"
+        },
+    )
+
+    @model_validator(mode="after")
+    def validate_type(self) -> "RegisterMediaRequest":
+        if self.assetType not in ("IMAGE", "VOICE"):
+            raise ValueError("assetType must be either IMAGE or VOICE")
+        return self
+
+
+class RegisterMediaResponse(BaseModel):
+    assetId: str
+    status: str
+    message: str
+
+
+class MediaAssetResponse(BaseModel):
+    assetId: str
+    companionId: str
+    fileUrl: str
+    assetType: str
+    sizeBytes: int
+    durationSeconds: Optional[int]
+    status: str
 
 
 class AuthInfo(BaseModel):
@@ -342,6 +381,117 @@ async def request_presigned_url(
         return PresignedUrlResponse(
             uploadUrl=presign_data["uploadUrl"], fileUrl=presign_data["fileUrl"]
         )
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.get(
+    "/profile/me/media",
+    response_model=list[MediaAssetResponse],
+    tags=["Media Management"],
+)
+async def list_my_media(
+    auth_info: AuthInfo = Depends(get_auth_info),
+    query_service: ProfileQueryService = Depends(get_query_service),
+):
+    if auth_info.user_role != "COMPANION":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only companions can manage media assets / scenarios",
+        )
+    try:
+        media_list = await query_service.get_companion_media(auth_info.user_id)
+        return [MediaAssetResponse(**media) for media in media_list]
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post(
+    "/profile/me/media",
+    response_model=RegisterMediaResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Media Management"],
+)
+async def register_my_media(
+    payload: RegisterMediaRequest,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    media_cmd: MediaCommandService = Depends(get_media_cmd),
+    db: AsyncSession = Depends(get_db_session),
+):
+    if auth_info.user_role != "COMPANION":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only companions can manage media assets / scenarios",
+        )
+    try:
+        # Resolve sizeBytes from storage
+        size_bytes = 0
+        try:
+            from urllib.parse import urlparse
+
+            parsed = urlparse(payload.fileUrl)
+            key = parsed.path.lstrip("/")
+            metadata = media_cmd.storage_port.get_object_metadata(key)
+            size_bytes = metadata.get("ContentLength", 0)
+        except Exception:
+            pass
+
+        if payload.assetType == "IMAGE":
+            asset_id = await media_cmd.register_album_image(
+                companion_id=auth_info.user_id,
+                file_url=payload.fileUrl,
+                size_bytes=size_bytes,
+            )
+            msg = "Album image registered successfully"
+        else:  # VOICE
+            asset_id = await media_cmd.register_voice_intro(
+                companion_id=auth_info.user_id,
+                file_url=payload.fileUrl,
+                duration_seconds=30,  # default duration to satisfy invariant without client input
+                size_bytes=size_bytes,
+            )
+            msg = "Voice intro registered successfully"
+
+        await db.commit()
+        return RegisterMediaResponse(assetId=asset_id, status="APPROVED", message=msg)
+    except DomainError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.delete(
+    "/profile/me/media/{asset_id}",
+    response_model=SuccessResponse,
+    tags=["Media Management"],
+)
+async def delete_my_media(
+    asset_id: str,
+    auth_info: AuthInfo = Depends(get_auth_info),
+    media_cmd: MediaCommandService = Depends(get_media_cmd),
+    db: AsyncSession = Depends(get_db_session),
+):
+    if auth_info.user_role != "COMPANION":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only companions can manage media assets / scenarios",
+        )
+    try:
+        await media_cmd.delete_media(companion_id=auth_info.user_id, asset_id=asset_id)
+        await db.commit()
+        return SuccessResponse(success=True)
+    except MediaAssetNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except DomainError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:

@@ -600,3 +600,91 @@ async def test_identity_listener_creates_profile_idempotent(
     user_profile = await user_profile_repo.find_by_id(user_id)
     assert user_profile is not None
     assert user_profile.display_name == "Existing User"
+
+
+async def test_media_crud_rest_api(client, integration_deps, db_session):
+    headers = {"user-id": "user_companion_123", "user-role": "COMPANION"}
+
+    # 1. Register image
+    image_payload = {
+        "assetType": "IMAGE",
+        "fileUrl": "https://storage.rentgf.com/companions/user_companion_123/albums/test_image.png",
+    }
+    response = await client.post(
+        "/profile/me/media", json=image_payload, headers=headers
+    )
+    assert response.status_code == 201
+    img_data = response.json()
+    assert img_data["status"] == "APPROVED"
+    assert "assetId" in img_data
+    image_asset_id = img_data["assetId"]
+
+    # 2. Register voice intro
+    voice_payload = {
+        "assetType": "VOICE",
+        "fileUrl": "https://storage.rentgf.com/companions/user_companion_123/voice_intro.mp3",
+    }
+    response = await client.post(
+        "/profile/me/media", json=voice_payload, headers=headers
+    )
+    assert response.status_code == 201
+    voice_data = response.json()
+    assert voice_data["status"] == "APPROVED"
+    assert "assetId" in voice_data
+    voice_asset_id = voice_data["assetId"]
+
+    # 3. List media
+    response = await client.get("/profile/me/media", headers=headers)
+    assert response.status_code == 200
+    media_list = response.json()
+    # Check that both registered assets are in the list
+    ids = [item["assetId"] for item in media_list]
+    assert image_asset_id in ids
+    assert voice_asset_id in ids
+
+    # Verify properties
+    img_item = [item for item in media_list if item["assetId"] == image_asset_id][0]
+    assert img_item["assetType"] == "ALBUM"
+    assert img_item["fileUrl"] == image_payload["fileUrl"]
+
+    voice_item = [item for item in media_list if item["assetId"] == voice_asset_id][0]
+    assert voice_item["assetType"] == "VOICE_INTRO"
+    assert voice_item["fileUrl"] == voice_payload["fileUrl"]
+
+    # 4. Delete image
+    response = await client.delete(
+        f"/profile/me/media/{image_asset_id}", headers=headers
+    )
+    assert response.status_code == 200
+    assert response.json() == {"success": True}
+
+    # 5. List media again to verify deleted
+    response = await client.get("/profile/me/media", headers=headers)
+    assert response.status_code == 200
+    media_list = response.json()
+    ids = [item["assetId"] for item in media_list]
+    assert image_asset_id not in ids
+    assert voice_asset_id in ids
+
+    # 6. Delete already deleted (should return 404)
+    response = await client.delete(
+        f"/profile/me/media/{image_asset_id}", headers=headers
+    )
+    assert response.status_code == 404
+
+    # 7. Delete with wrong user (should return 404/Forbidden)
+    wrong_headers = {"user-id": "some_other_companion", "user-role": "COMPANION"}
+    profile_cmd = integration_deps["profile_cmd"]
+    await profile_cmd.create_profile(
+        companion_id="some_other_companion",
+        user_id="some_other_companion",
+        display_name="Other Companion",
+        bio="Some bio",
+        available_cities=["Hanoi"],
+        role="COMPANION",
+    )
+    await db_session.commit()
+    response = await client.delete(
+        f"/profile/me/media/{voice_asset_id}", headers=wrong_headers
+    )
+    assert response.status_code == 404

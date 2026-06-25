@@ -69,3 +69,8 @@ class AlbumLimitExceededError(DomainError):
 class ProfileNotAvailableError(DomainError):
     def __init__(self, companion_id: str):
         super().__init__(f"Companion profile not approved or locked: {companion_id}")
+
+
+class MediaAssetNotFoundError(DomainError):
+    def __init__(self, asset_id: str):
+        super().__init__(f"Media asset not found: {asset_id}")

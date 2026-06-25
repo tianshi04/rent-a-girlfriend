@@ -8,6 +8,7 @@ from internal.domain.errors import (
     VoiceIntroDurationExceededError,
     VoiceIntroSizeExceededError,
     AlbumImageSizeExceededError,
+    MediaAssetNotFoundError,
 )
 from internal.domain.service import MediaValidationService
 from internal.domain.repository import (
@@ -164,3 +165,9 @@ class MediaCommandService:
         except Exception:
             # If storage port is mocked or key is external/public URL in tests, ignore
             pass
+
+    async def delete_media(self, companion_id: str, asset_id: str) -> None:
+        asset = await self.media_repo.find_by_id(asset_id)
+        if not asset or asset.companion_id != companion_id:
+            raise MediaAssetNotFoundError(asset_id)
+        await self.media_repo.delete(asset_id)
