@@ -179,18 +179,4 @@ protoc \
     --grpc-gateway_opt=logtostderr=true \
     "$contracts/booking/v1/service/booking_service.proto"
 
-# 3. Sinh OpenAPI v2 specification
-protoc \
-    -I "$contracts" \
-    -I "$googleapis" \
-    --openapiv2_out="$serviceRoot" \
-    --openapiv2_opt=logtostderr=true \
-    --openapiv2_opt=allow_merge=true \
-    --openapiv2_opt=merge_file_name=openapi \
-    "$contracts/booking/v1/service/booking_service.proto"
-
-if [ -f "$serviceRoot/openapi.swagger.json" ]; then
-    mv "$serviceRoot/openapi.swagger.json" "$serviceRoot/openapi.json"
-fi
-
 echo "==> [gen_proto] Done! All files generated successfully inside gen/proto/"
