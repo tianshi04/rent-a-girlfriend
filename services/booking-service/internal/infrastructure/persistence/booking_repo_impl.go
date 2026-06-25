@@ -250,11 +250,9 @@ func (r *BookingRepositoryImpl) FindByFilters(
 ) ([]*aggregate.Booking, int64, error) {
 	query := r.getDB(ctx).Model(&BookingModel{})
 
-	if filters.ClientID != nil {
-		query = query.Where("client_id = ?", *filters.ClientID)
-	}
-	if filters.CompanionID != nil {
-		query = query.Where("companion_id = ?", *filters.CompanionID)
+	if filters.UserID != nil {
+		// BIZ rule: User can see bookings where they are CLIENT, OR bookings where they are COMPANION but status is not PENDING_RESERVING.
+		query = query.Where("client_id = ? OR (companion_id = ? AND status != 'PENDING_RESERVING')", *filters.UserID, *filters.UserID)
 	}
 	if len(filters.Statuses) > 0 {
 		query = query.Where("status IN (?)", filters.Statuses)

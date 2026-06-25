@@ -9,11 +9,10 @@ import (
 
 // ListBookingsQuery holds the filters for listing bookings.
 type ListBookingsQuery struct {
-	ClientID    *string
-	CompanionID *string
-	Statuses    []string
-	Page        int64
-	PageSize    int64
+	UserID   *string
+	Statuses []string
+	Page     int64
+	PageSize int64
 }
 
 // ListBookingsResult contains the paginated result.
@@ -42,11 +41,10 @@ func (h *ListBookingsHandler) Handle(ctx context.Context, q ListBookingsQuery) (
 	}
 
 	filters := repository.BookingFilters{
-		ClientID:    q.ClientID,
-		CompanionID: q.CompanionID,
-		Statuses:    q.Statuses,
-		Page:        q.Page,
-		PageSize:    q.PageSize,
+		UserID:   q.UserID,
+		Statuses: q.Statuses,
+		Page:     q.Page,
+		PageSize: q.PageSize,
 	}
 
 	bookings, total, err := h.repo.FindByFilters(ctx, filters)

@@ -69,11 +69,10 @@ func (m *MockBookingRepository) FindByFilters(ctx context.Context, filters repos
 
 	var result []*aggregate.Booking
 	for _, b := range m.bookings {
-		if filters.ClientID != nil && b.ClientID().String() != *filters.ClientID {
-			continue
-		}
-		if filters.CompanionID != nil && b.CompanionID().String() != *filters.CompanionID {
-			continue
+		if filters.UserID != nil {
+			if b.ClientID().String() != *filters.UserID && b.CompanionID().String() != *filters.UserID {
+				continue
+			}
 		}
 		if len(filters.Statuses) > 0 {
 			matchStatus := false
