@@ -78,7 +78,7 @@ public class KafkaConsumerIntegrationTest {
     String rawEventJson =
         "{"
             + "\"specversion\":\"1.0\","
-            + "\"type\":\"finance.kano-coin-deposited.v1\","
+            + "\"type\":\"finance.wallet-topped-up.v1\","
             + "\"source\":\"/services/finance\","
             + "\"id\":\""
             + eventId

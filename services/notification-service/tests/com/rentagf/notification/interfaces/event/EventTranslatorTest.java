@@ -72,7 +72,7 @@ public class EventTranslatorTest {
 
     CloudEvent event =
         createDummyEvent(
-            "finance.kano-coin-deposited.v1",
+            "finance.wallet-topped-up.v1",
             "/services/finance",
             eventId,
             Map.of("userId", userId.toString(), "amount", 500, "transactionId", "tx-999"));
@@ -101,7 +101,7 @@ public class EventTranslatorTest {
 
     CloudEvent event =
         createDummyEvent(
-            "booking.booking-cancelled.v1",
+            "booking.booking-cancelled-early.v1",
             "/services/booking",
             eventId,
             Map.of(
