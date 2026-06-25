@@ -5,6 +5,7 @@ from internal.domain.errors import (
     ProfileNotAvailableError,
 )
 from internal.domain.repository import (
+    IUserProfileRepository,
     ICompanionProfileRepository,
     IScenarioRepository,
     IMediaAssetRepository,
@@ -17,32 +18,40 @@ from internal.application.port import IStoragePort
 class ProfileQueryService:
     def __init__(
         self,
+        user_profile_repo: IUserProfileRepository,
         profile_repo: ICompanionProfileRepository,
         scenario_repo: IScenarioRepository,
         media_repo: IMediaAssetRepository,
         storage: IStoragePort,
     ):
+        self.user_profile_repo = user_profile_repo
         self.profile_repo = profile_repo
         self.scenario_repo = scenario_repo
         self.media_repo = media_repo
         self.storage = storage
 
     async def get_my_profile(self, user_id: str) -> Dict[str, Any]:
-        profile = await self.profile_repo.find_by_user_id(user_id)
-        if not profile:
+        user_profile = await self.user_profile_repo.find_by_id(user_id)
+        if not user_profile:
             raise ProfileNotFoundError(f"user_id: {user_id}")
 
-        return await self.get_companion_detail(profile.companion_id, public=False)
+        return await self.get_companion_detail(user_id, public=False)
 
     async def get_companion_detail(
         self, companion_id: str, public: bool = False
     ) -> Dict[str, Any]:
-        profile = await self.profile_repo.find_by_id(companion_id)
-        if not profile:
+        user_profile = await self.user_profile_repo.find_by_id(companion_id)
+        if not user_profile:
             raise ProfileNotFoundError(companion_id)
 
-        if public and (profile.status != "APPROVED" or profile.role != "COMPANION"):
-            raise ProfileNotAvailableError(companion_id)
+        companion_profile = await self.profile_repo.find_by_id(companion_id)
+
+        status_val = companion_profile.status if companion_profile else "APPROVED"
+        if public:
+            if user_profile.role != "COMPANION":
+                raise ProfileNotAvailableError(companion_id)
+            if companion_profile and companion_profile.status != "APPROVED":
+                raise ProfileNotAvailableError(companion_id)
 
         # Get scenarios
         scenarios = await self.scenario_repo.find_by_companion_id(companion_id)
@@ -66,19 +75,26 @@ class ProfileQueryService:
             voice_url = self.storage.generate_presigned_get_url(key, expires_in=300)
 
         album_urls = [asset.file_url.url for asset in albums]
+        cities = (
+            [str(city) for city in companion_profile.available_cities]
+            if companion_profile
+            else []
+        )
 
         return {
-            "companionId": profile.companion_id,
-            "displayName": profile.display_name,
-            "avatarUrl": profile.avatar_url.url if profile.avatar_url else None,
-            "bio": profile.bio,
-            "role": profile.role,
-            "availableCities": [str(city) for city in profile.available_cities],
+            "companionId": companion_id,
+            "displayName": user_profile.display_name,
+            "avatarUrl": user_profile.avatar_url.url
+            if user_profile.avatar_url
+            else None,
+            "bio": user_profile.bio,
+            "role": user_profile.role,
+            "availableCities": cities,
             "voiceIntroUrl": voice_url,
             "albumUrls": album_urls,
             "averageRating": 4.9,  # Seeded/Mocked for MVP, dynamically updated by review events in Phase 5
             "totalReviews": 150,  # Seeded/Mocked for MVP
-            "status": profile.status,
+            "status": status_val,
             "scenarios": [
                 {
                     "id": sc.scenario_id,
@@ -89,7 +105,7 @@ class ProfileQueryService:
                     "status": sc.status,
                 }
                 for sc in scenarios
-                if sc.status == "ACTIVE" or profile.status == "PENDING"
+                if sc.status == "ACTIVE" or status_val == "PENDING"
             ],
         }
 
@@ -132,6 +148,12 @@ class ProfileQueryService:
 
         data = []
         for comp in companions:
+            user_prof = await self.user_profile_repo.find_by_id(comp.companion_id)
+            display_name = user_prof.display_name if user_prof else "Companion"
+            avatar_url = (
+                user_prof.avatar_url.url if user_prof and user_prof.avatar_url else None
+            )
+
             # Find starting price (lowest active scenario price)
             scenarios = await self.scenario_repo.find_by_companion_id(comp.companion_id)
             active_scenarios = [s for s in scenarios if s.status == "ACTIVE"]
@@ -144,8 +166,8 @@ class ProfileQueryService:
             data.append(
                 {
                     "companionId": comp.companion_id,
-                    "displayName": comp.display_name,
-                    "avatarUrl": comp.avatar_url.url if comp.avatar_url else None,
+                    "displayName": display_name,
+                    "avatarUrl": avatar_url,
                     "averageRating": 4.9,  # Default rating for search cards
                     "city": str(comp.available_cities[0])
                     if comp.available_cities

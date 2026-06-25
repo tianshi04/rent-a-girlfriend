@@ -1,6 +1,21 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
-from internal.domain.aggregate import CompanionProfile, Scenario, MediaAsset
+from internal.domain.aggregate import (
+    UserProfile,
+    CompanionProfile,
+    Scenario,
+    MediaAsset,
+)
+
+
+class IUserProfileRepository(ABC):
+    @abstractmethod
+    async def save(self, profile: UserProfile) -> None:
+        pass
+
+    @abstractmethod
+    async def find_by_id(self, user_id: str) -> Optional[UserProfile]:
+        pass
 
 
 class ICompanionProfileRepository(ABC):
@@ -10,10 +25,6 @@ class ICompanionProfileRepository(ABC):
 
     @abstractmethod
     async def find_by_id(self, companion_id: str) -> Optional[CompanionProfile]:
-        pass
-
-    @abstractmethod
-    async def find_by_user_id(self, user_id: str) -> Optional[CompanionProfile]:
         pass
 
     @abstractmethod

@@ -238,10 +238,15 @@ async def test_create_and_update_my_profile_success(
     assert response.json()["companionId"] == new_user_id
 
     # Verify in DB
+    user_profile_repo = integration_deps["user_profile_repo"]
     profile_repo = integration_deps["profile_repo"]
+    user_profile = await user_profile_repo.find_by_id(new_user_id)
+    assert user_profile is not None
+    assert user_profile.display_name == "Mizuhara Chizuru"
+    assert user_profile.bio == "I am a professional companion."
+
     profile = await profile_repo.find_by_id(new_user_id)
     assert profile is not None
-    assert profile.display_name == "Mizuhara Chizuru"
     assert profile.status == "APPROVED"
 
     # 2. Update Profile
@@ -260,11 +265,12 @@ async def test_create_and_update_my_profile_success(
     assert response.json() == {"success": True}
 
     # Verify update in DB
-    updated_profile = await profile_repo.find_by_id(new_user_id)
-    assert updated_profile.display_name == "Mizuhara Chizuru Updated"
-    assert updated_profile.bio == "Updated bio."
+    updated_user_profile = await user_profile_repo.find_by_id(new_user_id)
+    assert updated_user_profile.display_name == "Mizuhara Chizuru Updated"
+    assert updated_user_profile.bio == "Updated bio."
     assert (
-        str(updated_profile.avatar_url) == "https://s3.rentgf.com/avatars/chizuru.jpg"
+        str(updated_user_profile.avatar_url)
+        == "https://s3.rentgf.com/avatars/chizuru.jpg"
     )
 
 
@@ -423,7 +429,170 @@ async def test_identity_listener_upgrades_role(
 
     # Verify user upgraded in DB
     db_session.expire_all()
+    user_profile_repo = integration_deps["user_profile_repo"]
+    user_profile = await user_profile_repo.find_by_id("user_to_upgrade_111")
+    assert user_profile is not None
+    assert user_profile.role == "COMPANION"
+
     profile = await profile_repo.find_by_id("user_to_upgrade_111")
     assert profile is not None
-    assert profile.role == "COMPANION"
     assert profile.status == "APPROVED"
+
+
+async def test_identity_listener_creates_profile(
+    integration_deps, db_session, monkeypatch
+):
+    profile_repo = integration_deps["profile_repo"]
+
+    # Ensure profile does not exist yet
+    user_id = "user_new_registered_999"
+    profile = await profile_repo.find_by_id(user_id)
+    assert profile is None
+
+    # Mock Message and AIOKafkaConsumer
+    class MockMessage:
+        def __init__(self, value):
+            self.value = value
+
+    class MockConsumer:
+        def __init__(self, messages):
+            self.messages = messages
+
+        async def start(self):
+            pass
+
+        async def stop(self):
+            pass
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if not self.messages:
+                raise StopAsyncIteration
+            return self.messages.pop(0)
+
+    # Mock settings and import targeting main listener module or identity_listener.py
+    import internal.interfaces.kafka.identity_listener as listener_module
+
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def mock_session_local():
+        yield db_session
+
+    monkeypatch.setattr(listener_module, "SessionLocal", mock_session_local)
+
+    # Mock AIOKafkaConsumer in the listener module
+    mock_event = {
+        "specversion": "1.0",
+        "type": "identity.user-registered.v1",
+        "data": {
+            "userId": user_id,
+            "name": "New Registered User",
+            "role": "CLIENT",
+        },
+    }
+    monkeypatch.setattr(
+        listener_module,
+        "AIOKafkaConsumer",
+        lambda *args, **kwargs: MockConsumer([MockMessage(mock_event)]),
+    )
+
+    # Execute listener
+    from internal.interfaces.kafka.identity_listener import IdentityEventListener
+
+    listener = IdentityEventListener()
+
+    # Execute the internal running loop directly
+    await listener._run()
+
+    # Verify user created in DB
+    db_session.expire_all()
+    user_profile_repo = integration_deps["user_profile_repo"]
+    user_profile = await user_profile_repo.find_by_id(user_id)
+    assert user_profile is not None
+    assert user_profile.display_name == "New Registered User"
+    assert user_profile.role == "CLIENT"
+
+
+async def test_identity_listener_creates_profile_idempotent(
+    integration_deps, db_session, monkeypatch
+):
+    profile_cmd = integration_deps["profile_cmd"]
+
+    # Seed profile first
+    user_id = "user_already_registered_888"
+    await profile_cmd.create_profile(
+        companion_id=user_id,
+        user_id=user_id,
+        display_name="Existing User",
+        available_cities=["Hanoi"],
+        role="CLIENT",
+    )
+    await db_session.commit()
+
+    # Mock Message and AIOKafkaConsumer
+    class MockMessage:
+        def __init__(self, value):
+            self.value = value
+
+    class MockConsumer:
+        def __init__(self, messages):
+            self.messages = messages
+
+        async def start(self):
+            pass
+
+        async def stop(self):
+            pass
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if not self.messages:
+                raise StopAsyncIteration
+            return self.messages.pop(0)
+
+    # Mock settings and import targeting main listener module or identity_listener.py
+    import internal.interfaces.kafka.identity_listener as listener_module
+
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def mock_session_local():
+        yield db_session
+
+    monkeypatch.setattr(listener_module, "SessionLocal", mock_session_local)
+
+    # Mock AIOKafkaConsumer in the listener module
+    mock_event = {
+        "specversion": "1.0",
+        "type": "identity.user-registered.v1",
+        "data": {
+            "userId": user_id,
+            "name": "Different Name",
+            "role": "CLIENT",
+        },
+    }
+    monkeypatch.setattr(
+        listener_module,
+        "AIOKafkaConsumer",
+        lambda *args, **kwargs: MockConsumer([MockMessage(mock_event)]),
+    )
+
+    # Execute listener
+    from internal.interfaces.kafka.identity_listener import IdentityEventListener
+
+    listener = IdentityEventListener()
+
+    # Execute the internal running loop directly
+    await listener._run()
+
+    # Verify user profile remained unchanged (idempotence)
+    db_session.expire_all()
+    user_profile_repo = integration_deps["user_profile_repo"]
+    user_profile = await user_profile_repo.find_by_id(user_id)
+    assert user_profile is not None
+    assert user_profile.display_name == "Existing User"
