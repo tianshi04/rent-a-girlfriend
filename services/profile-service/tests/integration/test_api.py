@@ -688,3 +688,27 @@ async def test_media_crud_rest_api(client, integration_deps, db_session):
         f"/profile/me/media/{voice_asset_id}", headers=wrong_headers
     )
     assert response.status_code == 404
+
+
+async def test_get_client_profile(client, integration_deps, db_session):
+    profile_cmd = integration_deps["profile_cmd"]
+    try:
+        await profile_cmd.create_profile(
+            companion_id="client_user_123",
+            user_id="client_user_123",
+            display_name="Client Test",
+            bio="Test Client Bio",
+            available_cities=[],
+            role="CLIENT",
+        )
+        await db_session.commit()
+    except Exception:
+        pass
+
+    headers = {"user-id": "client_user_123", "user-role": "CLIENT"}
+    response = await client.get("/profiles/client_user_123", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["clientId"] == "client_user_123"
+    assert data["displayName"] == "Client Test"
+    assert data["role"] == "CLIENT"
