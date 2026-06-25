@@ -16,21 +16,29 @@ spec:
       when:
         - key: request.headers[user-id]
           values: ["*"]
+        - key: request.headers[content-type]
+          notValues: ["application/grpc*"]
     - from:
         - source:
             notRequestPrincipals: ["*"]
       when:
         - key: request.headers[user-role]
           values: ["*"]
+        - key: request.headers[content-type]
+          notValues: ["application/grpc*"]
     - from:
         - source:
             notRequestPrincipals: ["*"]
       when:
         - key: request.headers[user-email]
           values: ["*"]
+        - key: request.headers[content-type]
+          notValues: ["application/grpc*"]
     - from:
         - source:
             notRequestPrincipals: ["*"]
       when:
         - key: request.headers[user-status]
           values: ["*"]
+        - key: request.headers[content-type]
+          notValues: ["application/grpc*"]
