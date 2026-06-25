@@ -157,4 +157,3 @@ func TestE2E_GetBooking_Companion_AsClient_SeesPendingReserving(t *testing.T) {
 		t.Errorf("expected 200 OK for companion acting as client on PENDING_RESERVING, got %d", resp.StatusCode)
 	}
 }
-

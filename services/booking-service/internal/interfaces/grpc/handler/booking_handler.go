@@ -249,10 +249,10 @@ func (h *BookingGRPCHandler) ListBookings(ctx context.Context, req *bookingv1.Li
 	}
 
 	result, err := h.listBookings.Handle(ctx, query.ListBookingsQuery{
-		UserID:      userIDPtr,
-		Statuses:    statusesFilter,
-		Page:        page,
-		PageSize:    pageSize,
+		UserID:   userIDPtr,
+		Statuses: statusesFilter,
+		Page:     page,
+		PageSize: pageSize,
 	})
 	if err != nil {
 		return nil, mapDomainError(err)

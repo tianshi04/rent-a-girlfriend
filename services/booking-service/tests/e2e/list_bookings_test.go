@@ -224,4 +224,3 @@ func TestE2E_ListBookings_Admin_SeesAll(t *testing.T) {
 		t.Errorf("admin should see all bookings, got %+v", listResp)
 	}
 }
-
