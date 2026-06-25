@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	identityv1 "github.com/rent-a-girlfriend/identity-service/gen/proto"
 	domainerr "github.com/rent-a-girlfriend/identity-service/internal/domain/errors"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/vo"
@@ -36,10 +37,12 @@ func NewUpgradeRequest(userID vo.UserID, reason string, now time.Time) *UpgradeR
 	}
 
 	r.addEvent(event.CompanionUpgradeRequested{
-		RequestID: r.id.String(),
-		UserID:    userID.String(),
-		Reason:    reason,
-		Timestamp: now,
+		UpgradeRequestedPayload: &identityv1.UpgradeRequestedPayload{
+			UserId:    userID.String(),
+			RequestId: r.id.String(),
+			Reason:    reason,
+		},
+		Occurred: now,
 	})
 
 	return r
@@ -77,10 +80,12 @@ func (r *UpgradeRequest) Approve(adminID string, now time.Time) error {
 	r.reviewedAt = &now
 
 	r.addEvent(event.CompanionUpgradeApproved{
-		RequestID:  r.id.String(),
-		UserID:     r.userID.String(),
-		ApprovedBy: adminID,
-		Timestamp:  now,
+		UpgradeApprovedPayload: &identityv1.UpgradeApprovedPayload{
+			UserId:     r.userID.String(),
+			RequestId:  r.id.String(),
+			ApprovedBy: adminID,
+		},
+		Occurred: now,
 	})
 	return nil
 }
@@ -97,11 +102,13 @@ func (r *UpgradeRequest) Reject(adminID, rejectReason string, now time.Time) err
 	r.reviewedAt = &now
 
 	r.addEvent(event.CompanionUpgradeRejected{
-		RequestID:    r.id.String(),
-		UserID:       r.userID.String(),
-		RejectedBy:   adminID,
-		RejectReason: rejectReason,
-		Timestamp:    now,
+		UpgradeRejectedPayload: &identityv1.UpgradeRejectedPayload{
+			UserId:     r.userID.String(),
+			RequestId:  r.id.String(),
+			RejectedBy: adminID,
+			Reason:     rejectReason,
+		},
+		Occurred: now,
 	})
 	return nil
 }

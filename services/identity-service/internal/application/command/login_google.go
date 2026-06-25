@@ -66,7 +66,7 @@ func (h *LoginGoogleHandler) Handle(ctx context.Context, cmd LoginGoogleCommand)
 			return nil, emailErr
 		}
 
-		account = aggregate.NewUserAccount(email, userInfo.GoogleID, time.Now())
+		account = aggregate.NewUserAccount(email, userInfo.GoogleID, userInfo.Name, time.Now())
 		if saveErr := h.accountRepo.Save(ctx, account); saveErr != nil {
 			return nil, saveErr
 		}

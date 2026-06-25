@@ -44,7 +44,7 @@ func (h *MockLoginHandler) Handle(ctx context.Context, cmd MockLoginCommand) (*p
 			return nil, err
 		}
 
-		account = aggregate.NewUserAccount(email, cmd.GoogleID, time.Now())
+		account = aggregate.NewUserAccount(email, cmd.GoogleID, "", time.Now())
 
 		// Override role for testing if provided
 		if cmd.Role != "" {

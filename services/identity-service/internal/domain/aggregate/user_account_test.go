@@ -14,7 +14,7 @@ func newTestAccount(t *testing.T) *UserAccount {
 	if err != nil {
 		t.Fatalf("failed to create email: %v", err)
 	}
-	return NewUserAccount(email, "google-123", time.Now())
+	return NewUserAccount(email, "google-123", "Test User", time.Now())
 }
 
 func TestNewUserAccount_DefaultsToClient(t *testing.T) {

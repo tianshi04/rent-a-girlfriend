@@ -8,8 +8,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
 
+	identityv1 "github.com/rent-a-girlfriend/identity-service/gen/proto"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/identity-service/internal/infrastructure/persistence"
 	"github.com/rent-a-girlfriend/identity-service/tests/testhelper"
@@ -24,11 +26,14 @@ func TestOutboxPublisher_Integration(t *testing.T) {
 
 		testUserID := uuid.New().String()
 		testEvent := event.UserRegistered{
-			UserID:    testUserID,
-			Email:     "integration@test.com",
-			Role:      "CLIENT",
-			GoogleID:  "google-" + uuid.New().String(),
-			Timestamp: time.Now().UTC().Truncate(time.Second),
+			UserRegisteredPayload: &identityv1.UserRegisteredPayload{
+				UserId:    testUserID,
+				Email:     "integration@test.com",
+				Role:      "CLIENT",
+				GoogleId:  "google-" + uuid.New().String(),
+				Timestamp: timestamppb.New(time.Now().UTC().Truncate(time.Second)),
+				Name:      "Integration Test User",
+			},
 		}
 
 		err := publisher.Publish(ctx, testEvent)

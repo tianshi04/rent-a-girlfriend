@@ -46,6 +46,7 @@ PROTO_FILES=(
     "identity/v1/messages/responses/upgrade_request_item.proto"
     "identity/v1/messages/responses/list_upgrade_requests_response.proto"
     "identity/v1/events/account_locked_event.proto"
+    "identity/v1/events/user_registered_event.proto"
     "identity/v1/events/violation_recorded_event.proto"
     "identity/v1/events/upgrade_requested_event.proto"
     "identity/v1/events/upgrade_approved_event.proto"

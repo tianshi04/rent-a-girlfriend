@@ -3,9 +3,11 @@ package aggregate
 import (
 	"time"
 
+	identityv1 "github.com/rent-a-girlfriend/identity-service/gen/proto"
 	domainerr "github.com/rent-a-girlfriend/identity-service/internal/domain/errors"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/event"
 	"github.com/rent-a-girlfriend/identity-service/internal/domain/vo"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // UserAccount is the Aggregate Root for the Identity Context.
@@ -26,7 +28,7 @@ type UserAccount struct {
 }
 
 // NewUserAccount creates a new UserAccount with default role CLIENT and status ACTIVE.
-func NewUserAccount(email vo.Email, googleID string, now time.Time) *UserAccount {
+func NewUserAccount(email vo.Email, googleID string, name string, now time.Time) *UserAccount {
 	a := &UserAccount{
 		id:             vo.NewUserID(),
 		email:          email,
@@ -40,11 +42,14 @@ func NewUserAccount(email vo.Email, googleID string, now time.Time) *UserAccount
 	}
 
 	a.addEvent(event.UserRegistered{
-		UserID:    a.id.String(),
-		Email:     a.email.String(),
-		Role:      string(a.role),
-		GoogleID:  googleID,
-		Timestamp: now,
+		UserRegisteredPayload: &identityv1.UserRegisteredPayload{
+			UserId:    a.id.String(),
+			Email:     a.email.String(),
+			Name:      name,
+			Role:      string(a.role),
+			GoogleId:  googleID,
+			Timestamp: timestamppb.New(now),
+		},
 	})
 
 	return a
@@ -80,11 +85,11 @@ func (a *UserAccount) RecordViolation(reason, bookingID string, now time.Time) {
 	a.updatedAt = now
 
 	a.addEvent(event.ViolationRecorded{
-		UserID:       a.id.String(),
-		CurrentCount: a.violationCount,
-		Reason:       reason,
-		BookingID:    bookingID,
-		Timestamp:    now,
+		ViolationRecordedPayload: &identityv1.ViolationRecordedPayload{
+			UserId:       a.id.String(),
+			CurrentCount: int32(a.violationCount),
+		},
+		Occurred: now,
 	})
 }
 
@@ -98,10 +103,11 @@ func (a *UserAccount) Lock(reason, lockedBy string, now time.Time) error {
 	a.updatedAt = now
 
 	a.addEvent(event.AccountLocked{
-		UserID:    a.id.String(),
-		Reason:    reason,
-		LockedBy:  lockedBy,
-		Timestamp: now,
+		AccountLockedPayload: &identityv1.AccountLockedPayload{
+			UserId: a.id.String(),
+			Reason: reason,
+		},
+		Occurred: now,
 	})
 	return nil
 }

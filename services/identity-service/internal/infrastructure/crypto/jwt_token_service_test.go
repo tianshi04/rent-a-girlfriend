@@ -27,7 +27,7 @@ func TestJWTTokenService_Lifecycle(t *testing.T) {
 	svc := NewJWTTokenService(db, kp, time.Minute, time.Hour, "test-issuer")
 
 	email, _ := vo.NewEmail("test@example.com")
-	acc := aggregate.NewUserAccount(email, "google-1", time.Now())
+	acc := aggregate.NewUserAccount(email, "google-1", "Test User", time.Now())
 
 	// 1. Generate Token Pair
 	pair, err := svc.GenerateTokenPair(acc)
