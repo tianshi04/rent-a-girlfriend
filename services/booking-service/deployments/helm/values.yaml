@@ -30,6 +30,8 @@ config:
   KAFKA_TOPIC_DISPUTE: "dispute.events"
   OUTBOX_POLLING_INTERVAL_MS: "500"
   OUTBOX_BATCH_SIZE: "50"
+  PROFILE_SERVICE_ADDR: "profile-service.profile-service.svc.cluster.local:50051"
+  FINANCE_SERVICE_ADDR: "finance-service.finance-service.svc.cluster.local:50051"
 
 # If existingSecret is specified, the Helm chart will not create a Secret resource
 # and will instead reference the existing Secret name provided here.
