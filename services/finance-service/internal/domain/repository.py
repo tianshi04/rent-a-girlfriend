@@ -54,3 +54,9 @@ class ITransactionRepository(ABC):
         self, reference_id: str, type: TransactionType, lock: bool = False
     ) -> Optional[Transaction]:
         pass
+
+    @abstractmethod
+    async def find_by_user_id(
+        self, user_id: str, limit: int, offset: int
+    ) -> tuple[list[Transaction], int]:
+        pass

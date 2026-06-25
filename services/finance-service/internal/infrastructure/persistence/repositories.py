@@ -1,6 +1,7 @@
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
+
 from internal.domain.aggregate.wallet import Wallet
 from internal.domain.aggregate.escrow import Escrow
 from internal.domain.aggregate.transaction import Transaction
@@ -120,6 +121,8 @@ class TransactionRepository(ITransactionRepository):
             status=transaction.status,
             reference_id=transaction.reference_id,
         )
+        if transaction.created_at is not None:
+            model.created_at = transaction.created_at
         await self.session.merge(model)
         await self.session.flush()
 
@@ -150,6 +153,30 @@ class TransactionRepository(ITransactionRepository):
             return None
         return self._to_domain(model)
 
+    async def find_by_user_id(
+        self, user_id: str, limit: int, offset: int
+    ) -> tuple[list[Transaction], int]:
+        # Count total items
+        count_stmt = (
+            select(func.count())
+            .select_from(TransactionModel)
+            .filter_by(user_id=user_id)
+        )
+        count_result = await self.session.execute(count_stmt)
+        total = count_result.scalar_one()
+
+        # Query paginated list sorted by created_at DESC
+        stmt = (
+            select(TransactionModel)
+            .filter_by(user_id=user_id)
+            .order_by(TransactionModel.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        models = result.scalars().all()
+        return [self._to_domain(m) for m in models], total
+
     def _to_domain(self, model: TransactionModel) -> Transaction:
         txn_type = model.type
         if not isinstance(txn_type, TransactionType):
@@ -164,4 +191,5 @@ class TransactionRepository(ITransactionRepository):
             type=txn_type,
             status=model.status,
             reference_id=model.reference_id,
+            created_at=model.created_at,
         )

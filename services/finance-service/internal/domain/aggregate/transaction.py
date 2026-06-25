@@ -1,3 +1,4 @@
+from datetime import datetime
 from internal.domain.vo import Money, TransactionType
 
 
@@ -10,6 +11,7 @@ class Transaction:
         type: TransactionType,
         status: str,  # PENDING, SUCCESS, FAILED
         reference_id: str,
+        created_at: datetime = None,
     ):
         self.transaction_id = transaction_id
         self.user_id = user_id
@@ -17,6 +19,7 @@ class Transaction:
         self.type = type
         self.status = status
         self.reference_id = reference_id
+        self.created_at = created_at
 
     @classmethod
     def create(
@@ -27,6 +30,7 @@ class Transaction:
         type: TransactionType,
         status: str,
         reference_id: str,
+        created_at: datetime = None,
     ) -> "Transaction":
         return cls(
             transaction_id=transaction_id,
@@ -35,6 +39,7 @@ class Transaction:
             type=type,
             status=status,
             reference_id=reference_id,
+            created_at=created_at,
         )
 
     def success(self):

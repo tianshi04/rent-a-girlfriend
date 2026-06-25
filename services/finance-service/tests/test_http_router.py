@@ -359,3 +359,89 @@ async def test_get_wallet_missing_user_id_rejected(client):
     """GET /wallet without user-id header returns 422."""
     response = await client.get("/api/v1/finance/wallet")
     assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/finance/transactions
+# ---------------------------------------------------------------------------
+
+
+async def test_get_transaction_history_empty(client):
+    """GET /transactions for a user with no history returns 200 with empty list."""
+    response = await client.get(
+        "/api/v1/finance/transactions", headers={"user-id": "user-txn-empty-1"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["transactions"] == []
+    assert body["page"] == 1
+    assert body["pageSize"] == 10
+    assert body["total"] == 0
+
+
+async def test_get_transaction_history_paginated(
+    client, TestSessionLocal, mock_publisher, vnpay_adapter
+):
+    """GET /transactions returns correct paginated transaction items sorted by created_at DESC."""
+    user_id = "user-txn-paginated-1"
+    from internal.domain.aggregate.transaction import Transaction
+    from internal.domain.vo import TransactionType
+    from datetime import datetime, timedelta
+
+    # Pre-seed transactions in DB
+    async with TestSessionLocal() as db:
+        repo = TransactionRepository(db)
+        # Create 15 transactions with distinct created_at times
+        base_time = datetime.utcnow()
+        for i in range(15):
+            txn = Transaction.create(
+                transaction_id=f"txn-id-{i}",
+                user_id=user_id,
+                amount=Money(10 + i),
+                type=TransactionType.TOPUP
+                if i % 2 == 0
+                else TransactionType.BOOKING_RESERVATION,
+                status="SUCCESS" if i % 3 != 0 else "FAILED",
+                reference_id=f"ref-id-{i}",
+                created_at=base_time + timedelta(minutes=i),
+            )
+            await repo.save(txn)
+        await db.commit()
+
+    # Query page 1, size 10
+    response = await client.get(
+        "/api/v1/finance/transactions",
+        params={"page": 1, "pageSize": 10},
+        headers={"user-id": user_id},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["page"] == 1
+    assert body["pageSize"] == 10
+    assert body["total"] == 15
+    assert len(body["transactions"]) == 10
+
+    # Ensure DESC sorting (newest first, which is the 14th item)
+    assert body["transactions"][0]["transactionId"] == "txn-id-14"
+    assert body["transactions"][9]["transactionId"] == "txn-id-5"
+
+    # Query page 2, size 10
+    response2 = await client.get(
+        "/api/v1/finance/transactions",
+        params={"page": 2, "pageSize": 10},
+        headers={"user-id": user_id},
+    )
+    assert response2.status_code == 200
+    body2 = response2.json()
+    assert body2["page"] == 2
+    assert body2["pageSize"] == 10
+    assert body2["total"] == 15
+    assert len(body2["transactions"]) == 5
+    assert body2["transactions"][0]["transactionId"] == "txn-id-4"
+    assert body2["transactions"][4]["transactionId"] == "txn-id-0"
+
+
+async def test_get_transaction_history_missing_user_id(client):
+    """GET /transactions without user-id header returns 422."""
+    response = await client.get("/api/v1/finance/transactions")
+    assert response.status_code == 422

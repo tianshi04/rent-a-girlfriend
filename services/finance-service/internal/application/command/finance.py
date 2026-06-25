@@ -471,3 +471,21 @@ class FinanceCommandService:
             raise InvalidAmountError(amount)
         wallet = await self.get_or_create_wallet(user_id, lock=False)
         return wallet.available_balance.amount >= amount
+
+    async def get_transaction_history(
+        self, user_id: str, page: int, page_size: int
+    ) -> tuple[list[Transaction], int]:
+        """
+        Retrieves the transaction history for a user, paginated.
+        """
+        if page < 1:
+            page = 1
+        if page_size < 1:
+            page_size = 10
+        # Enforce max limit of 100
+        if page_size > 100:
+            page_size = 100
+        offset = (page - 1) * page_size
+        return await self.transaction_repo.find_by_user_id(
+            user_id=user_id, limit=page_size, offset=offset
+        )
