@@ -4,7 +4,6 @@ from typing import Dict
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from internal.bootstrap import bootstrap_services
 from gen.profile.v1.service import profile_service_pb2_grpc
-from gen.profile.v1.messages.profile_command_response_pb2 import ProfileCommandResponse
 from gen.profile.v1.messages.scenario_command_response_pb2 import (
     ScenarioCommandResponse,
 )
@@ -43,58 +42,6 @@ class ProfileServiceServicer(profile_service_pb2_grpc.ProfileServiceServicer):
             context.set_details("Internal server error")
 
     # --- Profile Commands ---
-
-    async def ApproveProfile(self, request, context):
-        try:
-            auth_info = self._extract_auth_headers(context)
-            # Enforce admin permission check
-            if auth_info.get("user_role") != "ADMIN":
-                context.set_code(grpc.StatusCode.PERMISSION_DENIED)
-                context.set_details("Admin only operation")
-                return ProfileCommandResponse()
-
-            async with self.session_factory() as session:
-                profile_cmd, _, _, _ = bootstrap_services(session)
-                await profile_cmd.approve_profile(
-                    companion_id=request.companion_id,
-                    admin_id=request.admin_id or auth_info.get("user_id"),
-                )
-                await session.commit()
-
-            return ProfileCommandResponse(
-                companion_id=request.companion_id,
-                status="SUCCESS",
-                message="Companion profile approved",
-            )
-        except Exception as e:
-            self._handle_exception(context, e)
-            return ProfileCommandResponse(status="FAILED")
-
-    async def RejectProfile(self, request, context):
-        try:
-            auth_info = self._extract_auth_headers(context)
-            if auth_info.get("user_role") != "ADMIN":
-                context.set_code(grpc.StatusCode.PERMISSION_DENIED)
-                context.set_details("Admin only operation")
-                return ProfileCommandResponse()
-
-            async with self.session_factory() as session:
-                profile_cmd, _, _, _ = bootstrap_services(session)
-                await profile_cmd.reject_profile(
-                    companion_id=request.companion_id,
-                    admin_id=request.admin_id or auth_info.get("user_id"),
-                    reason=request.reason,
-                )
-                await session.commit()
-
-            return ProfileCommandResponse(
-                companion_id=request.companion_id,
-                status="SUCCESS",
-                message="Companion profile rejected",
-            )
-        except Exception as e:
-            self._handle_exception(context, e)
-            return ProfileCommandResponse(status="FAILED")
 
     # --- Scenario Commands ---
 

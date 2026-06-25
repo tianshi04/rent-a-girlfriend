@@ -83,7 +83,11 @@ async def run_identity_event_listener():
             try:
                 # CloudEvents structure usually wraps data inside 'data' field
                 event_data = msg.value.get("data", {})
-                user_id = event_data.get("userId") or event_data.get("user_id") or event_data.get("id")
+                user_id = (
+                    event_data.get("userId")
+                    or event_data.get("user_id")
+                    or event_data.get("id")
+                )
 
                 if user_id:
                     logger.info(f"Onboarding wallet for user_id: {user_id}")
@@ -259,7 +263,9 @@ async def run_booking_event_listener():
 
                 elif event_type == "finance.unfreeze-coin.v1":
                     event_data = msg.value.get("data", {})
-                    booking_id = event_data.get("bookingId") or event_data.get("booking_id")
+                    booking_id = event_data.get("bookingId") or event_data.get(
+                        "booking_id"
+                    )
                     client_id = event_data.get("userId") or event_data.get("user_id")
                     amount = event_data.get("amount")
 
@@ -290,8 +296,12 @@ async def run_booking_event_listener():
 
                 elif event_type == "booking.booking-cancelled-early.v1":
                     event_data = msg.value.get("data", {})
-                    booking_id = event_data.get("bookingId") or event_data.get("booking_id")
-                    client_id = event_data.get("clientId") or event_data.get("client_id")
+                    booking_id = event_data.get("bookingId") or event_data.get(
+                        "booking_id"
+                    )
+                    client_id = event_data.get("clientId") or event_data.get(
+                        "client_id"
+                    )
 
                     if booking_id and client_id:
                         logger.info(
@@ -301,14 +311,19 @@ async def run_booking_event_listener():
                             cmd_service = bootstrap_services(session)
                             try:
                                 from internal.domain.vo import TransactionType
+
                                 # Check idempotency
                                 existing_refund = await cmd_service.transaction_repo.find_by_reference_id(
                                     booking_id, TransactionType.REFUND
                                 )
                                 if existing_refund:
-                                    logger.info(f"Refund already exists for booking_id={booking_id}. Skipping.")
+                                    logger.info(
+                                        f"Refund already exists for booking_id={booking_id}. Skipping."
+                                    )
                                 else:
-                                    escrow = await cmd_service.escrow_repo.find_by_booking_id(booking_id)
+                                    escrow = await cmd_service.escrow_repo.find_by_booking_id(
+                                        booking_id
+                                    )
                                     if escrow and escrow.status == "HELD":
                                         await cmd_service.refund_escrow(
                                             booking_id=booking_id,
@@ -318,7 +333,8 @@ async def run_booking_event_listener():
                                     else:
                                         # Refund from frozen
                                         reservation_txn = await cmd_service.transaction_repo.find_by_reference_id(
-                                            booking_id, TransactionType.BOOKING_RESERVATION
+                                            booking_id,
+                                            TransactionType.BOOKING_RESERVATION,
                                         )
                                         if reservation_txn:
                                             await cmd_service.unfreeze_coin(
@@ -345,10 +361,18 @@ async def run_booking_event_listener():
 
                 elif event_type == "booking.booking-cancelled-late.v1":
                     event_data = msg.value.get("data", {})
-                    booking_id = event_data.get("bookingId") or event_data.get("booking_id")
-                    client_id = event_data.get("clientId") or event_data.get("client_id")
-                    companion_id = event_data.get("companionId") or event_data.get("companion_id")
-                    actor_role = event_data.get("actorRole") or event_data.get("actor_role")
+                    booking_id = event_data.get("bookingId") or event_data.get(
+                        "booking_id"
+                    )
+                    client_id = event_data.get("clientId") or event_data.get(
+                        "client_id"
+                    )
+                    companion_id = event_data.get("companionId") or event_data.get(
+                        "companion_id"
+                    )
+                    actor_role = event_data.get("actorRole") or event_data.get(
+                        "actor_role"
+                    )
 
                     if booking_id and client_id and companion_id and actor_role:
                         logger.info(
@@ -358,6 +382,7 @@ async def run_booking_event_listener():
                             cmd_service = bootstrap_services(session)
                             try:
                                 from internal.domain.vo import TransactionType
+
                                 # Check idempotency
                                 existing_refund = await cmd_service.transaction_repo.find_by_reference_id(
                                     booking_id, TransactionType.REFUND
@@ -366,11 +391,15 @@ async def run_booking_event_listener():
                                     booking_id, TransactionType.ESCROW_RELEASE
                                 )
                                 if existing_refund or existing_payout:
-                                    logger.info(f"Refund/Payout already exists for booking_id={booking_id}. Skipping.")
+                                    logger.info(
+                                        f"Refund/Payout already exists for booking_id={booking_id}. Skipping."
+                                    )
                                 else:
                                     if actor_role.upper() == "COMPANION":
                                         # Companion cancelled late -> refund Client 100%
-                                        escrow = await cmd_service.escrow_repo.find_by_booking_id(booking_id)
+                                        escrow = await cmd_service.escrow_repo.find_by_booking_id(
+                                            booking_id
+                                        )
                                         if escrow and escrow.status == "HELD":
                                             await cmd_service.refund_escrow(
                                                 booking_id=booking_id,
@@ -380,7 +409,8 @@ async def run_booking_event_listener():
                                         else:
                                             # Refund from frozen
                                             reservation_txn = await cmd_service.transaction_repo.find_by_reference_id(
-                                                booking_id, TransactionType.BOOKING_RESERVATION
+                                                booking_id,
+                                                TransactionType.BOOKING_RESERVATION,
                                             )
                                             if reservation_txn:
                                                 await cmd_service.unfreeze_coin(
@@ -394,7 +424,9 @@ async def run_booking_event_listener():
                                                 )
                                     elif actor_role.upper() == "CLIENT":
                                         # Client cancelled late -> payout to Companion 100%
-                                        escrow = await cmd_service.escrow_repo.find_by_booking_id(booking_id)
+                                        escrow = await cmd_service.escrow_repo.find_by_booking_id(
+                                            booking_id
+                                        )
                                         if escrow and escrow.status == "HELD":
                                             # Payout to Companion with 0% platform commission
                                             await cmd_service.process_payout(
@@ -407,8 +439,10 @@ async def run_booking_event_listener():
                                                 f"Escrow not found for late cancellation of accepted booking_id={booking_id}"
                                             )
                                     else:
-                                        logger.warning(f"Unknown actor role: {actor_role} for booking_id={booking_id}")
-                                    
+                                        logger.warning(
+                                            f"Unknown actor role: {actor_role} for booking_id={booking_id}"
+                                        )
+
                                     await session.commit()
                                     logger.info(
                                         f"Late cancellation processed successfully for booking_id={booking_id}"

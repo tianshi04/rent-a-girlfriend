@@ -1181,13 +1181,20 @@
           "displayName": {
             "type": "string",
             "title": "Displayname",
-            "description": "Display name for companion profile",
+            "description": "Display name for profile",
             "example": "Kano Chizuru"
           },
-          "introText": {
-            "type": "string",
-            "title": "Introtext",
-            "description": "Introduction text for companion profile",
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio",
+            "description": "Biography/Introduction text",
             "example": "Perfect rental girlfriend"
           },
           "availableCities": {
@@ -1196,7 +1203,7 @@
             },
             "type": "array",
             "title": "Availablecities",
-            "description": "List of cities where companion is active",
+            "description": "List of cities where active",
             "example": [
               "Hanoi",
               "HCM"
@@ -1206,7 +1213,6 @@
         "type": "object",
         "required": [
           "displayName",
-          "introText",
           "availableCities"
         ],
         "title": "CreateProfileRequestBody"
@@ -1392,13 +1398,20 @@
           "displayName": {
             "type": "string",
             "title": "Displayname",
-            "description": "Display name for companion profile",
+            "description": "Display name for profile",
             "example": "Kano Chizuru"
           },
-          "introText": {
-            "type": "string",
-            "title": "Introtext",
-            "description": "Introduction text for companion profile",
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio",
+            "description": "Biography/Introduction text",
             "example": "Perfect rental girlfriend"
           },
           "availableCities": {
@@ -1407,7 +1420,7 @@
             },
             "type": "array",
             "title": "Availablecities",
-            "description": "List of cities where companion is active",
+            "description": "List of cities where active",
             "example": [
               "Hanoi",
               "HCM"
@@ -1430,7 +1443,6 @@
         "type": "object",
         "required": [
           "displayName",
-          "introText",
           "availableCities"
         ],
         "title": "UpdateProfileRequestBody"

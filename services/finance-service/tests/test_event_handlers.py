@@ -92,8 +92,14 @@ async def setup_mock_consumer(monkeypatch, db_session, finance_service, message_
         async def __aexit__(self, exc_type, exc_val, exc_tb):
             pass
 
-    monkeypatch.setattr(server_main, "AIOKafkaConsumer", lambda *args, **kwargs: MockConsumer([MockMessage(message_value)]))
-    monkeypatch.setattr(server_main, "SessionLocal", lambda: MockSessionContext(db_session))
+    monkeypatch.setattr(
+        server_main,
+        "AIOKafkaConsumer",
+        lambda *args, **kwargs: MockConsumer([MockMessage(message_value)]),
+    )
+    monkeypatch.setattr(
+        server_main, "SessionLocal", lambda: MockSessionContext(db_session)
+    )
     monkeypatch.setattr(server_main, "bootstrap_services", lambda sess: finance_service)
 
 
@@ -141,7 +147,9 @@ async def test_booking_cancelled_early_unfreeze(
     assert w.frozen_balance.amount == 0
 
     # Verify refund transaction
-    txn = await finance_service.transaction_repo.find_by_reference_id(booking_id, TransactionType.REFUND)
+    txn = await finance_service.transaction_repo.find_by_reference_id(
+        booking_id, TransactionType.REFUND
+    )
     assert txn is not None
     assert txn.status == "SUCCESS"
 

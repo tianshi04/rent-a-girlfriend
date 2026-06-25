@@ -110,11 +110,9 @@ async def test_presigned_url_invalid_voice_duration(client):
 
 
 async def test_search_companions_camel_case(client, integration_deps, db_session):
-    profile_cmd = integration_deps["profile_cmd"]
     scenario_cmd = integration_deps["scenario_cmd"]
 
-    # 1. Approve the companion profile
-    await profile_cmd.approve_profile("user_companion_123", "admin_user_99")
+    # 1. Add an active scenario with price 150
 
     # 2. Add an active scenario with price 150
     await scenario_cmd.create_scenario(
@@ -216,77 +214,6 @@ async def test_delete_scenario(client, integration_deps, db_session):
     )
     assert response.status_code == 200
     assert response.json() == {"success": True}
-
-
-async def test_approve_profile_success(client, integration_deps, db_session):
-    # Reset profile to PENDING to ensure clean test state (previous tests approve it)
-    profile_repo = integration_deps["profile_repo"]
-    profile = await profile_repo.find_by_id("user_companion_123")
-    profile.status = "PENDING"
-    await profile_repo.save(profile)
-    await db_session.commit()
-
-    headers = {"user-id": "admin_user_99", "user-role": "ADMIN"}
-    payload = {"adminId": "admin_user_99"}
-    response = await client.post(
-        "/admin/companions/user_companion_123/approve",
-        json=payload,
-        headers=headers,
-    )
-    assert response.status_code == 200
-    assert response.json() == {"success": True}
-
-    # Verify state in DB
-    updated_profile = await profile_repo.find_by_id("user_companion_123")
-    assert updated_profile.status == "APPROVED"
-
-
-async def test_reject_profile_success(client, integration_deps, db_session):
-    # Reset profile to PENDING for testing rejection
-    profile_repo = integration_deps["profile_repo"]
-    profile = await profile_repo.find_by_id("user_companion_123")
-    profile.status = "PENDING"
-    await profile_repo.save(profile)
-    await db_session.commit()
-
-    headers = {"user-id": "admin_user_99", "user-role": "ADMIN"}
-    payload = {
-        "adminId": "admin_user_99",
-        "reason": "Voice intro violates platform guidelines",
-    }
-    response = await client.post(
-        "/admin/companions/user_companion_123/reject",
-        json=payload,
-        headers=headers,
-    )
-    assert response.status_code == 200
-    assert response.json() == {"success": True}
-
-    # Verify state in DB
-    updated_profile = await profile_repo.find_by_id("user_companion_123")
-    assert updated_profile.status == "REJECTED"
-
-
-async def test_admin_endpoints_forbidden_for_non_admin(client):
-    headers = {"user-id": "user_companion_123", "user-role": "COMPANION"}
-
-    # Try to approve
-    response = await client.post(
-        "/admin/companions/user_companion_123/approve",
-        json={"adminId": "admin_user_99"},
-        headers=headers,
-    )
-    assert response.status_code == 403
-    assert response.json()["message"] == "Admin only operation"
-
-    # Try to reject
-    response = await client.post(
-        "/admin/companions/user_companion_123/reject",
-        json={"adminId": "admin_user_99", "reason": "No reason"},
-        headers=headers,
-    )
-    assert response.status_code == 403
-    assert response.json()["message"] == "Admin only operation"
 
 
 async def test_create_and_update_my_profile_success(
