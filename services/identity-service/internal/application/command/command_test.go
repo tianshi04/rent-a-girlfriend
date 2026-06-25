@@ -55,6 +55,24 @@ func (m *mockRepo) FindByGoogleID(ctx context.Context, gid string) (*aggregate.U
 	return nil, nil
 }
 
+func (m *mockRepo) FindAll(ctx context.Context, page int, pageSize int) ([]*aggregate.UserAccount, int64, error) {
+	var list []*aggregate.UserAccount
+	for _, a := range m.accounts {
+		list = append(list, a)
+	}
+
+	total := int64(len(list))
+	start := (page - 1) * pageSize
+	if start >= len(list) {
+		return []*aggregate.UserAccount{}, total, nil
+	}
+	end := start + pageSize
+	if end > len(list) {
+		end = len(list)
+	}
+	return list[start:end], total, nil
+}
+
 type mockConfigRepo struct {
 	configs map[string]string
 }

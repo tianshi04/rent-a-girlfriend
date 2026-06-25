@@ -143,6 +143,32 @@ func (r *UserAccountRepoImpl) FindByGoogleID(ctx context.Context, googleID strin
 	return toUserAccountAggregate(&model)
 }
 
+func (r *UserAccountRepoImpl) FindAll(ctx context.Context, page int, pageSize int) ([]*aggregate.UserAccount, int64, error) {
+	query := r.db.WithContext(ctx).Model(&UserAccountModel{})
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * pageSize
+	var models []UserAccountModel
+	if err := query.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&models).Error; err != nil {
+		return nil, 0, err
+	}
+
+	accounts := make([]*aggregate.UserAccount, 0, len(models))
+	for _, m := range models {
+		acc, err := toUserAccountAggregate(&m)
+		if err != nil {
+			return nil, 0, err
+		}
+		accounts = append(accounts, acc)
+	}
+
+	return accounts, total, nil
+}
+
 // --- Mapping helpers ---
 
 func toUserAccountModel(a *aggregate.UserAccount) *UserAccountModel {

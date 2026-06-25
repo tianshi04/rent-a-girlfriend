@@ -21,9 +21,11 @@ import "identity/v1/messages/responses/token_response.proto";
 
 // Account requests
 import "identity/v1/messages/requests/get_account_request.proto";
+import "identity/v1/messages/requests/list_accounts_request.proto";
 
 // Account responses
 import "identity/v1/messages/responses/account_response.proto";
+import "identity/v1/messages/responses/list_accounts_response.proto";
 
 // Upgrade requests
 import "identity/v1/messages/requests/list_upgrade_requests_request.proto";
@@ -45,6 +47,13 @@ service IdentityService {
   rpc GetAccount(GetAccountRequest) returns (AccountResponse) {
     option (google.api.http) = {
       get: "/api/v1/admin/accounts/{id}"
+    };
+  }
+
+  // ListAccounts — lấy danh sách tất cả các tài khoản người dùng (Admin only).
+  rpc ListAccounts(ListAccountsRequest) returns (ListAccountsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/admin/accounts"
     };
   }
 
