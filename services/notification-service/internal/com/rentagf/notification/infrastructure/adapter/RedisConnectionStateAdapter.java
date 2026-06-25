@@ -70,7 +70,10 @@ public class RedisConnectionStateAdapter implements ConnectionStatePort {
     String key = getRedisKey(userId);
     try {
       log.debug("Refreshing online state TTL in Redis for user: {} to {}s", userId, ttlSeconds);
-      redisTemplate.expire(key, ttlSeconds, TimeUnit.SECONDS);
+      // Dùng SET thay vì EXPIRE để đảm bảo key được tái tạo nếu đã bị xóa bởi Redis eviction
+      // hoặc restart. EXPIRE là no-op khi key không tồn tại, dẫn đến isOnline() = false
+      // trong khi client vẫn đang giữ SSE connection active.
+      redisTemplate.opsForValue().set(key, ONLINE_STATUS_VALUE, ttlSeconds, TimeUnit.SECONDS);
     } catch (Exception e) {
       log.error("Failed to refresh online state TTL in Redis for user: {}", userId, e);
     }
