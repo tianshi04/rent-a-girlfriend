@@ -82,18 +82,6 @@ events:
         title: "Booking Cancelled ⚠️"
         body: "Booking #{{bookingId}} has been cancelled by {{actorRole}}."
 
-  booking.booking-accept-saga-failed.v1:
-    type: "TRANSACTIONAL"
-    recipient_field: "clientId"
-    priority: "HIGH"
-    channels: ["SSE", "FCM"]
-    template:
-      vi:
-        title: "Lỗi chấp nhận yêu cầu ❌"
-        body: "Rất tiếc, hệ thống gặp sự cố khi chấp nhận yêu cầu #{{bookingId}}. Chúng tôi đã hoàn trả lại Kano-Coin của bạn."
-      en:
-        title: "Booking Acceptance Failed ❌"
-        body: "Sorry, a technical issue occurred while accepting booking #{{bookingId}}. Your Kano-Coin has been refunded."
 
   # --- FINANCE EVENTS ---
   finance.wallet-topped-up.v1:
@@ -109,18 +97,6 @@ events:
         title: "Top-up Successful 💰"
         body: "You have successfully topped up {{amount}} Kano-Coin."
 
-  finance.deposit-failed.v1:
-    type: "TRANSACTIONAL"
-    recipient_field: "userId"
-    priority: "HIGH"
-    channels: ["SSE"]
-    template:
-      vi:
-        title: "Nạp tiền thất bại ❌"
-        body: "Giao dịch nạp {{amount}} Kano-Coin của bạn đã thất bại. Lý do: {{reason}}."
-      en:
-        title: "Top-up Failed ❌"
-        body: "Your deposit of {{amount}} Kano-Coin failed. Reason: {{reason}}."
 
   finance.payout-processed.v1:
     type: "TRANSACTIONAL"
@@ -136,18 +112,6 @@ events:
         body: "You received {{netAmount}} Kano-Coin for booking #{{bookingId}}."
 
   # --- INTERACTION EVENTS ---
-  interaction.chat-message-sent.v1:
-    type: "INTERACTION"
-    recipient_field: "recipientId"
-    priority: "MEDIUM"
-    channels: ["SSE", "FCM"]
-    template:
-      vi:
-        title: "Tin nhắn từ {{senderName}}"
-        body: "{{snippet}}"
-      en:
-        title: "Message from {{senderName}}"
-        body: "{{snippet}}"
 
   interaction.review-submitted.v1:
     type: "INTERACTION"
@@ -189,18 +153,6 @@ events:
         title: "Profile Rejected 😔"
         body: "Sorry, your Companion profile was not approved. Reason: {{reason}}."
 
-  profile.scenario-rejected.v1:
-    type: "TRANSACTIONAL"
-    recipient_field: "companionId"
-    priority: "MEDIUM"
-    channels: ["SSE"]
-    template:
-      vi:
-        title: "Kịch bản bị từ chối ❌"
-        body: "Kịch bản của bạn đã bị từ chối. Lý do: {{reason}}."
-      en:
-        title: "Scenario Rejected ❌"
-        body: "Your scenario has been rejected. Reason: {{reason}}."
 
   profile.voice-intro-rejected.v1:
     type: "TRANSACTIONAL"
@@ -215,18 +167,6 @@ events:
         title: "Voice Intro Rejected 🎤"
         body: "Your voice intro has been rejected. Reason: {{reason}}."
 
-  profile.album-image-rejected.v1:
-    type: "TRANSACTIONAL"
-    recipient_field: "companionId"
-    priority: "MEDIUM"
-    channels: ["SSE"]
-    template:
-      vi:
-        title: "Ảnh bị từ chối 📷"
-        body: "Ảnh album của bạn đã bị từ chối. Lý do: {{reason}}."
-      en:
-        title: "Album Image Rejected 📷"
-        body: "Your album image has been rejected. Reason: {{reason}}."
 
   # --- IDENTITY EVENTS ---
   identity.companion-upgrade-approved.v1:
